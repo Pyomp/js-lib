@@ -72,16 +72,13 @@ class GLBinaryData {
     }
 }
 
-export class GlbLoader {
-
-    /**
-     * @param {URL | string} url 
-     */
-    async load(url) {
-        if (typeof fetch === 'undefined') {
-            return getGltfData(new GLBinaryData((await import('fs')).readFileSync(url)))
-        } else {
-            return getGltfData(new GLBinaryData(await (await fetch(url)).arrayBuffer()))
-        }
+/**
+* @param {URL | string} url 
+*/
+export async function loadGLTF(url) {
+    if (typeof fetch === 'undefined') {
+        return getGltfData(new GLBinaryData((await import('fs')).readFileSync(url)))
+    } else {
+        return getGltfData(new GLBinaryData(await (await fetch(url)).arrayBuffer()))
     }
 }

@@ -1,49 +1,3 @@
-declare type Program = import("./Program.js").Program;
-declare type Vao = import("./Vao.js").Vao;
-declare type Renderer = import("./Renderer.js").Renderer;
-
-declare type LightsOptions = {
-  directionalLightMaxCount: number;
-  pointLightMaxCount: number;
-  pointLightFadeTime: number;
-};
-
-declare type ParticleOptions = {
-  count: number;
-  frequency: number;
-};
-
-declare type DrawOptions = {
-  particlesEnabled: boolean;
-  depthFrameBuffer: boolean;
-  resolutionFactor: number;
-};
-
-declare type CameraOptions = {
-  near: number;
-  far: number;
-  fov: number;
-};
-
-declare type RendererOptions = {
-  camera: CameraOptions;
-  draw: DrawOptions;
-  renderer: WebGLContextAttributes;
-  lights: LightsOptions;
-  particles: ParticleOptions;
-};
-
-declare type TypedArray =
-  | Uint8Array
-  | Uint16Array
-  | Uint32Array
-  | Float32Array
-  | Float64Array
-  | Int16Array
-  | Int32Array;
-
-declare type WebGlAttributeUsage = 'STATIC_DRAW' | 'DYNAMIC_DRAW' | 'STREAM_DRAW' | 'STATIC_READ' | 'DYNAMIC_READ' | 'STREAM_READ' | 'STATIC_COPY' | 'DYNAMIC_COPY' | 'STREAM_COPY'
-
 declare namespace WebGl {
   namespace Texture {
     type Target = 'TEXTURE_2D' | 'TEXTURE_CUBE_MAP_POSITIVE_X' | 'TEXTURE_CUBE_MAP_NEGATIVE_X' | 'TEXTURE_CUBE_MAP_POSITIVE_Y' | 'TEXTURE_CUBE_MAP_NEGATIVE_Y' | 'TEXTURE_CUBE_MAP_POSITIVE_Z' | 'TEXTURE_CUBE_MAP_NEGATIVE_Z'
@@ -59,7 +13,11 @@ declare namespace WebGl {
     type Format = 'DEPTH_COMPONENT' | 'RGB' | 'RGBA' | 'LUMINANCE_ALPHA' | 'LUMINANCE' | 'ALPHA' | 'RED' | 'RED_INTEGER' | 'RG' | 'RG_INTEGER' | 'RGB_INTEGER' | 'RGBA_INTEGER'
 
     type Type = 'UNSIGNED_INT' | 'UNSIGNED_SHORT' | 'UNSIGNED_BYTE' | 'UNSIGNED_SHORT_5_6_5' | 'UNSIGNED_SHORT_4_4_4_4' | 'UNSIGNED_SHORT_5_5_5_1' | 'HALF_FLOAT' | 'FLOAT' | 'UNSIGNED_INT_10F_11F_11F_REV' | 'HALF_FLOAT' | 'UNSIGNED_INT_2_10_10_10_REV'
+  }
 
+  namespace Vao {
+    type Type = 'BYTE' | 'SHORT' | 'UNSIGNED_BYTE' | 'UNSIGNED_SHORT' | 'FLOAT'
 
+    type Usage = 'STATIC_DRAW' | 'DYNAMIC_DRAW' | 'STREAM_DRAW' | 'STATIC_READ' | 'DYNAMIC_READ' | 'STREAM_READ' | 'STATIC_COPY' | 'DYNAMIC_COPY' | 'STREAM_COPY'
   }
 }

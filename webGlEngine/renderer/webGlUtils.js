@@ -44,42 +44,6 @@ export const UniformUpdates = [
     glUniformMatrix4,
 ]
 
-/**
- * @param {WebGL2RenderingContext} gl 
- * @param {WebGLShader} vertexShader 
- * @param {WebGLShader} fragmentShader 
- */
-export const createProgram = (gl, vertexShader, fragmentShader) => {
-    const program = gl.createProgram()
-    gl.attachShader(program, vertexShader)
-    gl.attachShader(program, fragmentShader)
-    gl.linkProgram(program)
-    if (gl.getProgramParameter(program, gl.LINK_STATUS)) {
-        return program
-    } else {
-        console.warn(gl.getProgramInfoLog(program))
-        gl.deleteProgram(program)
-    }
-}
-
-/**
- * @param {WebGL2RenderingContext} gl 
- * @param {number} type 
- * @param {string} source 
- */
-export const createShader = (gl, type, source) => {
-    const shader = gl.createShader(type)
-    gl.shaderSource(shader, source)
-    gl.compileShader(shader)
-    // console.warn(('\n' + source).split('\n').map((a, i) => `${i} ${a}`).join('\n'))    
-    if (gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-        return shader
-    } else {
-        console.warn(('\n' + source).split('\n').map((a, i) => `${i} ${a}`).join('\n'))
-        console.warn(gl.getShaderInfoLog(shader))
-        gl.deleteShader(shader)
-    }
-}
 
 export function checkFrameBufferStatus(/** @type {WebGL2RenderingContext} */ gl) {
     const result = gl.checkFramebufferStatus(gl.FRAMEBUFFER)

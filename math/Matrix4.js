@@ -786,6 +786,31 @@ class Matrix4 {
         return this
     }
 
+    perspective(fieldOfViewInRadians, aspect, near, far) {
+        const te = this.elements
+        var f = Math.tan(Math.PI * 0.5 - 0.5 * fieldOfViewInRadians)
+        var rangeInv = 1.0 / (near - far)
+
+        te[0] = f / aspect
+        te[1] = 0
+        te[2] = 0
+        te[3] = 0
+        te[4] = 0
+        te[5] = f
+        te[6] = 0
+        te[7] = 0
+        te[8] = 0
+        te[9] = 0
+        te[10] = (near + far) * rangeInv
+        te[11] = -1
+        te[12] = 0
+        te[13] = 0
+        te[14] = near * far * rangeInv * 2
+        te[15] = 0
+
+        return this
+    }
+
     makeOrthographic(left, right, top, bottom, near, far) {
 
         const te = this.elements

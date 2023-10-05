@@ -1,5 +1,3 @@
-import { Texture } from "../renderer/models/Texture.js"
-
 const TYPE_CLASS = {
     '5120': Int8Array,    // gl.BYTE
     '5121': Uint8Array,   // gl.UNSIGNED_BYTE
@@ -124,14 +122,3 @@ export function getGltfData(gltf) {
 
     return gltfNodes
 }
-
-export function addTexture(node, u_textureName, url) {
-    const texture = new Texture({})
-    texture.data.src = url.href
-
-    for (const primitive of node.mesh.primitives) {
-        primitive.material.textures[u_textureName] = texture
-    }
-}
-
-
