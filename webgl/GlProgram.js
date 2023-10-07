@@ -1,31 +1,76 @@
+import { GlUbo } from "./GlUbo.js"
+import { GlVao } from "./GlVao.js"
+
 export class GlProgram {
-    /** @type {WebGLProgram} */ program
-    /** @type {{[uniformName: string]: (data: number | number[]) => void}} */ uniforms
+    /** @type {{[uniformName: string]: ((data: number | Vector2 | Vector3 | Vector4 | Matrix3 | Matrix4) => void)}} */
+    uniformUpdate = {}
+    /** @type {{[textureName: string]: number}} */
+    textureUnit = {}
 
-    /** @type {WebGL2RenderingContext} */ #gl
+    /** @type {WebGL2RenderingContext} */
+    #gl
+    /** @type {WebGLProgram} */
+    #program
 
-    constructor(gl, vertexShader, fragmentShader) {
-        const glVertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShader)
-        const glFragmentShader = createShader(gl, gl.VERTEX_SHADER, fragmentShader)
-
-        this.program = createProgram(gl, glVertexShader, glFragmentShader)
-
-        gl.detachShader(this.program, glVertexShader)
-        gl.deleteShader(glVertexShader)
-        gl.detachShader(this.program, glFragmentShader)
-        gl.deleteShader(glFragmentShader)
-
+    /**
+     * 
+     * @param {WebGL2RenderingContext} gl 
+     * @param {string} vertexShader 
+     * @param {string} fragmentShader 
+     * @param {{[UboName: string]: GlUbo}} Ubo
+     */
+    constructor(gl, vertexShader, fragmentShader, Ubo = {}) {
         this.#gl = gl
 
-        this.uniforms = createUniformUpdates(gl, this.program)
+        const glVertexShader = createShader(gl, WebGL2RenderingContext.VERTEX_SHADER, vertexShader)
+        const glFragmentShader = createShader(gl, WebGL2RenderingContext.FRAGMENT_SHADER, fragmentShader)
+
+        this.#program = createProgram(gl, glVertexShader, glFragmentShader)
+
+        gl.detachShader(this.#program, glVertexShader)
+        gl.deleteShader(glVertexShader)
+        gl.detachShader(this.#program, glFragmentShader)
+        gl.deleteShader(glFragmentShader)
+
+        { // uniforms setup
+            const activeUniformCount = gl.getProgramParameter(this.#program, WebGL2RenderingContext.ACTIVE_UNIFORMS)
+
+            gl.useProgram(this.#program)
+
+            let unit = 0
+
+            for (let i = 0; i < activeUniformCount; i++) {
+                const { type, name } = gl.getActiveUniform(this.#program, i)
+
+                if (Ubo[name]) {
+                    this.#gl.uniformBlockBinding(this.#program, this.#gl.getUniformBlockIndex(this.#program, name), Ubo[name].index)
+                } else if (type === WebGL2RenderingContext.SAMPLER_2D || type === WebGL2RenderingContext.SAMPLER_CUBE) {
+                    gl.uniform1i(gl.getUniformLocation(this.#program, name), unit)
+                    this.textureUnit[name] = WebGL2RenderingContext[`TEXTURE${unit}`]
+                    unit++
+                } else {
+                    this.uniformUpdate[name] = createUniformUpdateFunction[type](gl, gl.getUniformLocation(this.#program, name))
+                }
+            }
+        }
+    }
+
+    /**
+     * 
+     * @param {{[attributeName: string]: WebGl.Attribute}} attributes 
+     * @param {Uint16Array} indices 
+     * @returns 
+     */
+    createVao(attributes, indices) {
+        return new GlVao(this.#gl, this.#program, attributes, indices)
     }
 
     useProgram() {
-        this.#gl.useProgram(this.program)
+        this.#gl.useProgram(this.#program)
     }
 
     dispose() {
-        this.#gl.deleteProgram(this.program)
+        this.#gl.deleteProgram(this.#program)
     }
 }
 
@@ -69,9 +114,26 @@ function createShader(gl, type, source) {
     }
 }
 
-/////////////////////// Uniforms /////////////////////////////
-
 const createUniformUpdateFunction = {
+    [WebGL2RenderingContext.FLOAT]: (gl, location) => (data) => { gl.uniform1f(location, data) },
+    [WebGL2RenderingContext.FLOAT_VEC2]: (gl, location) => (vector2) => { gl.uniform2f(location, vector2.x, vector2.y) },
+    [WebGL2RenderingContext.FLOAT_VEC3]: (gl, location) => (vector3) => { gl.uniform3f(location, vector3.x, vector3.y, vector3.z) },
+    [WebGL2RenderingContext.FLOAT_VEC4]: (gl, location) => (vector4) => { gl.uniform4f(location, vector4.x, vector4.y, vector4.z, vector4.w) },
+    [WebGL2RenderingContext.INT]: (gl, location) => (data) => { gl.uniform1i(location, data) },
+    [WebGL2RenderingContext.INT_VEC2]: (gl, location) => (vector2) => { gl.uniform2i(location, vector2.x, vector2.y) },
+    [WebGL2RenderingContext.INT_VEC3]: (gl, location) => (vector3) => { gl.uniform3i(location, vector3.x, vector3.y, vector3.z) },
+    [WebGL2RenderingContext.INT_VEC4]: (gl, location) => (vector4) => { gl.uniform4i(location, vector4.x, vector4.y, vector4.z, vector4.w) },
+    [WebGL2RenderingContext.BOOL]: (gl, location) => (data) => { gl.uniform1i(location, data) },
+    [WebGL2RenderingContext.BOOL_VEC2]: (gl, location) => (data) => { gl.uniform2iv(location, data) },
+    [WebGL2RenderingContext.BOOL_VEC3]: (gl, location) => (data) => { gl.uniform3iv(location, data) },
+    [WebGL2RenderingContext.BOOL_VEC4]: (gl, location) => (data) => { gl.uniform4iv(location, data) },
+    [WebGL2RenderingContext.FLOAT_MAT2]: (gl, location) => (data) => { gl.uniformMatrix2fv(location, false, data) },
+    [WebGL2RenderingContext.FLOAT_MAT3]: (gl, location) => (data) => { gl.uniformMatrix3fv(location, false, data.elements) },
+    [WebGL2RenderingContext.FLOAT_MAT4]: (gl, location) => (data) => { gl.uniformMatrix4fv(location, false, data.elements) },
+}
+
+/** I keep it there for information, it is when data is an array (not a vector3 from math lib)*/
+const createUniformUpdateFunctionByArray = {
     [WebGL2RenderingContext.FLOAT]: (gl, location) => (data) => { gl.uniform1f(location, data) },
     [WebGL2RenderingContext.FLOAT_VEC2]: (gl, location) => (data) => { gl.uniform2fv(location, data) },
     [WebGL2RenderingContext.FLOAT_VEC3]: (gl, location) => (data) => { gl.uniform3fv(location, data) },
@@ -87,26 +149,4 @@ const createUniformUpdateFunction = {
     [WebGL2RenderingContext.FLOAT_MAT2]: (gl, location) => (data) => { gl.uniformMatrix2fv(location, false, data) },
     [WebGL2RenderingContext.FLOAT_MAT3]: (gl, location) => (data) => { gl.uniformMatrix3fv(location, false, data) },
     [WebGL2RenderingContext.FLOAT_MAT4]: (gl, location) => (data) => { gl.uniformMatrix4fv(location, false, data) },
-    [WebGL2RenderingContext.SAMPLER_2D]: (gl, location) => (unit) => { gl.uniform1i(location, unit) },
-    [WebGL2RenderingContext.SAMPLER_CUBE]: (gl, location) => (unit) => { gl.uniform1i(location, unit) },
-}
-
-/**
-    * 
-    * @param {WebGL2RenderingContext} gl 
-    * @param {WebGLProgram} program 
-    */
-export function createUniformUpdates(gl, program) {
-    const activeUniformCount = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS)
-
-    /** @type {{[uniformName: string]: (data: number | number[]) => void}} */
-    const uniforms = {}
-
-    for (let i = 0; i < activeUniformCount; i++) {
-        const { type, name } = gl.getActiveUniform(program, i)
-        const location = gl.getUniformLocation(program, name)
-        uniforms[name] = createUniformUpdateFunction[type](gl, location)
-    }
-
-    return uniforms
 }

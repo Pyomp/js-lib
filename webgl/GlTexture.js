@@ -1,90 +1,112 @@
 export class GlTexture {
     /** @type {WebGL2RenderingContext} */ #gl
 
-    /** @type {WebGLTexture} */ texture
+    /** @type {WebGLTexture} */ #texture
+
+    #target
+
+    #needsMipmap
+
+    #format
+
+    #type
 
     /**
-     * @param {WebGL2RenderingContext} gl 
-     */
-    constructor(gl) {
-        this.texture = gl.createTexture()
-        this.#gl = gl
-    }
-
-    /**
+     * 
      * @param {{
-     *      target?: WebGl.Texture.Target
-     *      wrapS?: WebGl.Texture.Wrap
-     *      wrapT?: WebGl.Texture.Wrap
-     *      minFilter?: WebGl.Texture.MinFilter
-     *      magFilter?: WebGl.Texture.MagFilter
+     *  gl: WebGL2RenderingContext
+     *  target?: WebGl.Texture.Target
+     *  wrapS?: WebGl.Texture.Wrap
+     *  wrapT?: WebGl.Texture.Wrap
+     *  minFilter?: WebGl.Texture.MinFilter
+     *  magFilter?: WebGl.Texture.MagFilter
+     *  level?: GLint
+     *  internalformat?: WebGl.Texture.InternalFormat
+     *  width?: GLsizei
+     *  height?: GLsizei
+     *  border?: GLint
+     *  format?: WebGl.Texture.Format
+     *  type?: WebGl.Texture.Type
+     *  data: WebGl.Texture.Pixels
+     *  needsMipmap?: boolean
      * }} param0 
      */
-    updateParameters({
+    constructor({
+        gl,
         target = 'TEXTURE_2D',
         wrapS = 'CLAMP_TO_EDGE',
         wrapT = 'CLAMP_TO_EDGE',
         minFilter = 'LINEAR',
         magFilter = 'LINEAR',
-    }) {
-        this.#gl.bindTexture(this.#gl[target], this.texture)
-        this.#gl.texParameteri(this.#gl[target], this.#gl.TEXTURE_WRAP_S, this.#gl[wrapS])
-        this.#gl.texParameteri(this.#gl[target], this.#gl.TEXTURE_WRAP_T, this.#gl[wrapT])
-        this.#gl.texParameteri(this.#gl[target], this.#gl.TEXTURE_MIN_FILTER, this.#gl[minFilter])
-        this.#gl.texParameteri(this.#gl[target], this.#gl.TEXTURE_MAG_FILTER, this.#gl[magFilter])
-    }
-
-    /**
-     * @param {{
-     *      target?: WebGl.Texture.Target
-     *      level?: GLint
-     *      internalformat?: WebGl.Texture.InternalFormat
-     *      width?: GLsizei
-     *      height?: GLsizei
-     *      border?: GLint
-     *      format?: WebGl.Texture.Format
-     *      type?: WebGl.Texture.Type
-     *      data: any
-     *      needsMipmap?: boolean
-     * }} param0 
-    */
-    updateData({
-        target = 'TEXTURE_2D',
-        level = 0,
         internalformat = 'RGBA',
         width,
         height,
         border = 0,
         format = 'RGBA',
         type = 'UNSIGNED_BYTE',
-        data,
-        needsMipmap = false
+        data = null,
+        needsMipmap = true
     }) {
-        this.#gl.bindTexture(this.#gl[target], this.texture)
+        this.#texture = gl.createTexture()
 
-        this.#gl.texImage2D(
-            this.#gl[target],
-            level,
-            this.#gl[internalformat],
-            width ?? data.width,
-            height ?? data.height,
+        this.#target = WebGL2RenderingContext[target]
+        this.#format = WebGL2RenderingContext[format]
+        this.#type = WebGL2RenderingContext[type]
+
+        gl.bindTexture(this.#target, this.#texture)
+
+        gl.texParameteri(this.#target, WebGL2RenderingContext.TEXTURE_WRAP_S, WebGL2RenderingContext[wrapS])
+        gl.texParameteri(this.#target, WebGL2RenderingContext.TEXTURE_WRAP_T, WebGL2RenderingContext[wrapT])
+        gl.texParameteri(this.#target, WebGL2RenderingContext.TEXTURE_MIN_FILTER, WebGL2RenderingContext[minFilter])
+        gl.texParameteri(this.#target, WebGL2RenderingContext.TEXTURE_MAG_FILTER, WebGL2RenderingContext[magFilter])
+
+        gl.texImage2D(
+            this.#target,
+            0, // level
+            WebGL2RenderingContext[internalformat],
+            // @ts-ignore ts is bad for this kind of line
+            width ?? data.width ?? data.length,
+            // @ts-ignore ts is bad for this kind of line
+            height ?? data.height ?? 1,
             border,
-            this.#gl[format],
-            this.#gl[type],
+            this.#format,
+            this.#type,
+            // @ts-ignore ts want ArrayBufferView but WebGl.Texture.Pixels is more precise
             data
         )
 
-        if (needsMipmap) this.#gl.generateMipmap(this.#gl[target])
+        if (needsMipmap) gl.generateMipmap(this.#target)
+        this.#needsMipmap = needsMipmap
+
+        this.#gl = gl
     }
 
     /**
-     * @param {{
-     *      unit: number
-     *      target?: WebGl.Texture.Target
-     * }} param0 
+     * @param {WebGl.Texture.Pixels} data
+    */
+    updateData(data) {
+        this.#gl.bindTexture(this.#target, this.#texture)
+
+        this.#gl.texSubImage2D(
+            this.#target,
+            0,
+            0,
+            0,
+            this.#format,
+            this.#type,
+            // @ts-ignore ts want ArrayBufferView but WebGl.Texture.Pixels is more precise
+            data
+        )
+
+        if (this.#needsMipmap) this.#gl.generateMipmap(this.#target)
+    }
+
+    /**
+     * 
+     * @param {number} unit 
      */
-    bindTexture({ unit, target = 'TEXTURE_2D' }) {
+    bindToUnit(unit) {
         this.#gl.activeTexture(unit)
-        this.#gl.bindTexture(this.#gl[target], this.texture)
+        this.#gl.bindTexture(this.#target, this.#texture)
     }
 }

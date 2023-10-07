@@ -11,9 +11,17 @@ export class GlState {
         this.#gl.enable(this.#gl.CULL_FACE)
         this.setFrontFace()
         this.#gl.enable(this.#gl.DEPTH_TEST)
+        this.#gl.depthMask(true)
         this.#gl.disable(this.#gl.BLEND)
     }
 
+    setClearColor(r, g, b, a) {
+        this.#gl.clearColor(r, g, b, a)
+    }
+    clear() {
+        this.#gl.clear(WebGL2RenderingContext.COLOR_BUFFER_BIT | WebGL2RenderingContext.DEPTH_BUFFER_BIT)
+    }
+    
     #cullFace = true
     get cullFace() { return this.#cullFace }
     set cullFace(value) {
@@ -67,7 +75,7 @@ export class GlState {
             }
         }
     }
-    
+
     #depthWrite = true
     get depthWrite() { return this.#depthWrite }
     set depthWrite(value) {

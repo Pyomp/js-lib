@@ -255,3 +255,23 @@ export function setQuaternionFromProperEuler(q, a, b, c, order) {
 	}
 
 }
+
+export function addVector3Callback(vector3, callback) {
+	let x = vector3.x
+	let y = vector3.y
+	let z = vector3.z
+	Object.defineProperties(vector3, {
+		x: {
+			set(value) { x = value; callback() },
+			get() { return x }
+		},
+		y: {
+			set(value) { y = value; callback() },
+			get() { return y }
+		},
+		z: {
+			set(value) { z = value; callback() },
+			get() { return z }
+		}
+	})
+}
