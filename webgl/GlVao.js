@@ -36,8 +36,6 @@ export class GlVao {
 
             this.count = attributes[name].data.length / size
 
-            const isFloatAttribute = isFloat(type)
-
             const location = gl.getAttribLocation(program, name)
 
             const buffer = gl.createBuffer()
@@ -45,7 +43,7 @@ export class GlVao {
             gl.bufferData(WebGL2RenderingContext.ARRAY_BUFFER, attributes[name].data, WebGL2RenderingContext[attributes[name].usage || 'STATIC_DRAW'])
             gl.enableVertexAttribArray(location)
 
-            if (isFloatAttribute) {
+            if (isFloat(type)) {
                 gl.vertexAttribPointer(location, size, WebGL2RenderingContext.FLOAT, false, 0, 0,)
             } else {
                 gl.vertexAttribIPointer(location, size, WebGL2RenderingContext.INT, 0, 0)

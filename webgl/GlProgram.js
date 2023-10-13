@@ -17,39 +17,50 @@ export class GlProgram {
      * @param {WebGL2RenderingContext} gl 
      * @param {string} vertexShader 
      * @param {string} fragmentShader 
-     * @param {{[UboName: string]: GlUbo}} Ubo
+     * @param {{[UboName: string]: number}} uboIndex
      */
-    constructor(gl, vertexShader, fragmentShader, Ubo = {}) {
+    constructor(gl, vertexShader, fragmentShader, uboIndex = {}) {
         this.#gl = gl
 
         const glVertexShader = createShader(gl, WebGL2RenderingContext.VERTEX_SHADER, vertexShader)
         const glFragmentShader = createShader(gl, WebGL2RenderingContext.FRAGMENT_SHADER, fragmentShader)
 
-        this.#program = createProgram(gl, glVertexShader, glFragmentShader)
-
-        gl.detachShader(this.#program, glVertexShader)
+        const program = createProgram(gl, glVertexShader, glFragmentShader)
+        this.#program = program
+        gl.detachShader(program, glVertexShader)
         gl.deleteShader(glVertexShader)
-        gl.detachShader(this.#program, glFragmentShader)
+        gl.detachShader(program, glFragmentShader)
         gl.deleteShader(glFragmentShader)
 
         { // uniforms setup
-            const activeUniformCount = gl.getProgramParameter(this.#program, WebGL2RenderingContext.ACTIVE_UNIFORMS)
+            gl.useProgram(program)
 
-            gl.useProgram(this.#program)
+            const activeUboCount = gl.getProgramParameter(program, WebGL2RenderingContext.ACTIVE_UNIFORM_BLOCKS)
+
+            const uniformIndexFromUbo = []
+
+            for (let i = 0; i < activeUboCount; i++) {
+                const name = gl.getActiveUniformBlockName(program, i)
+                if (uboIndex[name] !== undefined) {
+                    gl.uniformBlockBinding(program, i, uboIndex[name])
+                    uniformIndexFromUbo.push(...gl.getActiveUniformBlockParameter(program, i, WebGL2RenderingContext.UNIFORM_BLOCK_ACTIVE_UNIFORM_INDICES))
+                }
+            }
+
+            const activeUniformCount = gl.getProgramParameter(program, WebGL2RenderingContext.ACTIVE_UNIFORMS)
 
             let unit = 0
 
             for (let i = 0; i < activeUniformCount; i++) {
-                const { type, name } = gl.getActiveUniform(this.#program, i)
+                if (uniformIndexFromUbo.includes(i)) continue
 
-                if (Ubo[name]) {
-                    this.#gl.uniformBlockBinding(this.#program, this.#gl.getUniformBlockIndex(this.#program, name), Ubo[name].index)
-                } else if (type === WebGL2RenderingContext.SAMPLER_2D || type === WebGL2RenderingContext.SAMPLER_CUBE) {
-                    gl.uniform1i(gl.getUniformLocation(this.#program, name), unit)
+                const { type, name } = gl.getActiveUniform(program, i)
+                if (type === WebGL2RenderingContext.SAMPLER_2D || type === WebGL2RenderingContext.SAMPLER_CUBE) {
+                    gl.uniform1i(gl.getUniformLocation(program, name), unit)
                     this.textureUnit[name] = WebGL2RenderingContext[`TEXTURE${unit}`]
                     unit++
                 } else {
-                    this.uniformUpdate[name] = createUniformUpdateFunction[type](gl, gl.getUniformLocation(this.#program, name))
+                    this.uniformUpdate[name] = createUniformUpdateFunction[type](gl, gl.getUniformLocation(program, name))
                 }
             }
         }

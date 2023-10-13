@@ -1,7 +1,7 @@
-import { Frustum } from "./Frustum.js"
-import { DEG2RAD, addVector3Callback } from "./MathUtils.js"
-import { Matrix4 } from "./Matrix4.js"
-import { Vector3, _up } from "./Vector3.js"
+import { Frustum } from "../../math/Frustum.js"
+import { DEG2RAD, addVector3Callback } from "../../math/MathUtils.js"
+import { Matrix4 } from "../../math/Matrix4.js"
+import { Vector3, _up } from "../../math/Vector3.js"
 
 const _vec3 = new Vector3()
 export class Camera {
@@ -42,6 +42,8 @@ export class Camera {
     }
 
     update() {
+        this.hasChanged = false
+
         if (this.#cameraHasMoved) {
             this.#updateWorldCameraMatrixPosition()
             this.#lookAt(this.target)
@@ -55,6 +57,7 @@ export class Camera {
         if (this.#projectionNeedsUpdate || this.#cameraHasMoved) {
             this.#updateProjectionViewMatrix()
             this.#updateFrustum()
+            this.hasChanged = true
         }
 
         this.#cameraHasMoved = false

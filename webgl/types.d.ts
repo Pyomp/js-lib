@@ -27,4 +27,9 @@ declare namespace WebGl {
     data: Uint8Array | Int8Array | Uint16Array | Int16Array | Uint32Array | Int32Array | Float32Array
     usage?: Vao.Usage
   }
+
+  namespace Render {
+    type DrawMode = 'POINTS' | 'LINE_STRIP' | 'LINE_LOOP' | 'LINES' | 'TRIANGLE_STRIP' | 'TRIANGLE_FAN' | 'TRIANGLES'
+
+  }
 }
