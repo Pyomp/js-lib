@@ -11,6 +11,10 @@ export class GlTexture {
 
     #type
 
+    #width
+
+    #height
+
     /**
      * 
      * @param {{
@@ -53,6 +57,11 @@ export class GlTexture {
         this.#format = WebGL2RenderingContext[format]
         this.#type = WebGL2RenderingContext[type]
 
+        // @ts-ignore ts is bad for this kind of line
+        this.#width = width ?? data.width ?? data.length
+        // @ts-ignore ts is bad for this kind of line
+        this.#height = height ?? data.height ?? 1
+
         gl.bindTexture(this.#target, this.#texture)
 
         gl.texParameteri(this.#target, WebGL2RenderingContext.TEXTURE_WRAP_S, WebGL2RenderingContext[wrapS])
@@ -64,10 +73,8 @@ export class GlTexture {
             this.#target,
             0, // level
             WebGL2RenderingContext[internalformat],
-            // @ts-ignore ts is bad for this kind of line
-            width ?? data.width ?? data.length,
-            // @ts-ignore ts is bad for this kind of line
-            height ?? data.height ?? 1,
+            this.#width,
+            this.#height,
             border,
             this.#format,
             this.#type,
@@ -83,8 +90,10 @@ export class GlTexture {
 
     /**
      * @param {WebGl.Texture.Pixels} data
+     * @param {number?} unit texture unit
     */
-    updateData(data) {
+    updateData(data, unit) {
+        if (unit !== undefined) this.#gl.activeTexture(unit)
         this.#gl.bindTexture(this.#target, this.#texture)
 
         this.#gl.texSubImage2D(
@@ -92,6 +101,8 @@ export class GlTexture {
             0,
             0,
             0,
+            this.#width,
+            this.#height,
             this.#format,
             this.#type,
             // @ts-ignore ts want ArrayBufferView but WebGl.Texture.Pixels is more precise

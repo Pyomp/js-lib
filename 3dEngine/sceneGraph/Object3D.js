@@ -1,14 +1,10 @@
 import { Box3 } from "../../math/Box3.js"
-import { Attribute } from "./Attribute.js"
+import { Geometry } from "./Geometry.js"
 import { Material } from "./Material.js"
 import { Texture } from "./Texture.js"
 import { Uniform } from "./Uniform.js"
 
 export class Object3D {
-    drawRange = {
-        offset: 0,
-        count: -1
-    }
     drawMode
 
     boundingBox = new Box3()
@@ -16,22 +12,20 @@ export class Object3D {
     /**
      * 
      * @param {{
-     *  material: Material,
-     *  attributes: {[name: string]: Attribute},
-     *  indices: Uint16Array,
-     *  drawMode: WebGl.Render.DrawMode
-     *  uniforms: {[name: string]: Uniform},
-     *  textures: {[name: string]: Texture},
-     *  blending: boolean
-     *  depthTest: boolean
-     *  depthWrite: boolean
-     *  cullFace: boolean
+     *  material: Material
+     *  geometry: Geometry
+     *  drawMode?: WebGl.Render.DrawMode
+     *  uniforms?: {[name: string]: Uniform}
+     *  textures?: {[name: string]: Texture}
+     *  blending?: boolean
+     *  depthTest?: boolean
+     *  depthWrite?: boolean
+     *  cullFace?: boolean
      * }} param0 
      */
     constructor({
         material,
-        attributes = {},
-        indices = null,
+        geometry,
         drawMode = 'TRIANGLES',
         uniforms = {},
         textures = {},
@@ -41,8 +35,7 @@ export class Object3D {
         cullFace = true
     }) {
         this.material = material
-        this.attributes = attributes
-        this.indices = indices
+        this.geometry = geometry
 
         this.drawMode = WebGL2RenderingContext[drawMode]
 

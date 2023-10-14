@@ -1,8 +1,8 @@
 import { Box3 } from "../../math/Box3.js"
-import { GlContext } from "../GlContext.js"
-import { GlProgram } from "../GlProgram.js"
-import { GlTexture } from "../GlTexture.js"
-import { GlVao } from "../GlVao.js"
+import { GlContext } from "../webgl/GlContext.js"
+import { GlProgram } from "../webgl/GlProgram.js"
+import { GlTexture } from "../webgl/GlTexture.js"
+import { GlVao } from "../webgl/GlVao.js"
 import { Camera } from "./Camera.js"
 import { Material } from "./Material.js"
 import { Node3D } from "./Node3D.js"
@@ -13,25 +13,57 @@ import { Texture } from "./Texture.js"
 const _box3 = new Box3()
 
 export class Renderer {
-    canvas = document.createElement('canvas')
+    domElement = document.createElement('div')
 
     scene = new Scene()
 
-    camera = new Camera()
+    camera = new Camera({})
 
     constructor() {
-        this.canvas.style.top = '0'
-        this.canvas.style.left = '0'
-        this.canvas.style.width = '100%'
-        this.canvas.style.height = '100%'
-        this.canvas.style.zIndex = '-1'
-        this.canvas.style.position = 'fixed'
+        this.domElement.style.top = '0'
+        this.domElement.style.left = '0'
+        this.domElement.style.width = '100%'
+        this.domElement.style.height = '100%'
+        this.domElement.style.zIndex = '-1'
+        this.domElement.style.position = 'fixed'
+
+        this.initGl()
+
+        // setTimeout(() => { this.glContext.gl.getExtension("WEBGL_lose_context").loseContext() }, 1000)
+    }
+
+    #onContextLost() {
+        this.#programMap.clear()
+        this.#vaoMap.clear()
+        this.#textureMap.clear()
+
+        this.scene.traverse(node => {
+            for (const object of node.objects) {
+                for (const key in object.uniforms) {
+                    object.uniforms[key].needsUpdate = true
+                }
+                for (const key in object.material.uniforms) {
+                    object.material.uniforms[key].needsUpdate = true
+                }
+            }
+        })
 
         this.initGl()
     }
 
     initGl() {
-        this.glContext = new GlContext(this.canvas)
+        const canvas = document.createElement('canvas')
+        canvas.style.width = '100%'
+        canvas.style.height = '100%'
+        canvas.addEventListener("webglcontextlost", this.#onContextLost.bind(this))
+
+        this.domElement.innerHTML = ''
+        this.domElement.appendChild(canvas)
+
+        this.glContext = new GlContext(canvas)
+        this.glContext.resizeListeners.add((width, height) => {
+            this.camera.aspect = width / height
+        })
     }
 
     /** @type {Map<Material, GlProgram>} */
@@ -48,7 +80,7 @@ export class Renderer {
 
         const nodesToDraw = getNodesInFrustum(this.scene, this.camera.frustum)
 
-        for (const node of nodesToDraw) { node.animation.updateBoneMatrix() }
+        // for (const node of nodesToDraw) { node.animation.updateBoneMatrix() }
 
         const objectsToDraw = getObjectsInFrustum(nodesToDraw, this.camera.frustum)
 
@@ -59,8 +91,10 @@ export class Renderer {
 
         /////// WebGL part ///////
 
+        const gl = this.glContext.gl
+
         let material, program
-        let attributes
+        let geometry
 
         for (const object of opaqueObjects) {
             if (material !== object.material) {
@@ -68,7 +102,7 @@ export class Renderer {
 
                 if (!this.#programMap.has(material)) {
                     this.#programMap.set(material, new GlProgram(
-                        this.glContext.gl,
+                        gl,
                         material.vertexShader,
                         material.fragmentShader
                     ))
@@ -82,19 +116,14 @@ export class Renderer {
                 this.#bindTextures(program, material.textures)
             }
 
-            if (attributes !== object.attributes) {
-                attributes = object.attributes
+            if (geometry !== object.geometry) {
+                geometry = object.geometry
 
-                if (!this.#vaoMap.has(attributes)) {
-                    this.#vaoMap.set(attributes, new GlVao(
-                        this.glContext.gl,
-                        program,
-                        attributes,
-                        object.indices
-                    ))
+                if (!this.#vaoMap.has(geometry)) {
+                    this.#vaoMap.set(geometry, program.createVao(geometry.attributes, geometry.indices))
                 }
 
-                const vao = this.#vaoMap.get(material)
+                const vao = this.#vaoMap.get(geometry)
                 vao.bind()
             }
 
@@ -106,6 +135,12 @@ export class Renderer {
             this.#bindUniforms(program, object.uniforms)
 
             this.#bindTextures(program, object.textures)
+
+            if (object.geometry.indices) {
+                gl.drawElements(object.drawMode, object.geometry.count, WebGL2RenderingContext.UNSIGNED_SHORT, object.geometry.offset)
+            } else {
+                gl.drawArrays(object.drawMode, object.geometry.offset, object.geometry.count)
+            }
         }
     }
 
@@ -122,7 +157,7 @@ export class Renderer {
     /**
      * 
      * @param {GlProgram} program 
-     * @param {Texture[]} textures 
+     * @param {{[name: string]: Texture}} textures 
      */
     #bindTextures(program, textures) {
         for (const key in textures) {
@@ -136,7 +171,7 @@ export class Renderer {
 
             if (texture.needsUpdate) {
                 texture.needsUpdate = true
-                glTexture.updateData(texture.data)
+                glTexture.updateData(texture.data, program.textureUnit[key])
             }
 
             glTexture.bindToUnit(program.textureUnit[key])
@@ -175,10 +210,12 @@ export class Renderer {
 
 function getObjectStateId(/** @type {Object3D} */ object) {
     let id = 0
+
     if (object.blending) id |= 0x0000_0001
     if (object.cullFace) id |= 0x0000_0010
     if (object.depthTest) id |= 0x0000_0100
     if (object.depthWrite) id |= 0x0000_1000
+
     return id
 }
 
@@ -203,7 +240,7 @@ function getNodesInFrustum(scene, frustum) {
     scene.traverse((node) => {
         const boundingBox = node.boundingBox
 
-        if (!boundingBox
+        if (boundingBox.isEmpty()
             || frustum.intersectsBox(
                 _box3.copy(boundingBox).translate(node.position))
         ) {
@@ -222,7 +259,7 @@ function getObjectsInFrustum(/** @type {Node3D[]} */ nodes, frustum) {
         for (const object of node.objects) {
             const boundingBox = object.boundingBox
 
-            if (!boundingBox
+            if (boundingBox.isEmpty()
                 || frustum.intersectsBox(
                     _box3.copy(boundingBox).translate(node.position))
             ) {

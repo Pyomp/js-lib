@@ -1,5 +1,5 @@
 export class Texture {
-    needsUpdate = true
+    needsUpdate = false
       /**
       * @param {{
       *  target?: WebGl.Texture.Target

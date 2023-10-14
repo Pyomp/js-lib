@@ -1,3 +1,5 @@
+import { Attribute } from "../sceneGraph/Attribute.js"
+
 export class GlVao {
     /** @type {WebGL2RenderingContext} */ #gl
 
@@ -18,7 +20,7 @@ export class GlVao {
      * 
      * @param {WebGL2RenderingContext} gl 
      * @param {WebGLProgram} program
-     * @param {{[attributeName: string]: WebGl.Attribute}} attributes ex: point count
+     * @param {{[attributeName: string]: Attribute}} attributes ex: point count
      * @param {Uint16Array?} indices
      */
     constructor(gl, program, attributes, indices) {

@@ -7,7 +7,6 @@ const BINARY_EXTENSION_HEADER_LENGTH = 12
 const BINARY_EXTENSION_CHUNK_TYPES = { JSON: 0x4E4F534A, BIN: 0x004E4942 }
 
 class GLBinaryData {
-
     constructor(data) {
 
         const textDecoder = new TextDecoder()

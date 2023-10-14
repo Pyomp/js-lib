@@ -23,9 +23,9 @@ declare namespace WebGl {
     type Usage = 'STATIC_DRAW' | 'DYNAMIC_DRAW' | 'STREAM_DRAW' | 'STATIC_READ' | 'DYNAMIC_READ' | 'STREAM_READ' | 'STATIC_COPY' | 'DYNAMIC_COPY' | 'STREAM_COPY'
   }
 
-  type Attribute = {
-    data: Uint8Array | Int8Array | Uint16Array | Int16Array | Uint32Array | Int32Array | Float32Array
-    usage?: Vao.Usage
+  namespace Attribute {
+    type data = Uint8Array | Int8Array | Uint16Array | Int16Array | Uint32Array | Int32Array | Float32Array
+    type usage = Vao.Usage
   }
 
   namespace Render {

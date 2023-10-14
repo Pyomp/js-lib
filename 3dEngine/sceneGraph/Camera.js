@@ -78,9 +78,8 @@ export class Camera {
 
 
     #updateProjectionViewMatrix() {
-        this.projectionViewMatrix
-            .copy(this.viewMatrix)
-            .premultiply(this.projectionMatrix)
+        this.projectionViewMatrix.multiplyMatrices(this.projectionMatrix, this.viewMatrix)
+
     }
 
     #updateFrustum() {

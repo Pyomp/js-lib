@@ -26,6 +26,7 @@ export class Scene {
 
     traverse(callback) {
         for (const child of this.children) {
+            callback(child)
             child.traverse(callback)
         }
     }

@@ -7,7 +7,7 @@ import { Object3D } from "./Object3D.js"
 export class Node3D {
     position = new Vector3()
     quaternion = new Quaternion()
-    scale = new Vector3()
+    scale = new Vector3(1, 1, 1)
     localMatrix = new Matrix4()
     localMatrixNeedsUpdate = true
 
@@ -25,17 +25,18 @@ export class Node3D {
 
     constructor(parent = null) {
         this.parent = parent
+        parent.children.add(this)
     }
 
     updateWorldMatrix(force = false) {
         if (this.localMatrixNeedsUpdate) {
             this.localMatrixNeedsUpdate = false
             this.localMatrix.compose(this.position, this.quaternion, this.scale)
-            this.worldMatrix.multiply(this.localMatrix, this.parent.worldMatrix)
+            this.worldMatrix.multiplyMatrices(this.localMatrix, this.parent.worldMatrix)
             for (const child of this.children) child.updateWorldMatrix(true)
 
         } else if (force) {
-            this.worldMatrix.multiply(this.localMatrix, this.parent.worldMatrix)
+            this.worldMatrix.multiplyMatrices(this.localMatrix, this.parent.worldMatrix)
             for (const child of this.children) child.updateWorldMatrix(true)
 
         } else {
