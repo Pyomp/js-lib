@@ -5,8 +5,8 @@ export class Material {
     /**
      * 
      * @param {{
-     *  vertexShader: string
-     *  fragmentShader: string
+     *  vertexShader: (data: any) => string
+     *  fragmentShader: (data: any) => string
      *  uniforms?: { [name: string]: Uniform}
      *  textures?: { [name: string]: Texture}
      * }} param0 

@@ -1,4 +1,5 @@
 let index = 0
+
 export class GlUbo {
     #gl
     #uboBuffer
@@ -22,5 +23,9 @@ export class GlUbo {
 
     update() {
         this.#gl.bufferSubData(WebGL2RenderingContext.UNIFORM_BUFFER, 0, this.data)
+    }
+
+    dispose() {
+        this.#gl.deleteBuffer(this.#uboBuffer)
     }
 }

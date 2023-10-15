@@ -3,12 +3,14 @@ import { GlContext } from "../webgl/GlContext.js"
 import { GlProgram } from "../webgl/GlProgram.js"
 import { GlTexture } from "../webgl/GlTexture.js"
 import { GlVao } from "../webgl/GlVao.js"
-import { Camera } from "./Camera.js"
-import { Material } from "./Material.js"
-import { Node3D } from "./Node3D.js"
-import { Object3D } from "./Object3D.js"
-import { Scene } from "./Scene.js"
-import { Texture } from "./Texture.js"
+import { Camera } from "../sceneGraph/Camera.js"
+import { Material } from "../sceneGraph/Material.js"
+import { Node3D } from "../sceneGraph/Node3D.js"
+import { Object3D } from "../sceneGraph/Object3D.js"
+import { Scene } from "../sceneGraph/Scene.js"
+import { Texture } from "../sceneGraph/Texture.js"
+import { PointLights } from "./PointLights.js"
+import { PointLight } from "../sceneGraph/light/PointLight.js"
 
 const _box3 = new Box3()
 
@@ -64,6 +66,8 @@ export class Renderer {
         this.glContext.resizeListeners.add((width, height) => {
             this.camera.aspect = width / height
         })
+
+        this.pointLights = new PointLights(this.glContext.gl) 
     }
 
     /** @type {Map<Material, GlProgram>} */
@@ -91,6 +95,8 @@ export class Renderer {
 
         /////// WebGL part ///////
 
+        this.pointLights.update()
+
         const gl = this.glContext.gl
 
         let material, program
@@ -103,8 +109,9 @@ export class Renderer {
                 if (!this.#programMap.has(material)) {
                     this.#programMap.set(material, new GlProgram(
                         gl,
-                        material.vertexShader,
-                        material.fragmentShader
+                        material.vertexShader(),
+                        material.fragmentShader(this.pointLights.lights.size),
+                        { pointLights: this.pointLights.ubo.index }
                     ))
                 }
 

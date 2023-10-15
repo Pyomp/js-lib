@@ -18,7 +18,7 @@ const makeTextCanvas = (text, width, height, color) => {
 export class FirstMaterial extends Material {
     constructor(projectionViewMatrix) {
         super({
-            vertexShader:
+            vertexShader: () =>
                 `#version 300 es
                 in vec3 position;
                 in vec3 normal;
@@ -36,7 +36,7 @@ export class FirstMaterial extends Material {
                     v_normal = mat3(modelView) * normal;
                     v_uv = uv;
             }`,
-            fragmentShader:
+            fragmentShader: (pointLightCount) =>
                 `#version 300 es
                 precision highp float;
             
@@ -45,23 +45,44 @@ export class FirstMaterial extends Material {
             
                 uniform sampler2D diffuse;
                 uniform sampler2D decal;
-            
-                uniform vec3 lightDir;
-            
+                        
                 out vec4 outColor;
+
+                struct PointLight {
+                    vec3 position;
+                    float intensity;
+                    vec3 color;                    
+                };
+                
+                layout(std140) uniform pointLightsUBO {
+                    PointLight pointLights[${pointLightCount}];
+                };
+    
+                float calcPointLights(vec3 normalizedNormal){
+                    float light = 0.5;
+                    
+                    for (int i = 0; i < ${pointLightCount}; i++) {
+                        PointLight pointLight = pointLights[i];
+
+                        light += dot(normalizedNormal, pointLight.position) * 0.5 * pointLight.intensity;
+                    }
+
+                    return light;
+                }
             
                 void main() {
                     vec3 normal = normalize(v_normal);
-                    float light = dot(normal, lightDir) * 0.5 + 0.5;
+                    float light = calcPointLights(normal);
+
                     vec4 color = texture(diffuse, v_uv);
                     vec4 decalColor = texture(decal, v_uv);
+
                     decalColor.rgb *= decalColor.a;
                     color = color * (1.0 - decalColor.a) + decalColor; 
                     outColor = vec4(color.rgb * light, color.a);
                     // outColor = vec4(1.0, 0., 0., 1.0);
                 }`,
             uniforms: {
-                lightDir: new Uniform(new Vector3(1, 5, 8).normalize()),
                 projection: new Uniform(projectionViewMatrix)
             },
             textures: {
