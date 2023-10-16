@@ -16,7 +16,7 @@ const makeTextCanvas = (text, width, height, color) => {
 }
 
 export class FirstMaterial extends Material {
-    constructor(projectionViewMatrix) {
+    constructor() {
         super({
             vertexShader: () =>
                 `#version 300 es
@@ -24,8 +24,10 @@ export class FirstMaterial extends Material {
                 in vec3 normal;
                 in vec2 uv;
 
-                uniform mat4 projection;
-                
+                uniform cameraUbo {
+                    mat4 projection;
+                };
+
                 uniform mat4 modelView;
 
                 out vec3 v_normal;
@@ -54,18 +56,24 @@ export class FirstMaterial extends Material {
                     vec3 color;                    
                 };
                 
+                ${pointLightCount > 0 ? '#define POINT_LIGHT' : ''}
+
+                #ifdef POINT_LIGHT
                 layout(std140) uniform pointLightsUBO {
                     PointLight pointLights[${pointLightCount}];
                 };
+                #endif
     
                 float calcPointLights(vec3 normalizedNormal){
                     float light = 0.5;
                     
+                    #ifdef POINT_LIGHT
                     for (int i = 0; i < ${pointLightCount}; i++) {
                         PointLight pointLight = pointLights[i];
 
                         light += dot(normalizedNormal, pointLight.position) * 0.5 * pointLight.intensity;
                     }
+                    #endif
 
                     return light;
                 }
@@ -82,9 +90,7 @@ export class FirstMaterial extends Material {
                     outColor = vec4(color.rgb * light, color.a);
                     // outColor = vec4(1.0, 0., 0., 1.0);
                 }`,
-            uniforms: {
-                projection: new Uniform(projectionViewMatrix)
-            },
+            uniforms: {},
             textures: {
                 diffuse: new Texture({
                     minFilter: 'NEAREST',

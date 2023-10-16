@@ -9,8 +9,9 @@ import { Node3D } from "../sceneGraph/Node3D.js"
 import { Object3D } from "../sceneGraph/Object3D.js"
 import { Scene } from "../sceneGraph/Scene.js"
 import { Texture } from "../sceneGraph/Texture.js"
-import { PointLights } from "./PointLights.js"
+import { PointLightsRenderer } from "./PointLightsRenderer.js"
 import { PointLight } from "../sceneGraph/light/PointLight.js"
+import { GlUbo } from "../webgl/GlUbo.js"
 
 const _box3 = new Box3()
 
@@ -20,6 +21,8 @@ export class Renderer {
     scene = new Scene()
 
     camera = new Camera({})
+
+    /** @type {Set<PointLight>} */ pointLights = new Set()
 
     constructor() {
         this.domElement.style.top = '0'
@@ -34,11 +37,7 @@ export class Renderer {
         // setTimeout(() => { this.glContext.gl.getExtension("WEBGL_lose_context").loseContext() }, 1000)
     }
 
-    #onContextLost() {
-        this.#programMap.clear()
-        this.#vaoMap.clear()
-        this.#textureMap.clear()
-
+    #setAllNeedsUpdateOnSceneToTrue() {
         this.scene.traverse(node => {
             for (const object of node.objects) {
                 for (const key in object.uniforms) {
@@ -49,9 +48,21 @@ export class Renderer {
                 }
             }
         })
+    }
+
+    #onContextLost() {
+        this.#programMap.clear()
+        this.#vaoMap.clear()
+        this.#textureMap.clear()
+
+        this.#setAllNeedsUpdateOnSceneToTrue()
 
         this.initGl()
     }
+
+
+    /** @type {GlUbo} */ #cameraUbo
+    /** @type {Float32Array} */ #cameraUboF32a
 
     initGl() {
         const canvas = document.createElement('canvas')
@@ -67,20 +78,39 @@ export class Renderer {
             this.camera.aspect = width / height
         })
 
-        this.pointLights = new PointLights(this.glContext.gl) 
+        this.#cameraUbo = new GlUbo(this.glContext.gl, 16 * 4)
+        this.#cameraUboF32a = new Float32Array(this.#cameraUbo.data)
+
+        this.pointLightsRenderer = new PointLightsRenderer(this.glContext.gl)
     }
 
     /** @type {Map<Material, GlProgram>} */
     #programMap = new Map()
+    #disposeGlPrograms() {
+        for (const program of Object.values(this.#programMap)) program.dispose()
+        this.#programMap.clear()
+    }
 
     #vaoMap = new Map()
+    #disposeGlVaos() {
+        for (const vao of Object.values(this.#vaoMap)) vao.dispose()
+        this.#vaoMap.clear()
+    }
 
     /** @type {Map<Texture, GlTexture>} */
     #textureMap = new Map()
+    #disposeGlTextures() {
+        for (const texture of Object.values(this.#textureMap)) texture.dispose()
+        this.#textureMap.clear()
+    }
 
     render() {
         this.scene.updateWorldMatrix()
-        this.camera.update()
+        const cameraHasBeenUpdated = this.camera.update()
+        if (cameraHasBeenUpdated) {
+            this.camera.projectionViewMatrix.toArray(this.#cameraUboF32a)
+            this.#cameraUbo.update()
+        }
 
         const nodesToDraw = getNodesInFrustum(this.scene, this.camera.frustum)
 
@@ -95,7 +125,13 @@ export class Renderer {
 
         /////// WebGL part ///////
 
-        this.pointLights.update()
+        const lightUboHasChanged = this.pointLightsRenderer.updateUbo(this.pointLights)
+
+        if (lightUboHasChanged) {
+            this.#disposeGlPrograms()
+            this.#disposeGlVaos()
+            this.#setAllNeedsUpdateOnSceneToTrue()
+        }
 
         const gl = this.glContext.gl
 
@@ -110,8 +146,11 @@ export class Renderer {
                     this.#programMap.set(material, new GlProgram(
                         gl,
                         material.vertexShader(),
-                        material.fragmentShader(this.pointLights.lights.size),
-                        { pointLights: this.pointLights.ubo.index }
+                        material.fragmentShader(this.pointLightsRenderer.count),
+                        {
+                            cameraUbo: this.#cameraUbo.index,
+                            pointLightsUBO: this.pointLightsRenderer.uboIndex
+                        }
                     ))
                 }
 
@@ -126,12 +165,14 @@ export class Renderer {
             if (geometry !== object.geometry) {
                 geometry = object.geometry
 
-                if (!this.#vaoMap.has(geometry)) {
-                    this.#vaoMap.set(geometry, program.createVao(geometry.attributes, geometry.indices))
-                }
+                if (geometry.attributes) {
+                    if (!this.#vaoMap.has(geometry)) {
+                        this.#vaoMap.set(geometry, program.createVao(geometry.attributes, geometry.indices))
+                    }
 
-                const vao = this.#vaoMap.get(geometry)
-                vao.bind()
+                    const vao = this.#vaoMap.get(geometry)
+                    vao.bind()
+                }
             }
 
             this.glContext.cullFace = object.cullFace
@@ -212,6 +253,10 @@ export class Renderer {
         if (stateIdA !== stateIdB) return attributesIdA - attributesIdB
 
         return 0
+    }
+
+    loseContext() {
+        this.glContext.gl.getExtension("WEBGL_lose_context").loseContext()
     }
 }
 

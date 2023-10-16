@@ -42,7 +42,7 @@ export class Camera {
     }
 
     update() {
-        this.hasChanged = false
+        let hasChanged = false
 
         if (this.#cameraHasMoved) {
             this.#updateWorldCameraMatrixPosition()
@@ -57,11 +57,13 @@ export class Camera {
         if (this.#projectionNeedsUpdate || this.#cameraHasMoved) {
             this.#updateProjectionViewMatrix()
             this.#updateFrustum()
-            this.hasChanged = true
+            hasChanged = true
         }
 
         this.#cameraHasMoved = false
         this.#projectionNeedsUpdate = false
+
+        return hasChanged
     }
 
     #updateWorldCameraMatrixPosition() {

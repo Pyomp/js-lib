@@ -1,3 +1,4 @@
+import { Attribute } from "../sceneGraph/Attribute.js"
 import { GlUbo } from "./GlUbo.js"
 import { GlVao } from "./GlVao.js"
 
@@ -68,7 +69,7 @@ export class GlProgram {
 
     /**
      * 
-     * @param {{[attributeName: string]: WebGl.Attribute}} attributes 
+     * @param {{[attributeName: string]: Attribute}} attributes 
      * @param {Uint16Array} indices 
      * @returns 
      */

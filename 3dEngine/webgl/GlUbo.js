@@ -22,6 +22,7 @@ export class GlUbo {
     }
 
     update() {
+        this.#gl.bindBuffer(WebGL2RenderingContext.UNIFORM_BUFFER, this.#uboBuffer)
         this.#gl.bufferSubData(WebGL2RenderingContext.UNIFORM_BUFFER, 0, this.data)
     }
 

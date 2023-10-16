@@ -1,50 +1,92 @@
-export class SphereGeometry {
-    constructor() {
+import { Vector3 } from "../../math/Vector3.js"
+import { Geometry } from "../sceneGraph/Geometry.js"
 
-    }
-}
+export class SphereGeometry extends Geometry {
+    constructor(radius = 1, widthSegments = 32, heightSegments = 16, phiStart = 0, phiLength = Math.PI * 2, thetaStart = 0, thetaLength = Math.PI) {
+        widthSegments = Math.max(3, Math.floor(widthSegments))
+        heightSegments = Math.max(2, Math.floor(heightSegments))
 
-function sphere_vert_total(segments, rings) {
-    return segments * (rings - 1) + 2
-}
+        const thetaEnd = Math.min(thetaStart + thetaLength, Math.PI)
 
-/**
- * Also calculate vertex normals here, since the calculation is trivial, and it allows avoiding the
- * calculation later, if it's necessary. The vertex normals are just the normalized positions.
- */
-function calculate_sphere_vertex_data(
-    positions,
-    vert_normals,
-    radius,
-    segments,
-    rings) {
-    const delta_theta = Math.PI / rings
-    const delta_phi = (2 * Math.PI) / segments
+        let index = 0
+        const grid = []
 
-    const segment_cosines = []
-    const segment_sines = []
-    for (let segment = 0; segment < segments; segment++) {
-        const phi = segment * delta_phi
-        segment_cosines.push(Math.cos(phi))
-        segment_sines.push(Math.sin(phi))
+        const vertex = new Vector3()
+        const normal = new Vector3()
 
-    }
+        const indices = []
+        const vertices = []
+        const normals = []
+        const uvs = []
 
-    const position = []
-    const normals = []
-    position.push(0, 0, radius)
-    normals.push(0, 0, 1)
+        // generate vertices, normals and uvs
 
-    for (let ring = 0; ring < rings; ring++) {
-        const theta = ring * delta_theta
-        const sin_theta = Math.sin(theta)
-        const z = Math.cos(theta)
+        for (let iy = 0; iy <= heightSegments; iy++) {
 
-        for (let segment = 0; segment < segments; segment++) {
-            const x = sin_theta * segment_cosines[segment]
-            const y = sin_theta * segment_sines[segment]
-            positions.push(x * radius, y * radius, z * radius)
-            normals.push(x, y, z)
+            const verticesRow = []
+
+            const v = iy / heightSegments
+
+            // special case for the poles
+
+            let uOffset = 0
+
+            if (iy === 0 && thetaStart === 0) {
+
+                uOffset = 0.5 / widthSegments
+
+            } else if (iy === heightSegments && thetaEnd === Math.PI) {
+
+                uOffset = - 0.5 / widthSegments
+
+            }
+
+            for (let ix = 0; ix <= widthSegments; ix++) {
+                const u = ix / widthSegments
+
+                // vertex
+
+                vertex.x = - radius * Math.cos(phiStart + u * phiLength) * Math.sin(thetaStart + v * thetaLength)
+                vertex.y = radius * Math.cos(thetaStart + v * thetaLength)
+                vertex.z = radius * Math.sin(phiStart + u * phiLength) * Math.sin(thetaStart + v * thetaLength)
+
+                vertices.push(vertex.x, vertex.y, vertex.z)
+
+                // normal
+
+                normal.copy(vertex).normalize()
+                normals.push(normal.x, normal.y, normal.z)
+
+                // uv
+
+                uvs.push(u + uOffset, 1 - v)
+
+                verticesRow.push(index++)
+            }
+            grid.push(verticesRow)
         }
+
+        // indices
+        for (let iy = 0; iy < heightSegments; iy++) {
+            for (let ix = 0; ix < widthSegments; ix++) {
+                const a = grid[iy][ix + 1]
+                const b = grid[iy][ix]
+                const c = grid[iy + 1][ix]
+                const d = grid[iy + 1][ix + 1]
+
+                if (iy !== 0 || thetaStart > 0) indices.push(a, b, d)
+                if (iy !== heightSegments - 1 || thetaEnd < Math.PI) indices.push(b, c, d)
+            }
+        }
+
+        super(
+            {
+                position: new Float32Array(vertices),
+                normal: new Float32Array(normals),
+                uv: new Float32Array(uvs)
+            },
+            indices.length,
+            new Uint16Array(indices)
+        )
     }
 }
