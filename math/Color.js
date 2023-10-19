@@ -56,10 +56,16 @@ function LinearToSRGB(c) {
 class Color {
 
     isColor = true
-    
+
     r = 1
     g = 1
     b = 1
+    a = 1
+
+    get x() { return this.r }
+    get y() { return this.g }
+    get z() { return this.b }
+    get w() { return this.w }
 
     constructor(r, g, b) {
 

@@ -80,12 +80,12 @@ export class SphereGeometry extends Geometry {
         }
 
         super(
+            indices.length,
             {
                 position: new Float32Array(vertices),
                 normal: new Float32Array(normals),
                 uv: new Float32Array(uvs)
             },
-            indices.length,
             new Uint16Array(indices)
         )
     }

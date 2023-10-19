@@ -12,6 +12,7 @@ import { Texture } from "../sceneGraph/Texture.js"
 import { PointLightsRenderer } from "./PointLightsRenderer.js"
 import { PointLight } from "../sceneGraph/light/PointLight.js"
 import { GlUbo } from "../webgl/GlUbo.js"
+import { Uniform } from "../sceneGraph/Uniform.js"
 
 const _box3 = new Box3()
 
@@ -29,12 +30,9 @@ export class Renderer {
         this.domElement.style.left = '0'
         this.domElement.style.width = '100%'
         this.domElement.style.height = '100%'
-        this.domElement.style.zIndex = '-1'
-        this.domElement.style.position = 'fixed'
+        this.domElement.style.position = 'absolute'
 
         this.initGl()
-
-        // setTimeout(() => { this.glContext.gl.getExtension("WEBGL_lose_context").loseContext() }, 1000)
     }
 
     #setAllNeedsUpdateOnSceneToTrue() {
@@ -78,7 +76,7 @@ export class Renderer {
             this.camera.aspect = width / height
         })
 
-        this.#cameraUbo = new GlUbo(this.glContext.gl, 16 * 4)
+        this.#cameraUbo = new GlUbo(this.glContext.gl, (16 + 4) * 4)
         this.#cameraUboF32a = new Float32Array(this.#cameraUbo.data)
 
         this.pointLightsRenderer = new PointLightsRenderer(this.glContext.gl)
@@ -109,6 +107,7 @@ export class Renderer {
         const cameraHasBeenUpdated = this.camera.update()
         if (cameraHasBeenUpdated) {
             this.camera.projectionViewMatrix.toArray(this.#cameraUboF32a)
+            this.camera.position.toArray(this.#cameraUboF32a, 16)
             this.#cameraUbo.update()
         }
 
@@ -117,6 +116,12 @@ export class Renderer {
         // for (const node of nodesToDraw) { node.animation.updateBoneMatrix() }
 
         const objectsToDraw = getObjectsInFrustum(nodesToDraw, this.camera.frustum)
+
+        for (const object of this.scene.objects) {
+            if (object.geometry.boundingBox.isEmpty() || this.camera.frustum.intersectsBox(_box3.copy(object.geometry.boundingBox))) {
+                objectsToDraw.push(object)
+            }
+        }
 
         const [opaqueObjects, transparentObjects] = sortTransparencyObjects(objectsToDraw)
 
@@ -132,20 +137,31 @@ export class Renderer {
             this.#disposeGlVaos()
             this.#setAllNeedsUpdateOnSceneToTrue()
         }
+        
+        this.glContext.blending = false
+        this.#drawObjects(opaqueObjects)
+        this.glContext.blending = true
+        this.#drawObjects(transparentObjects)
+    }
 
+    /**
+     * 
+     * @param {Object3D[]} objects 
+     */
+    #drawObjects(objects) {
         const gl = this.glContext.gl
 
         let material, program
         let geometry
 
-        for (const object of opaqueObjects) {
+        for (const object of objects) {
             if (material !== object.material) {
                 material = object.material
 
                 if (!this.#programMap.has(material)) {
                     this.#programMap.set(material, new GlProgram(
                         gl,
-                        material.vertexShader(),
+                        material.vertexShader(this.pointLightsRenderer.count),
                         material.fragmentShader(this.pointLightsRenderer.count),
                         {
                             cameraUbo: this.#cameraUbo.index,
@@ -176,7 +192,6 @@ export class Renderer {
             }
 
             this.glContext.cullFace = object.cullFace
-            this.glContext.blending = object.blending
             this.glContext.depthTest = object.depthTest
             this.glContext.depthWrite = object.depthWrite
 
@@ -192,12 +207,17 @@ export class Renderer {
         }
     }
 
+    /**
+     * 
+     * @param {GlProgram} program 
+     * @param {{ [name: string]: Uniform }} uniforms 
+     */
     #bindUniforms(program, uniforms) {
         for (const key in uniforms) {
             const uniform = uniforms[key]
             if (uniform.needsUpdate) {
                 uniform.needsUpdate = false
-                program.uniformUpdate[key](uniform.data)
+                program.uniformUpdate[key]?.(uniform.data)
             }
         }
     }
@@ -309,7 +329,7 @@ function getObjectsInFrustum(/** @type {Node3D[]} */ nodes, frustum) {
 
     for (const node of nodes) {
         for (const object of node.objects) {
-            const boundingBox = object.boundingBox
+            const boundingBox = object.geometry.boundingBox
 
             if (boundingBox.isEmpty()
                 || frustum.intersectsBox(

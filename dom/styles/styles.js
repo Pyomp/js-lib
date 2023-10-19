@@ -125,6 +125,13 @@ h3 {
     background-color: var(--color-background-scroll-bar);
 }
 
+label {
+    display: flex;
+    gap: 5px;
+    justify-content: center;
+    align-items: center;
+}
+
 input {
     border-radius: 5px;
     border: solid 1px var(--themeColorWhiter);
@@ -136,6 +143,16 @@ input {
 
     font: inherit;
     color: inherit;
+}
+
+input[type=number]{
+    min-width: 60px;
+    text-align: center;
+}
+input[type=number]::-webkit-inner-spin-button, 
+input[type=number]::-webkit-outer-spin-button { 
+  -webkit-appearance: none; 
+  margin: 0; 
 }
 
 img {

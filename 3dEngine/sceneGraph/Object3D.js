@@ -7,8 +7,6 @@ import { Uniform } from "./Uniform.js"
 export class Object3D {
     drawMode
 
-    boundingBox = new Box3()
-
     /**
      * 
      * @param {{

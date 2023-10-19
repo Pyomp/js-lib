@@ -3,6 +3,7 @@ import { Matrix4 } from "../../math/Matrix4.js"
 import { Quaternion } from "../../math/Quaternion.js"
 import { Vector3 } from "../../math/Vector3.js"
 import { Object3D } from "./Object3D.js"
+import { Scene } from "./Scene.js"
 
 export class Node3D {
     position = new Vector3()
@@ -13,19 +14,28 @@ export class Node3D {
 
     worldMatrix = new Matrix4()
 
+    /** @type {Node3D | Scene | undefined} */
     parent
 
     /** @type {Set<Node3D>} */
-    children = new Set()
+    nodes = new Set()
 
     /** @type {Set<Object3D>} */
     objects = new Set()
 
     boundingBox = new Box3()
 
-    constructor(parent = null) {
-        this.parent = parent
-        parent.children.add(this)
+    /** @param {Node3D} node */
+    addNode3D(node) {
+        node.parent?.removeNode3D(node)
+        node.parent = this
+        this.nodes.add(node)
+    }
+
+    /** @param {Node3D} node */
+    removeNode3D(node) {
+        node.parent = undefined
+        this.nodes.delete(node)
     }
 
     updateWorldMatrix(force = false) {
@@ -33,28 +43,28 @@ export class Node3D {
             this.localMatrixNeedsUpdate = false
             this.localMatrix.compose(this.position, this.quaternion, this.scale)
             this.worldMatrix.multiplyMatrices(this.localMatrix, this.parent.worldMatrix)
-            for (const child of this.children) child.updateWorldMatrix(true)
+            for (const node of this.nodes) node.updateWorldMatrix(true)
 
         } else if (force) {
             this.worldMatrix.multiplyMatrices(this.localMatrix, this.parent.worldMatrix)
-            for (const child of this.children) child.updateWorldMatrix(true)
+            for (const node of this.nodes) node.updateWorldMatrix(true)
 
         } else {
-            for (const child of this.children) child.updateWorldMatrix()
+            for (const node of this.nodes) node.updateWorldMatrix()
         }
     }
 
     traverse(/** @type {(node: Node3D) => void} */ callback) {
-        for (const child of this.children) {
-            callback(child)
-            child.traverse(callback)
+        for (const node of this.nodes) {
+            callback(node)
+            node.traverse(callback)
         }
     }
 
     updateBoundingBox() {
         this.boundingBox.makeEmpty()
         for (const object of this.objects) {
-            this.boundingBox.union(object.boundingBox)
+            this.boundingBox.union(object.geometry.boundingBox)
         }
     }
 }

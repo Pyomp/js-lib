@@ -28,6 +28,7 @@ export class GlContext {
         this.gl.enable(this.gl.DEPTH_TEST)
         this.gl.depthMask(true)
         this.gl.disable(this.gl.BLEND)
+        this.setAdditiveBlending()
 
         this.#resizeObserver.observe(canvas)
     }
