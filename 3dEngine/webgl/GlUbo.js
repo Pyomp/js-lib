@@ -1,4 +1,13 @@
-let index = 0
+const glIndexUsed = new WeakMap()
+function getIndex(gl) {
+    if (!glIndexUsed.has(gl)) glIndexUsed.set(gl, new Set())
+    const indexUsed = glIndexUsed.get(gl)
+    let index = 0
+    while (indexUsed.has(index)) {
+        index++
+    }
+    return index
+}
 
 export class GlUbo {
     #gl
@@ -12,7 +21,9 @@ export class GlUbo {
     constructor(gl, byteLength) {
         this.#gl = gl
 
-        this.index = index++
+        this.index = getIndex(this.#gl)
+        glIndexUsed.get(this.#gl).add(this.index)
+
         this.data = new ArrayBuffer(byteLength)
 
         this.#uboBuffer = gl.createBuffer()
@@ -27,6 +38,7 @@ export class GlUbo {
     }
 
     dispose() {
+        glIndexUsed.get(this.#gl).delete(this.index)
         this.#gl.deleteBuffer(this.#uboBuffer)
     }
 }
