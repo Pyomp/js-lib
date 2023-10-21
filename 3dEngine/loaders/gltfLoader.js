@@ -1,10 +1,17 @@
-import { getGltfData } from './GltfNodes.js'
-
-
 /* BINARY EXTENSION */
 const BINARY_EXTENSION_HEADER_MAGIC = 'glTF'
 const BINARY_EXTENSION_HEADER_LENGTH = 12
 const BINARY_EXTENSION_CHUNK_TYPES = { JSON: 0x4E4F534A, BIN: 0x004E4942 }
+
+const TYPE_CLASS = {
+    [WebGL2RenderingContext.BYTE]: Int8Array,
+    [WebGL2RenderingContext.UNSIGNED_BYTE]: Uint8Array,
+    [WebGL2RenderingContext.SHORT]: Int16Array,
+    [WebGL2RenderingContext.UNSIGNED_SHORT]: Uint16Array,
+    [WebGL2RenderingContext.INT]: Int32Array,
+    [WebGL2RenderingContext.UNSIGNED_INT]: Uint32Array,
+    [WebGL2RenderingContext.FLOAT]: Float32Array
+}
 
 /**
 * @param {URL | string} url 
@@ -13,19 +20,15 @@ export async function loadGLTF(url) {
     const arrayBuffer = await (await fetch(url)).arrayBuffer()
     const rawGltf = getGltf(arrayBuffer)
     const gltf = parseGltf(rawGltf)
+    return gltf
 }
 
-const TYPE_CLASS = {
-    '5120': Int8Array,    // gl.BYTE
-    '5121': Uint8Array,   // gl.UNSIGNED_BYTE
-    '5122': Int16Array,   // gl.SHORT
-    '5123': Uint16Array,  // gl.UNSIGNED_SHORT
-    '5124': Int32Array,   // gl.INT
-    '5125': Uint32Array,  // gl.UNSIGNED_INT
-    '5126': Float32Array, // gl.FLOAT
-}
-
-export function getGltfData(gltf) {
+/**
+ * 
+ * @param {*} gltf 
+ * @returns 
+ */
+export function parseGltf(gltf) {
     const body = gltf.body
     const content = gltf.content
     const nodes = content.nodes
@@ -140,12 +143,16 @@ export function getGltfData(gltf) {
     return gltfNodes
 }
 
+/**
+ * 
+ * @param {ArrayBuffer} arrayBuffer 
+ * @returns 
+ */
 function getGltf(arrayBuffer) {
-
     const textDecoder = new TextDecoder()
 
-    this.content = null
-    this.body = null
+    let content = null
+    let body = null
 
     const headerView = new DataView(arrayBuffer, 0, BINARY_EXTENSION_HEADER_LENGTH)
 
@@ -156,13 +163,9 @@ function getGltf(arrayBuffer) {
     }
 
     if (this.header.magic !== BINARY_EXTENSION_HEADER_MAGIC) {
-
         throw new Error('THREE.GLTFLoader: Unsupported glTF-Binary header.')
-
     } else if (this.header.version < 2.0) {
-
         throw new Error('THREE.GLTFLoader: Legacy binary file detected.')
-
     }
 
     const chunkContentsLength = this.header.length - BINARY_EXTENSION_HEADER_LENGTH
@@ -181,24 +184,23 @@ function getGltf(arrayBuffer) {
         if (chunkType === BINARY_EXTENSION_CHUNK_TYPES.JSON) {
 
             const contentArray = new Uint8Array(arrayBuffer, BINARY_EXTENSION_HEADER_LENGTH + chunkIndex, chunkLength)
-            this.content = JSON.parse(textDecoder.decode(contentArray))
+            content = JSON.parse(textDecoder.decode(contentArray))
 
         } else if (chunkType === BINARY_EXTENSION_CHUNK_TYPES.BIN) {
 
             const byteOffset = BINARY_EXTENSION_HEADER_LENGTH + chunkIndex
-            this.body = arrayBuffer.slice(byteOffset, byteOffset + chunkLength)
+            body = arrayBuffer.slice(byteOffset, byteOffset + chunkLength)
 
         }
 
         // Clients must ignore chunks with unknown types.
 
         chunkIndex += chunkLength
-
     }
 
-    if (this.content === null) {
-
+    if (content === null) {
         throw new Error('THREE.GLTFLoader: JSON content not found.')
-
     }
+
+    return { content, body }
 }
