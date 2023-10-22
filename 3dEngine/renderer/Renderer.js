@@ -102,7 +102,7 @@ export class Renderer {
         this.#textureMap.clear()
     }
 
-    render() {
+    updateUbos() {
         this.scene.updateWorldMatrix()
         const cameraHasBeenUpdated = this.camera.update()
         if (cameraHasBeenUpdated) {
@@ -111,6 +111,15 @@ export class Renderer {
             this.#cameraUbo.update()
         }
 
+        const lightUboHasChanged = this.pointLightsRenderer.updateUbo(this.pointLights)
+        if (lightUboHasChanged) {
+            this.#disposeGlPrograms()
+            this.#disposeGlVaos()
+            this.#setAllNeedsUpdateOnSceneToTrue()
+        }
+    }
+
+    getObjectsToDraw() {
         const nodesToDraw = getNodesInFrustum(this.scene, this.camera.frustum)
 
         // for (const node of nodesToDraw) { node.animation.updateBoneMatrix() }
@@ -123,32 +132,30 @@ export class Renderer {
             }
         }
 
-        const [opaqueObjects, transparentObjects] = sortTransparencyObjects(objectsToDraw)
+        const [opaque, transparent] = sortTransparencyObjects(objectsToDraw)
 
-        opaqueObjects.sort(this.compareObjectDrawOptimizationBound)
-        transparentObjects.sort(this.compareObjectDrawOptimizationBound)
+        opaque.sort(this.compareObjectDrawOptimizationBound)
+        transparent.sort(this.compareObjectDrawOptimizationBound)
 
-        /////// WebGL part ///////
+        return [opaque, transparent]
+    }
 
-        const lightUboHasChanged = this.pointLightsRenderer.updateUbo(this.pointLights)
+    render() {
+        this.updateUbos()
 
-        if (lightUboHasChanged) {
-            this.#disposeGlPrograms()
-            this.#disposeGlVaos()
-            this.#setAllNeedsUpdateOnSceneToTrue()
-        }
-        
+        const [opaqueObjects, transparentObjects] = this.getObjectsToDraw()
+
         this.glContext.blending = false
-        this.#drawObjects(opaqueObjects)
+        this.drawObjects(opaqueObjects)
         this.glContext.blending = true
-        this.#drawObjects(transparentObjects)
+        this.drawObjects(transparentObjects)
     }
 
     /**
      * 
      * @param {Object3D[]} objects 
      */
-    #drawObjects(objects) {
+    drawObjects(objects) {
         const gl = this.glContext.gl
 
         let material, program
@@ -164,8 +171,10 @@ export class Renderer {
                         material.vertexShader(this.pointLightsRenderer.count),
                         material.fragmentShader(this.pointLightsRenderer.count),
                         {
-                            cameraUbo: this.#cameraUbo.index,
-                            pointLightsUBO: this.pointLightsRenderer.uboIndex
+                            uboIndex: {
+                                cameraUbo: this.#cameraUbo.index,
+                                pointLightsUBO: this.pointLightsRenderer.uboIndex
+                            }
                         }
                     ))
                 }

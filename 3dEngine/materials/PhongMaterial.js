@@ -68,18 +68,14 @@ export class PhongMaterial extends Material {
 
                         vec3 L = normalize(pointLight.position - v_worldPosition);
 
-                        // Lambert's cosine law
                         float lambertian = max(dot(normal, L), 0.0);
                         color += lambertian * pointLight.color;
 
-                        if(lambertian > 0.0) {
-                          vec3 R = reflect(L, normal); // Reflected light vector
-                          vec3 V = normalize(-v_worldPosition); // Vector to viewer
+                        vec3 R = reflect(L, normal); // Reflected light vector
+                        vec3 V = normalize(-v_worldPosition); // Vector to viewer
 
-                          // Compute the specular term
-                          float specAngle = max(dot(R, V), 0.0);
-                          specular += pow(specAngle, shininess);
-                        }
+                        float specAngle = max(dot(R, V), 0.0);
+                        specular += pow(specAngle, shininess);
                     }
                 }
                 #endif

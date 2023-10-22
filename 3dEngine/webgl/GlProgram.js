@@ -11,23 +11,30 @@ export class GlProgram {
     /** @type {WebGL2RenderingContext} */
     #gl
     /** @type {WebGLProgram} */
-    #program
+    program
 
     /**
      * 
      * @param {WebGL2RenderingContext} gl 
      * @param {string} vertexShader 
      * @param {string} fragmentShader 
-     * @param {{[UboName: string]: number}} uboIndex
+     * @param {{
+     *      uboIndex?: {[UboName: string]: number},
+     *      outVaryings?: string[]
+     * }} options
      */
-    constructor(gl, vertexShader, fragmentShader, uboIndex = {}) {
+    constructor(gl, vertexShader, fragmentShader, options = {
+        uboIndex: {},
+        outVaryings: [],
+    }) {
         this.#gl = gl
 
         const glVertexShader = createShader(gl, WebGL2RenderingContext.VERTEX_SHADER, vertexShader)
         const glFragmentShader = createShader(gl, WebGL2RenderingContext.FRAGMENT_SHADER, fragmentShader)
 
-        const program = createProgram(gl, glVertexShader, glFragmentShader)
-        this.#program = program
+        const program = createProgram(gl, glVertexShader, glFragmentShader, options.outVaryings)
+
+        this.program = program
         gl.detachShader(program, glVertexShader)
         gl.deleteShader(glVertexShader)
         gl.detachShader(program, glFragmentShader)
@@ -40,6 +47,7 @@ export class GlProgram {
 
             const uniformIndexFromUbo = []
 
+            const uboIndex = options.uboIndex
             for (let i = 0; i < activeUboCount; i++) {
                 const name = gl.getActiveUniformBlockName(program, i)
                 if (uboIndex[name] !== undefined) {
@@ -74,15 +82,15 @@ export class GlProgram {
      * @returns 
      */
     createVao(attributes, indices) {
-        return new GlVao(this.#gl, this.#program, attributes, indices)
+        return new GlVao(this.#gl, this.program, attributes, indices)
     }
 
     useProgram() {
-        this.#gl.useProgram(this.#program)
+        this.#gl.useProgram(this.program)
     }
 
     dispose() {
-        this.#gl.deleteProgram(this.#program)
+        this.#gl.deleteProgram(this.program)
     }
 }
 
@@ -92,12 +100,20 @@ export class GlProgram {
  * @param {WebGL2RenderingContext} gl 
  * @param {WebGLShader} vertexShader 
  * @param {WebGLShader} fragmentShader 
+ * @param {string[]} outVaryings 
  */
-function createProgram(gl, vertexShader, fragmentShader) {
+function createProgram(gl, vertexShader, fragmentShader, outVaryings = []) {
     const program = gl.createProgram()
     gl.attachShader(program, vertexShader)
     gl.attachShader(program, fragmentShader)
+
+
+    if (outVaryings.length > 0) {
+        gl.transformFeedbackVaryings(program, outVaryings, gl.SEPARATE_ATTRIBS)
+    }
+
     gl.linkProgram(program)
+
     if (gl.getProgramParameter(program, gl.LINK_STATUS)) {
         return program
     } else {
