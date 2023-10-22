@@ -78,10 +78,10 @@ export class GlProgram {
     /**
      * 
      * @param {{[attributeName: string]: Attribute}} attributes 
-     * @param {Uint16Array} indices 
+     * @param {Uint16Array?} indices 
      * @returns 
      */
-    createVao(attributes, indices) {
+    createVao(attributes, indices = undefined) {
         return new GlVao(this.#gl, this.program, attributes, indices)
     }
 

@@ -13,8 +13,11 @@ export class GlVao {
     count = 0
     hasIndices = false
 
-    /** @type {WebGLBuffer[]} */
-    #buffersToDispose = []
+    /** @type {{[name: string]: WebGLBuffer}} */
+    buffers = {}
+
+    indicesBuffers
+
 
     /**
      * 
@@ -23,7 +26,7 @@ export class GlVao {
      * @param {{[attributeName: string]: Attribute}} attributes ex: point count
      * @param {Uint16Array?} indices
      */
-    constructor(gl, program, attributes, indices) {
+    constructor(gl, program, attributes, indices = undefined) {
         this.#gl = gl
 
         const activeAttributeCount = gl.getProgramParameter(program, WebGL2RenderingContext.ACTIVE_ATTRIBUTES)
@@ -56,7 +59,7 @@ export class GlVao {
                 gl.bufferSubData(WebGL2RenderingContext.ARRAY_BUFFER, offset, data)
             }
 
-            this.#buffersToDispose.push(buffer)
+            this.buffers[name] = buffer
         }
 
         if (indices) {
@@ -74,7 +77,7 @@ export class GlVao {
 
             this.count = indices.length
 
-            this.#buffersToDispose.push(buffer)
+            this.indicesBuffers = buffer
         }
     }
 
@@ -84,7 +87,8 @@ export class GlVao {
 
     dispose() {
         this.#gl.deleteVertexArray(this.vao)
-        for (const buffer of this.#buffersToDispose) {
+        if (this.indicesBuffers) this.#gl.deleteBuffer(this.indicesBuffers)
+        for (const buffer of Object.values(this.buffers)) {
             this.#gl.deleteBuffer(buffer)
         }
     }

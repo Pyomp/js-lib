@@ -1,5 +1,5 @@
-import { PointLight } from "../sceneGraph/light/PointLight.js"
-import { GlUbo } from "../webgl/GlUbo.js"
+import { PointLight } from "../../sceneGraph/light/PointLight.js"
+import { GlUbo } from "../../webgl/GlUbo.js"
 
 export class PointLightsRenderer {
     /** @type {Float32Array} */ #uboArray

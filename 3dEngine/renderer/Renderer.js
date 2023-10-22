@@ -2,14 +2,13 @@ import { Box3 } from "../../math/Box3.js"
 import { GlContext } from "../webgl/GlContext.js"
 import { GlProgram } from "../webgl/GlProgram.js"
 import { GlTexture } from "../webgl/GlTexture.js"
-import { GlVao } from "../webgl/GlVao.js"
 import { Camera } from "../sceneGraph/Camera.js"
 import { Material } from "../sceneGraph/Material.js"
 import { Node3D } from "../sceneGraph/Node3D.js"
 import { Object3D } from "../sceneGraph/Object3D.js"
 import { Scene } from "../sceneGraph/Scene.js"
 import { Texture } from "../sceneGraph/Texture.js"
-import { PointLightsRenderer } from "./PointLightsRenderer.js"
+import { PointLightsRenderer } from "./modules/PointLightsRenderer.js"
 import { PointLight } from "../sceneGraph/light/PointLight.js"
 import { GlUbo } from "../webgl/GlUbo.js"
 import { Uniform } from "../sceneGraph/Uniform.js"
@@ -48,7 +47,7 @@ export class Renderer {
         })
     }
 
-    #onContextLost() {
+    onContextLost() {
         this.#programMap.clear()
         this.#vaoMap.clear()
         this.#textureMap.clear()
@@ -66,7 +65,7 @@ export class Renderer {
         const canvas = document.createElement('canvas')
         canvas.style.width = '100%'
         canvas.style.height = '100%'
-        canvas.addEventListener("webglcontextlost", this.#onContextLost.bind(this))
+        canvas.addEventListener("webglcontextlost", this.onContextLost.bind(this))
 
         this.domElement.innerHTML = ''
         this.domElement.appendChild(canvas)
@@ -80,6 +79,12 @@ export class Renderer {
         this.#cameraUboF32a = new Float32Array(this.#cameraUbo.data)
 
         this.pointLightsRenderer = new PointLightsRenderer(this.glContext.gl)
+        this.pointLightsRenderer.updateUbo(this.pointLights)
+
+        this.uboIndex = {
+            cameraUbo: this.#cameraUbo.index,
+            pointLightsUBO: this.pointLightsRenderer.uboIndex
+        }
     }
 
     /** @type {Map<Material, GlProgram>} */
@@ -102,6 +107,12 @@ export class Renderer {
         this.#textureMap.clear()
     }
 
+    resetGlStates() {
+        this.#disposeGlPrograms()
+        this.#disposeGlVaos()
+        this.#setAllNeedsUpdateOnSceneToTrue()
+    }
+
     updateUbos() {
         this.scene.updateWorldMatrix()
         const cameraHasBeenUpdated = this.camera.update()
@@ -113,9 +124,11 @@ export class Renderer {
 
         const lightUboHasChanged = this.pointLightsRenderer.updateUbo(this.pointLights)
         if (lightUboHasChanged) {
-            this.#disposeGlPrograms()
-            this.#disposeGlVaos()
-            this.#setAllNeedsUpdateOnSceneToTrue()
+            this.uboIndex = {
+                cameraUbo: this.#cameraUbo.index,
+                pointLightsUBO: this.pointLightsRenderer.uboIndex
+            }
+            this.resetGlStates()            
         }
     }
 
@@ -171,10 +184,7 @@ export class Renderer {
                         material.vertexShader(this.pointLightsRenderer.count),
                         material.fragmentShader(this.pointLightsRenderer.count),
                         {
-                            uboIndex: {
-                                cameraUbo: this.#cameraUbo.index,
-                                pointLightsUBO: this.pointLightsRenderer.uboIndex
-                            }
+                            uboIndex: this.uboIndex
                         }
                     ))
                 }

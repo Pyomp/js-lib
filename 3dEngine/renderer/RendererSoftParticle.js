@@ -1,14 +1,28 @@
 import { Renderer } from "./Renderer.js"
+import { ParticlesRenderer } from './modules/ParticlesRenderer.js'
 
 export class RendererSoftParticle extends Renderer {
-    draw() {
-        this.updateUbos()
+    initGl() {
+        super.initGl()
+        if (!this.particles) this.particles = new ParticlesRenderer()
+        this.particles.initGl(this.glContext.gl, this.uboIndex)
+    }
 
-        const [opaqueObjects, transparentObjects] = this.getObjectsToDraw()
+    resetGlStates() {
+        super.resetGlStates()
+        this.particles.disposeGl()
+        this.particles.initGl(this.glContext.gl, this.uboIndex)
+    }
 
-        this.glContext.blending = false
-        this.drawObjects(opaqueObjects)
-        this.glContext.blending = true
-        this.drawObjects(transparentObjects)
+    updateParticles() {
+        this.particles.update()
+    }
+
+    render() {
+        this.updateParticles()
+
+        super.render()
+
+        this.particles.draw()
     }
 }
