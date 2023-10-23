@@ -14,13 +14,14 @@ export class RendererSoftParticle extends Renderer {
         this.particles.initGl(this.glContext.gl, this.uboIndex)
     }
 
-    updateParticles() {
-        this.particles.update()
+    /**
+     * @param {number} deltatimeSecond 
+     */
+    updateParticles(deltatimeSecond) {
+        this.particles.update(deltatimeSecond)
     }
 
     render() {
-        this.updateParticles()
-
         super.render()
 
         this.particles.draw()
