@@ -1,11 +1,13 @@
 import { Attribute } from "../../../sceneGraph/Attribute.js"
 import { GlProgram } from "../../../webgl/GlProgram.js"
 import { GlTexture } from "../../../webgl/GlTexture.js"
+import { ParticleAnimation } from "./ParticleAnimation.js"
 import { ParticlesObject } from './ParticlesObject.js'
 
-const PATTERN_TEXTURE_SIZE = 512
-const PATTERN_MAX_FRAME = 16
-const PATTERN_SIZE = PATTERN_TEXTURE_SIZE / PATTERN_MAX_FRAME // 32 
+const ANIMATION_TEXTURE_SIZE = 512
+const ANIMATION_MAX_FRAME = 16
+const ANIMATION_FRAME_PIXEL_SIZE = ANIMATION_TEXTURE_SIZE / ANIMATION_MAX_FRAME // 32
+const ANIMATION_FRAME_BYTES_SIZE = ANIMATION_FRAME_PIXEL_SIZE * 4
 
 export class ParticlesRenderer {
     /** @type {WebGL2RenderingContext} */ #gl
@@ -21,10 +23,12 @@ export class ParticlesRenderer {
     #patternTextureNeedsUpdate = true
 
     constructor(particleCount = 1000) {
-        this.inPositionSizeArray = new Float32Array(particleCount * 4)
+        this.inPositionSizeArray = new Float32Array(particleCount * 3)
         this.inVelocityArray = new Float32Array(particleCount * 4)
         this.inTypeArray = new Uint8Array(particleCount)
-        this.#patternArray = new Float32Array(PATTERN_TEXTURE_SIZE * PATTERN_TEXTURE_SIZE * 4)
+        this.inMassArray = new Float32Array(particleCount)
+
+        this.#patternArray = new Float32Array(ANIMATION_TEXTURE_SIZE * ANIMATION_TEXTURE_SIZE * 4)
 
         this.#count = particleCount
     }
@@ -44,9 +48,10 @@ export class ParticlesRenderer {
             gl,
             `#version 300 es
 
-            in vec4 velocity;
-            in vec4 position;
+            in vec4 velocity; // .w is time
+            in vec3 position;
             in int type;
+            in float mass;
         
             uniform float deltatimeSecond;
             uniform sampler2D frames;
@@ -64,9 +69,9 @@ export class ParticlesRenderer {
                 frameCoordinates.y = type;
                 float frameTime = texelFetch(frames, frameCoordinates, 0).x;
 
-                while (frameTime < currentTime && index < ${PATTERN_MAX_FRAME} ) {
+                while (frameTime < currentTime && index < ${ANIMATION_MAX_FRAME} ) {
                     index++;
-                    frameCoordinates.x += ${PATTERN_SIZE};
+                    frameCoordinates.x += ${ANIMATION_FRAME_PIXEL_SIZE};
                     frameTime = texelFetch(frames, frameCoordinates, 0).x;
                 }
 
@@ -85,44 +90,41 @@ export class ParticlesRenderer {
             };
 
             Frame getFrame(int frameIndex){
-                frameCoordinates.x = frameIndex * ${PATTERN_SIZE};
+                frameCoordinates.x = frameIndex * ${ANIMATION_FRAME_PIXEL_SIZE};
                 frameCoordinates.y = type;
                 vec4 data0 = texelFetch(frames, frameCoordinates, 0);
-                vec4 data1 = texelFetch(frames, frameCoordinates + 1, 0);
-                vec4 data2 = texelFetch(frames, frameCoordinates + 2, 0);
+                frameCoordinates.x++;
+                vec4 data1 = texelFetch(frames, frameCoordinates, 0);
+                frameCoordinates.x++;
+                vec4 data2 = texelFetch(frames, frameCoordinates, 0);
                 return Frame(data0.x, data1, data2.x);
             }
 
             void main() {
                 outVelocity.w = velocity.w + deltatimeSecond;
                 float t = outVelocity.w;
-                t = 1.;
+         
                 int frameIndex  = getFrameIndex(type, t);
 
-                if(frameIndex >= ${PATTERN_MAX_FRAME}) {
+                if(frameIndex >= ${ANIMATION_MAX_FRAME}) {
                     outColor.w = 0.;
-                    outColor = vec4(0., 0., 1., 1.);
                 } else if( frameIndex == 0 ) {
                     Frame frame = getFrame(0);
                     outColor = frame.color;
                     outPosition.w = frame.size;
-                    outColor = vec4(0., 1., 0., 1.);
                 } else {
                     Frame previousFrame = getFrame(frameIndex - 1);
                     Frame frame = getFrame(frameIndex);
                     float alpha = getAlpha(previousFrame.time, frame.time, t);
                     outColor = mix(previousFrame.color, frame.color, alpha);
                     outPosition.w = mix(previousFrame.size, frame.size, alpha);
-                    outColor = vec4(1., 0., 0., 1.);
                 }
+
                 outVelocity.xyz = velocity.xyz;
-                // outPosition.w = 10.;
-                outPosition.xyz = position.xyz + outVelocity.xyz * deltatimeSecond;
-                outPosition.xyz = position.xyz;
-                // outPosition.w = ( - pow ( t * 0.5 - 1., 2. ) + 1.) * 10.;
-        
-                // outColor = vec4(1., 0., 0., 1.);
-                // outColor = vec4(max(1. - t, 0.) , 0., 0., max(1. - t, 0.));
+                outVelocity.y -= mass;
+
+                outPosition.xyz = position + outVelocity.xyz * deltatimeSecond;
+                outPosition.xyz = position;
             }
             `,
             `#version 300 es
@@ -141,7 +143,8 @@ export class ParticlesRenderer {
         this.vaoTransformFeedback = this.#gpgpuProgram.createVao({
             velocity: new Attribute(this.inVelocityArray, 'DYNAMIC_COPY'),
             position: new Attribute(this.inPositionSizeArray, 'DYNAMIC_COPY'),
-            type: new Attribute(this.inTypeArray, 'DYNAMIC_COPY')
+            type: new Attribute(this.inTypeArray, 'DYNAMIC_COPY'),
+            mass: new Attribute(this.inMassArray, 'DYNAMIC_COPY'),
         })
 
         this.outVelocityGlBuffer = this.#createBuffer(this.inVelocityArray)
@@ -159,8 +162,8 @@ export class ParticlesRenderer {
             target: 'TEXTURE_2D',
             level: 0,
             internalformat: 'RGBA32F',
-            width: PATTERN_TEXTURE_SIZE,
-            height: PATTERN_TEXTURE_SIZE,
+            width: ANIMATION_TEXTURE_SIZE,
+            height: ANIMATION_TEXTURE_SIZE,
             border: 0,
             format: 'RGBA',
             type: 'FLOAT',
@@ -204,9 +207,11 @@ export class ParticlesRenderer {
      *  position: Vector3
      *  velocity: Vector3
      *  type: number
+     *  mass: number
      * }} options
      */
-    setParticle(offset, { position, velocity, type }) {
+    setParticle(offset, { position, velocity, type, mass }) {
+        const offset3 = offset * 3
         const offset4 = offset * 4
 
         this.inVelocityArray[offset4 + 0] = velocity.x
@@ -214,23 +219,39 @@ export class ParticlesRenderer {
         this.inVelocityArray[offset4 + 2] = velocity.z
         this.inVelocityArray[offset4 + 3] = 0 // time
 
-        this.inPositionSizeArray[offset4 + 0] = position.x
-        this.inPositionSizeArray[offset4 + 1] = position.y
-        this.inPositionSizeArray[offset4 + 2] = position.z
-        this.inPositionSizeArray[offset4 + 3] = 0 // size
+        this.inPositionSizeArray[offset3 + 0] = position.x
+        this.inPositionSizeArray[offset3 + 1] = position.y
+        this.inPositionSizeArray[offset3 + 2] = position.z
 
-        this.inTypeArray[offset + 0] = (type ?? 0) * PATTERN_TEXTURE_SIZE
+        this.inTypeArray[offset] = (type ?? 0) * ANIMATION_TEXTURE_SIZE
+
+        this.inMassArray[offset] = mass ?? 1
 
         this.#isNewParticle = true
     }
 
 
-
+    /**
+     * 
+     * @param {number} patternId 
+     * @param {ParticleAnimation} particleAnimation 
+     */
     setPattern(
         patternId,
-        frame
+        particleAnimation
     ) {
-        this.#patternArray.set(frame, patternId * PATTERN_TEXTURE_SIZE * 3)
+        const offset = patternId * ANIMATION_TEXTURE_SIZE * 3
+
+        for (let i = 0; i < particleAnimation.frames.length; i++) {
+            const frame = particleAnimation.frames[i]
+
+            this.#patternArray.set([
+                frame.time, 0, 0, 0,
+                frame.color.r, frame.color.g, frame.color.b, frame.alpha,
+                frame.size, 0, 0, 0
+            ], offset + ANIMATION_FRAME_BYTES_SIZE * i)
+        }
+
         this.#patternTextureNeedsUpdate = true
     }
 
@@ -257,11 +278,13 @@ export class ParticlesRenderer {
 
             this.vaoTransformFeedback.attributeUpdate['position'](this.inPositionSizeArray)
             this.vaoTransformFeedback.attributeUpdate['velocity'](this.inPositionSizeArray)
-            // this.vaoTransformFeedback.attributeUpdate['type'](this.inTypeArray)
+            this.vaoTransformFeedback.attributeUpdate['type'](this.inTypeArray)
+            this.vaoTransformFeedback.attributeUpdate['mass'](this.inMassArray)
         }
 
         this.#gpgpuProgram.uniformUpdate['deltatimeSecond'](deltatimeSecond)
         if (this.#patternTextureNeedsUpdate) {
+            this.#patternTextureNeedsUpdate = false
             this.#patternTexture.updateData(this.#patternArray, WebGL2RenderingContext.TEXTURE0)
         } else {
             this.#patternTexture.bindToUnit(WebGL2RenderingContext.TEXTURE0)
@@ -282,13 +305,13 @@ export class ParticlesRenderer {
 
         gl.bindBuffer(WebGL2RenderingContext.COPY_READ_BUFFER, this.object.vao.buffers['position'])
         gl.bindBuffer(WebGL2RenderingContext.ARRAY_BUFFER, this.vaoTransformFeedback.buffers['position'])
-        gl.copyBufferSubData(WebGL2RenderingContext.COPY_READ_BUFFER, WebGL2RenderingContext.ARRAY_BUFFER, 0, 0, this.#count * 4 * 4)
-        gl.getBufferSubData(WebGL2RenderingContext.ARRAY_BUFFER, 0, this.inPositionSizeArray)
+        gl.copyBufferSubData(WebGL2RenderingContext.COPY_READ_BUFFER, WebGL2RenderingContext.ARRAY_BUFFER, 0, 0, this.#count * 4 * 3)
+        // gl.getBufferSubData(WebGL2RenderingContext.ARRAY_BUFFER, 0, this.inPositionSizeArray)
 
         gl.bindBuffer(WebGL2RenderingContext.COPY_READ_BUFFER, this.outVelocityGlBuffer)
         gl.bindBuffer(WebGL2RenderingContext.ARRAY_BUFFER, this.vaoTransformFeedback.buffers['velocity'])
         gl.copyBufferSubData(WebGL2RenderingContext.COPY_READ_BUFFER, WebGL2RenderingContext.ARRAY_BUFFER, 0, 0, this.#count * 4 * 4)
-        gl.getBufferSubData(WebGL2RenderingContext.ARRAY_BUFFER, 0, this.inVelocityArray)
+        // gl.getBufferSubData(WebGL2RenderingContext.ARRAY_BUFFER, 0, this.inVelocityArray)
 
         gl.bindBuffer(WebGL2RenderingContext.COPY_READ_BUFFER, null)
     }
