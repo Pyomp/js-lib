@@ -1,5 +1,5 @@
 import { Renderer } from "./Renderer.js"
-import { ParticlesRenderer } from './modules/ParticlesRenderer.js'
+import { ParticlesRenderer } from './modules/ParticlesRendererModules/ParticlesRenderer.js'
 
 export class RendererSoftParticle extends Renderer {
     initGl() {
