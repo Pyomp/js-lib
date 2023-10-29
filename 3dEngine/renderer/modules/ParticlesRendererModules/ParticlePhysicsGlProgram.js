@@ -14,6 +14,7 @@ export class ParticlePhysicsGlProgram extends GlProgram {
             uniform float deltatimeSecond;
             uniform vec3 modelPosition;
             uniform mat3 modelRotation;
+            uniform bool stopRequest;
 
             struct Frame {
                 float time;
@@ -49,7 +50,7 @@ export class ParticlePhysicsGlProgram extends GlProgram {
 
                 float dt;
 
-                if(outVelocity.w > particleLifeTime){
+                if(outVelocity.w > particleLifeTime && !stopRequest){
                     outVelocity.w = mod(outVelocity.w, particleLifeTime);
                     outVelocity.xyz = initVelocity * modelRotation;
                     outPosition.xyz = initPosition + modelPosition;

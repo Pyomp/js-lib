@@ -15,21 +15,22 @@ export class ParticleSystemState {
 
     emitterTime = 0
 
+    stopRequest = false
+
+    #gl
+
     /**
      * 
      * @param {ParticleSystem} particleSystem 
      */
     constructor(particleSystem, gl, physicsProgram, renderProgram) {
+        this.#gl = gl
         const count = particleSystem.geometry.count
 
         const positionArray = new Float32Array(count * 4)
         const velocityArray = new Float32Array(count * 4)
 
-        const initVelocity = particleSystem.geometry.velocity
-        const initPosition = particleSystem.geometry.position
-
         for (let i = 0; i < count; i++) {
-            const offset3 = i * 3
             const offset4 = i * 4
 
             positionArray[offset4 + 3] = 0 // size
@@ -55,25 +56,32 @@ export class ParticleSystemState {
             outColor: this.vaoRender.buffers['color']
         })
 
-        this.systemUboArray = new Float32Array(8 * FRAME_COUNT + 4)
+        const systemUboArray = new Float32Array(8 * FRAME_COUNT + 4)
 
-        this.systemUboArray[0] = particleSystem.particleLifeTime
+        systemUboArray[0] = particleSystem.particleLifeTime
 
         for (let i = 0; i < FRAME_COUNT; i++) {
             const offset = i * 8 + 4
             const frame = particleSystem.particleKeyframes[i] || emptyFrame
 
-            this.systemUboArray[offset] = frame.time
-            this.systemUboArray[offset + 1] = frame.size
+            systemUboArray[offset] = frame.time
+            systemUboArray[offset + 1] = frame.size
 
-            this.systemUboArray[offset + 4] = frame.color.r
-            this.systemUboArray[offset + 5] = frame.color.g
-            this.systemUboArray[offset + 6] = frame.color.b
-            this.systemUboArray[offset + 7] = frame.color.a
+            systemUboArray[offset + 4] = frame.color.r
+            systemUboArray[offset + 5] = frame.color.g
+            systemUboArray[offset + 6] = frame.color.b
+            systemUboArray[offset + 7] = frame.color.a
         }
 
         this.systemUboBuffer = gl.createBuffer()
         gl.bindBuffer(WebGL2RenderingContext.ARRAY_BUFFER, this.systemUboBuffer)
-        gl.bufferData(WebGL2RenderingContext.ARRAY_BUFFER, this.systemUboArray, WebGL2RenderingContext.STATIC_DRAW)
+        gl.bufferData(WebGL2RenderingContext.ARRAY_BUFFER, systemUboArray, WebGL2RenderingContext.STATIC_DRAW)
+    }
+
+    dispose() {
+        this.vaoPhysics.dispose()
+        this.vaoRender.dispose()
+        this.transformFeedback.dispose()
+        this.#gl.deleteBuffer(this.systemUboBuffer)
     }
 }

@@ -1,16 +1,10 @@
-import { Color } from "../../../../math/Color.js"
-import { Attribute } from "../../../sceneGraph/Attribute.js"
-import { ParticleKeyframe } from "../../../sceneGraph/particle/ParticleKeyframe.js"
 import { ParticleSystem } from "../../../sceneGraph/particle/ParticleSystem.js"
 import { GlProgram } from "../../../webgl/GlProgram.js"
-import { GlTransformFeedback } from "../../../webgl/GlTransformFeedback.js"
 import { GlUbo } from "../../../webgl/GlUbo.js"
-import { GlVao } from "../../../webgl/GlVao.js"
 import { copyBuffer } from "../../../webgl/utils.js"
 import { ParticlePhysicsGlProgram } from "./ParticlePhysicsGlProgram.js"
 import { ParticleRenderGlProgram } from "./ParticleRenderGlProgram.js"
 import { ParticleSystemState } from "./ParticleSystemState.js"
-
 
 export const FRAME_COUNT = 10
 
@@ -35,21 +29,23 @@ export class ParticleRenderer {
         this.#physicsProgram.dispose()
         this.#renderProgram.dispose()
 
-        for (const particleSystemGl of Object.values(this.#particleSystemGl)) {
-            particleSystemGl.vaoPhysics.dispose()
-            particleSystemGl.vaoRender.dispose()
-            particleSystemGl.transformFeedback.dispose()
-            this.#gl.deleteBuffer(particleSystemGl.systemUboBuffer)
+        for (const [particleSystem, systemState] of this.#particleSystemMap) {
+            systemState.dispose()
+
+            if (particleSystem.stopRequest) {
+                this.particleSystems.delete(particleSystem)
+            }
         }
-        this.#particleSystemGl.clear()
+
+        this.#particleSystemMap.clear()
     }
 
     onContextLost() {
-        this.#particleSystemGl.clear()
+        this.#particleSystemMap.clear()
     }
 
     /** @type {Map<ParticleSystem, ParticleSystemState>} */
-    #particleSystemGl = new Map()
+    #particleSystemMap = new Map()
 
     /**
      * @param {number} deltatimeSecond 
@@ -58,8 +54,8 @@ export class ParticleRenderer {
         const gl = this.#gl
 
         for (const particleSystem of this.particleSystems) {
-            if (!this.#particleSystemGl.has(particleSystem)) {
-                this.#particleSystemGl.set(particleSystem, new ParticleSystemState(particleSystem, this.#gl, this.#physicsProgram, this.#renderProgram))
+            if (!this.#particleSystemMap.has(particleSystem)) {
+                this.#particleSystemMap.set(particleSystem, new ParticleSystemState(particleSystem, this.#gl, this.#physicsProgram, this.#renderProgram))
             }
         }
 
@@ -73,7 +69,7 @@ export class ParticleRenderer {
         this.#physicsProgram.uniformUpdate['deltatimeSecond'](deltatimeSecond)
 
         for (const particleSystem of this.particleSystems) {
-            const systemState = this.#particleSystemGl.get(particleSystem)
+            const systemState = this.#particleSystemMap.get(particleSystem)
 
             if (systemState.emitterTime < particleSystem.particleLifeTime) {
                 systemState.emitterTime += deltatimeSecond
@@ -84,6 +80,16 @@ export class ParticleRenderer {
             this.#physicsProgram.uniformUpdate['modelPosition'](particleSystem.position)
             this.#physicsProgram.uniformUpdate['modelRotation'](particleSystem.rotation)
 
+            if (particleSystem.stopRequest && !systemState.stopRequest) {
+                systemState.stopRequest = true
+                this.#physicsProgram.uniformUpdate['stopRequest'](1)
+                setTimeout(() => {
+                    systemState.dispose()
+                    this.particleSystems.delete(particleSystem)
+                    this.#particleSystemMap.delete(particleSystem)
+                }, particleSystem.particleLifeTime * 1000)
+            }
+            
             this.#gl.bindBufferBase(WebGL2RenderingContext.UNIFORM_BUFFER, this.#systemUboIndex, systemState.systemUboBuffer)
 
             systemState.vaoPhysics.bind()
@@ -103,7 +109,7 @@ export class ParticleRenderer {
         this.#renderProgram.useProgram()
 
         for (const particleSystem of this.particleSystems) {
-            const systemState = this.#particleSystemGl.get(particleSystem)
+            const systemState = this.#particleSystemMap.get(particleSystem)
             const count = systemState.count
 
             copyBuffer(gl, systemState.vaoRender.buffers['position'], systemState.vaoPhysics.buffers['position'], count * 4 * 4)
