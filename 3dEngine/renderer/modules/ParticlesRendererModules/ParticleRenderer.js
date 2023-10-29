@@ -9,14 +9,10 @@ import { GlVao } from "../../../webgl/GlVao.js"
 import { copyBuffer } from "../../../webgl/utils.js"
 import { ParticlePhysicsGlProgram } from "./ParticlePhysicsGlProgram.js"
 import { ParticleRenderGlProgram } from "./ParticleRenderGlProgram.js"
+import { ParticleSystemState } from "./ParticleSystemState.js"
 
-const emptyFrame = new ParticleKeyframe({
-    time: 0,
-    color: new Color(0, 0, 0, 0),
-    size: 0
-})
 
-const FRAME_COUNT = 10
+export const FRAME_COUNT = 10
 
 export class ParticleRenderer {
     /** @type {Set<ParticleSystem>} */ particleSystems = new Set()
@@ -52,6 +48,9 @@ export class ParticleRenderer {
         this.#particleSystemGl.clear()
     }
 
+    /** @type {Map<ParticleSystem, ParticleSystemState>} */
+    #particleSystemGl = new Map()
+
     /**
      * @param {number} deltatimeSecond 
      */
@@ -59,7 +58,9 @@ export class ParticleRenderer {
         const gl = this.#gl
 
         for (const particleSystem of this.particleSystems) {
-            this.#initParticleSystemGl(particleSystem)
+            if (!this.#particleSystemGl.has(particleSystem)) {
+                this.#particleSystemGl.set(particleSystem, new ParticleSystemState(particleSystem, this.#gl, this.#physicsProgram, this.#renderProgram))
+            }
         }
 
         // transform feedback
@@ -72,15 +73,24 @@ export class ParticleRenderer {
         this.#physicsProgram.uniformUpdate['deltatimeSecond'](deltatimeSecond)
 
         for (const particleSystem of this.particleSystems) {
-            const particleSystemGl = this.#particleSystemGl.get(particleSystem)
+            const systemState = this.#particleSystemGl.get(particleSystem)
 
-            this.#gl.bindBufferBase(WebGL2RenderingContext.UNIFORM_BUFFER, this.#systemUboIndex, particleSystemGl.systemUboBuffer)
+            if (systemState.emitterTime < particleSystem.particleLifeTime) {
+                systemState.emitterTime += deltatimeSecond
+                systemState.count = (particleSystem.geometry.count / particleSystem.particleLifeTime) * systemState.emitterTime
+                if (systemState.count > particleSystem.geometry.count) systemState.count = particleSystem.geometry.count
+            }
 
-            particleSystemGl.vaoPhysics.bind()
-            particleSystemGl.transformFeedback.bind()
+            this.#physicsProgram.uniformUpdate['modelPosition'](particleSystem.position)
+            this.#physicsProgram.uniformUpdate['modelRotation'](particleSystem.rotation)
+
+            this.#gl.bindBufferBase(WebGL2RenderingContext.UNIFORM_BUFFER, this.#systemUboIndex, systemState.systemUboBuffer)
+
+            systemState.vaoPhysics.bind()
+            systemState.transformFeedback.bind()
             gl.beginTransformFeedback(WebGL2RenderingContext.POINTS)
 
-            gl.drawArrays(WebGL2RenderingContext.POINTS, 0, particleSystem.geometry.count)
+            gl.drawArrays(WebGL2RenderingContext.POINTS, 0, systemState.count)
 
             gl.endTransformFeedback()
         }
@@ -93,94 +103,15 @@ export class ParticleRenderer {
         this.#renderProgram.useProgram()
 
         for (const particleSystem of this.particleSystems) {
-            const particleSystemGl = this.#particleSystemGl.get(particleSystem)
-            const count = particleSystem.geometry.count
+            const systemState = this.#particleSystemGl.get(particleSystem)
+            const count = systemState.count
 
-            copyBuffer(gl, particleSystemGl.vaoRender.buffers['position'], particleSystemGl.vaoPhysics.buffers['position'], count * 4 * 4)
-            copyBuffer(gl, particleSystemGl.transformFeedback.buffers['outVelocity'], particleSystemGl.vaoPhysics.buffers['velocity'], count * 4 * 4)
+            copyBuffer(gl, systemState.vaoRender.buffers['position'], systemState.vaoPhysics.buffers['position'], count * 4 * 4)
+            copyBuffer(gl, systemState.transformFeedback.buffers['outVelocity'], systemState.vaoPhysics.buffers['velocity'], count * 4 * 4)
 
-            particleSystemGl.vaoRender.bind()
+            systemState.vaoRender.bind()
 
-            this.#gl.drawArrays(WebGL2RenderingContext.POINTS, 0, particleSystem.geometry.count)
-        }
-    }
-
-    /** @type {Map<ParticleSystem, ParticleSystemGl>} */
-    #particleSystemGl = new Map()
-
-    /**
-     * @typedef {{
-     *  vaoPhysics: GlVao
-     *  vaoRender: GlVao
-     *  transformFeedback: GlTransformFeedback
-     *  systemUboBuffer: WebGLBuffer
-     * }} ParticleSystemGl
-     * @param {ParticleSystem} particleSystem 
-     */
-    #initParticleSystemGl(particleSystem) {
-        if (!this.#particleSystemGl.has(particleSystem)) {
-            const count = particleSystem.geometry.count
-
-            const positionArray = new Float32Array(count * 4)
-            const velocityArray = new Float32Array(count * 4)
-
-            const elementCount = count * 4
-            for (let i = 0; i < elementCount; i += 4) {
-                positionArray[i] = (Math.random() - 0.5) * 10
-                positionArray[i + 1] = (Math.random() - 0.5) * 10
-                positionArray[i + 2] = (Math.random() - 0.5) * 10
-                positionArray[i + 3] = 0 // size
-                velocityArray[i] = Math.random() - 0.5
-                velocityArray[i + 1] = Math.random() - 0.5
-                velocityArray[i + 2] = Math.random() - 0.5
-                velocityArray[i + 3] = 0 // time                
-            }
-
-            const vaoPhysics = this.#physicsProgram.createVao(
-                {
-                    position: new Attribute(positionArray),
-                    velocity: new Attribute(velocityArray)
-                }
-            )
-
-            const vaoRender = this.#renderProgram.createVao({
-                position: new Attribute(new Float32Array(count * 4)),
-                color: new Attribute(new Float32Array(count * 4))
-            })
-
-            const transformFeedback = this.#physicsProgram.createTransformFeedback(count, {
-                outPosition: vaoRender.buffers['position'],
-                outColor: vaoRender.buffers['color']
-            })
-
-            const systemUboArray = new Float32Array(8 * FRAME_COUNT)
-
-            for (let i = 0; i < FRAME_COUNT; i++) {
-                const offset = i * 8
-                const frame = particleSystem.particleKeyframes[i] || emptyFrame
-
-                systemUboArray[offset] = frame.time
-                systemUboArray[offset + 1] = frame.size
-
-                systemUboArray[offset + 4] = frame.color.r
-                systemUboArray[offset + 5] = frame.color.g
-                systemUboArray[offset + 6] = frame.color.b
-                systemUboArray[offset + 7] = frame.color.a
-            }
-
-            const systemUboBuffer = this.#gl.createBuffer()
-            this.#gl.bindBuffer(WebGL2RenderingContext.ARRAY_BUFFER, systemUboBuffer)
-            this.#gl.bufferData(WebGL2RenderingContext.ARRAY_BUFFER, systemUboArray, WebGL2RenderingContext.STATIC_DRAW)
-
-            /** @type {ParticleSystemGl} */
-            const particleSystemGl = {
-                vaoPhysics,
-                vaoRender,
-                transformFeedback,
-                systemUboBuffer
-            }
-
-            this.#particleSystemGl.set(particleSystem, particleSystemGl)
+            this.#gl.drawArrays(WebGL2RenderingContext.POINTS, 0, count)
         }
     }
 }

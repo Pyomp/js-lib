@@ -81,6 +81,10 @@ export class GlVao {
         }
     }
 
+    initGl(){
+        
+    }
+
     bind() {
         this.#gl.bindVertexArray(this.vao)
     }

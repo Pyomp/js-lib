@@ -5,11 +5,15 @@ export class ParticlePhysicsGlProgram extends GlProgram {
         super(
             gl,
             `#version 300 es
+            in vec3 initVelocity;
+            in vec3 initPosition;
 
             in vec4 velocity; // .w is time
             in vec4 position; // .w is size
         
             uniform float deltatimeSecond;
+            uniform vec3 modelPosition;
+            uniform mat3 modelRotation;
 
             struct Frame {
                 float time;
@@ -18,6 +22,7 @@ export class ParticlePhysicsGlProgram extends GlProgram {
             };
 
             layout(std140) uniform systemUBO {
+                float particleLifeTime;
                 Frame frames[${frameCount}];
             };
 
@@ -41,8 +46,24 @@ export class ParticlePhysicsGlProgram extends GlProgram {
 
             void main() {
                 outVelocity.w = velocity.w + deltatimeSecond;
+
+                float dt;
+
+                if(outVelocity.w > particleLifeTime){
+                    outVelocity.w = mod(outVelocity.w, particleLifeTime);
+                    outVelocity.xyz = initVelocity * modelRotation;
+                    outPosition.xyz = initPosition + modelPosition;
+                    dt = outVelocity.w;
+                } else {
+                    outVelocity.xyz = velocity.xyz;
+                    outPosition.xyz = position.xyz;
+                    dt = deltatimeSecond;
+                }
+
                 float t = outVelocity.w;
-        
+                
+                outPosition.xyz += outVelocity.xyz * dt;
+
                 int frameIndex = getFrameIndex(t);
 
                 if(frameIndex >= ${frameCount}) {
@@ -59,10 +80,7 @@ export class ParticlePhysicsGlProgram extends GlProgram {
                     outPosition.w = mix(previousFrame.size, frame.size, alpha);
                 }
 
-                outVelocity.xyz = velocity.xyz;
                 // outVelocity.y -= mass;
-
-                outPosition.xyz = position.xyz + outVelocity.xyz * deltatimeSecond;
                 // outPosition = position.xyz;
                 // outColor = vec4(1., 0., 0., 1.);     
             }
