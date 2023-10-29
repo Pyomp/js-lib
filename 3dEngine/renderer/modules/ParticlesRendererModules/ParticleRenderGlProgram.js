@@ -1,10 +1,8 @@
-import { Attribute } from "../../../sceneGraph/Attribute.js"
 import { GlProgram } from "../../../webgl/GlProgram.js"
-import { GlVao } from "../../../webgl/GlVao.js"
 
-export class ParticlesObject {
-    constructor(gl, uboIndex, particleCount) {
-        this.program = new GlProgram(
+export class ParticleRenderGlProgram extends GlProgram {
+    constructor(gl, uboIndex) {
+        super(
             gl,
             `#version 300 es
 
@@ -21,6 +19,10 @@ export class ParticlesObject {
             void main(){
                 gl_Position = projectionViewMatrix * vec4(position.xyz, 1.);
                 gl_PointSize = position.w;
+                if(gl_PointSize < 0.01){
+                    gl_Position.x = 100.;
+                    gl_Position.w = 1.;
+                }
                 v_color = color;
             }
             `,
@@ -32,19 +34,12 @@ export class ParticlesObject {
             out vec4 color;
 
             void main(){
+                if(v_color.a < 0.01) discard;
                 color = v_color;
+                // color = vec4(1.0, 0.0, 0.0, 1.0);
             }
             `,
             { uboIndex }
-        )
-
-        this.vao = new GlVao(
-            gl,
-            this.program.program,
-            {
-                position: new Attribute(new Float32Array(particleCount * 4)),
-                color: new Attribute(new Float32Array(particleCount * 4))
-            }
         )
     }
 }

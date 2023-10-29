@@ -1,10 +1,10 @@
 import { Renderer } from "./Renderer.js"
-import { ParticlesRenderer } from './modules/ParticlesRendererModules/ParticlesRenderer.js'
+import { ParticleRenderer } from "./modules/ParticlesRendererModules/ParticleRenderer.js"
 
 export class RendererSoftParticle extends Renderer {
     initGl() {
         super.initGl()
-        if (!this.particles) this.particles = new ParticlesRenderer()
+        if (!this.particles) this.particles = new ParticleRenderer()
         this.particles.initGl(this.glContext.gl, this.uboIndex)
     }
 
@@ -12,18 +12,16 @@ export class RendererSoftParticle extends Renderer {
         super.resetGlStates()
         this.particles.disposeGl()
         this.particles.initGl(this.glContext.gl, this.uboIndex)
+    }   
+
+    onContextLost(){
+        super.onContextLost()
+        this.particles.onContextLost()
     }
 
-    /**
-     * @param {number} deltatimeSecond 
-     */
-    updateParticles(deltatimeSecond) {
-        this.particles.update(deltatimeSecond)
-    }
-
-    render() {
+    render(deltatimeSecond) {
         super.render()
 
-        this.particles.draw()
+        this.particles.draw(deltatimeSecond)
     }
 }

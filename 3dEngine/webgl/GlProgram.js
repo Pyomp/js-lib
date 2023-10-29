@@ -1,9 +1,10 @@
 import { Attribute } from "../sceneGraph/Attribute.js"
+import { GlTransformFeedback } from "./GlTransformFeedback.js"
 import { GlUbo } from "./GlUbo.js"
 import { GlVao } from "./GlVao.js"
 
 export class GlProgram {
-    /** @type {{[uniformName: string]: ((data: number | Vector2 | Vector3 | Vector4 | Matrix3 | Matrix4) => void)}} */
+    /** @type {{[uniformName: string]: ((data: number | Vector2 | Vector3 | Vector4 | Matrix3 | Matrix4 | Color) => void)}} */
     uniformUpdate = {}
     /** @type {{[textureName: string]: number}} */
     textureUnit = {}
@@ -64,6 +65,7 @@ export class GlProgram {
                 if (uniformIndexFromUbo.includes(i)) continue
 
                 const { type, name } = gl.getActiveUniform(program, i)
+
                 if (type === WebGL2RenderingContext.SAMPLER_2D || type === WebGL2RenderingContext.SAMPLER_CUBE) {
                     gl.uniform1i(gl.getUniformLocation(program, name), unit)
                     this.textureUnit[name] = WebGL2RenderingContext[`TEXTURE${unit}`]
@@ -83,6 +85,16 @@ export class GlProgram {
      */
     createVao(attributes, indices = undefined) {
         return new GlVao(this.#gl, this.program, attributes, indices)
+    }
+
+    /**
+     * 
+     * @param {number} count 
+     * @param {{[name: string]: WebGLBuffer}} buffers 
+     * @returns 
+     */
+    createTransformFeedback(count, buffers) {
+        return new GlTransformFeedback(this.#gl, this.program, count, buffers)
     }
 
     useProgram() {
@@ -106,7 +118,6 @@ function createProgram(gl, vertexShader, fragmentShader, outVaryings = []) {
     const program = gl.createProgram()
     gl.attachShader(program, vertexShader)
     gl.attachShader(program, fragmentShader)
-
 
     if (outVaryings.length > 0) {
         gl.transformFeedbackVaryings(program, outVaryings, gl.SEPARATE_ATTRIBS)

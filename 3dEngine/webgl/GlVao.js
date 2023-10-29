@@ -7,7 +7,7 @@ export class GlVao {
 
     /** @type {{[attributeName: string]: (data, offset?: number) => void}} */
     attributeUpdate = {}
-    indicesUpdate = (data, offset = 0) => { }
+    indicesUpdate(data, offset = 0) { }
 
     // for draw
     count = 0
@@ -30,13 +30,13 @@ export class GlVao {
         this.#gl = gl
 
         const activeAttributeCount = gl.getProgramParameter(program, WebGL2RenderingContext.ACTIVE_ATTRIBUTES)
-
+        
         this.vao = gl.createVertexArray()
         gl.bindVertexArray(this.vao)
 
         for (let i = 0; i < activeAttributeCount; i++) {
             const { type, name } = gl.getActiveAttrib(program, i)
-
+            
             const size = getSize(type)
 
             this.count = attributes[name].data.length / size

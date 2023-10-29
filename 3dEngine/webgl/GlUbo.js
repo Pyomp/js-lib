@@ -1,4 +1,5 @@
 const glIndexUsed = new WeakMap()
+
 function getIndex(gl) {
     if (!glIndexUsed.has(gl)) glIndexUsed.set(gl, new Set())
     const indexUsed = glIndexUsed.get(gl)
@@ -11,7 +12,16 @@ function getIndex(gl) {
 
 export class GlUbo {
     #gl
-    #uboBuffer
+
+    static getIndex(gl) {
+        const index = getIndex(gl)
+        glIndexUsed.get(gl).add(index)
+        return index
+    }
+
+    static freeIndex(gl, index) {
+        glIndexUsed.get(gl).delete(index)
+    }
 
     /**
      * 
@@ -21,24 +31,23 @@ export class GlUbo {
     constructor(gl, byteLength) {
         this.#gl = gl
 
-        this.index = getIndex(this.#gl)
-        glIndexUsed.get(this.#gl).add(this.index)
+        this.index = GlUbo.getIndex(this.#gl)
 
         this.data = new ArrayBuffer(byteLength)
 
-        this.#uboBuffer = gl.createBuffer()
-        this.#gl.bindBuffer(WebGL2RenderingContext.UNIFORM_BUFFER, this.#uboBuffer)
+        this.uboBuffer = gl.createBuffer()
+        this.#gl.bindBuffer(WebGL2RenderingContext.UNIFORM_BUFFER, this.uboBuffer)
         this.#gl.bufferData(WebGL2RenderingContext.UNIFORM_BUFFER, this.data, WebGL2RenderingContext.DYNAMIC_DRAW)
-        this.#gl.bindBufferBase(WebGL2RenderingContext.UNIFORM_BUFFER, this.index, this.#uboBuffer)
+        this.#gl.bindBufferBase(WebGL2RenderingContext.UNIFORM_BUFFER, this.index, this.uboBuffer)
     }
 
     update() {
-        this.#gl.bindBuffer(WebGL2RenderingContext.UNIFORM_BUFFER, this.#uboBuffer)
+        this.#gl.bindBuffer(WebGL2RenderingContext.UNIFORM_BUFFER, this.uboBuffer)
         this.#gl.bufferSubData(WebGL2RenderingContext.UNIFORM_BUFFER, 0, this.data)
     }
 
     dispose() {
-        glIndexUsed.get(this.#gl).delete(this.index)
-        this.#gl.deleteBuffer(this.#uboBuffer)
+        GlUbo.freeIndex(this.#gl, this.index)
+        this.#gl.deleteBuffer(this.uboBuffer)
     }
 }
