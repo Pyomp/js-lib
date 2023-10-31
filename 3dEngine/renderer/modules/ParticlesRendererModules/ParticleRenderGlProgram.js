@@ -38,6 +38,7 @@ export class ParticleRenderGlProgram extends GlProgram {
             void main(){
                 if(v_color.a < 0.01) discard;
                 color = texture(map, gl_PointCoord.xy) * v_color;
+                // color = vec4(1., 0., 0., 1.);
             }
             `,
             { uboIndex }

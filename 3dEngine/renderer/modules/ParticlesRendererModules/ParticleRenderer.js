@@ -82,14 +82,16 @@ export class ParticleRenderer {
 
             if (particleSystem.stopRequest && !systemState.stopRequest) {
                 systemState.stopRequest = true
-                this.#physicsProgram.uniformUpdate['stopRequest'](1)
+
                 setTimeout(() => {
                     systemState.dispose()
                     this.particleSystems.delete(particleSystem)
                     this.#particleSystemMap.delete(particleSystem)
                 }, particleSystem.particleLifeTime * 1000)
             }
-            
+
+            this.#physicsProgram.uniformUpdate['stopRequest'](systemState.stopRequest ? 1 : 0)
+
             this.#gl.bindBufferBase(WebGL2RenderingContext.UNIFORM_BUFFER, this.#systemUboIndex, systemState.systemUboBuffer)
 
             systemState.vaoPhysics.bind()
@@ -117,7 +119,7 @@ export class ParticleRenderer {
 
             systemState.vaoRender.bind()
 
-            this.#gl.drawArrays(WebGL2RenderingContext.POINTS, 0, count)
+            gl.drawArrays(WebGL2RenderingContext.POINTS, 0, count)
         }
     }
 }
