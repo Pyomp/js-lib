@@ -21,8 +21,12 @@ export class LightParticleObject extends Object3D {
                     precision highp float;
                 
                     uniform cameraUbo {
+                        mat4 viewMatrix;
+                        mat4 projectionMatrix;
                         mat4 projectionViewMatrix;
                         vec3 cameraPosition;
+                        float near;
+                        float far;
                     };
         
                     struct PointLight {

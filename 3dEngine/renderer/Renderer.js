@@ -12,6 +12,7 @@ import { PointLightsRenderer } from "./modules/PointLightsRenderer.js"
 import { PointLight } from "../sceneGraph/light/PointLight.js"
 import { GlUbo } from "../webgl/GlUbo.js"
 import { Uniform } from "../sceneGraph/Uniform.js"
+import { WindowInfoRenderer } from "./modules/WindowInfoRenderer.js"
 
 const _box3 = new Box3()
 
@@ -70,21 +71,40 @@ export class Renderer {
         this.domElement.innerHTML = ''
         this.domElement.appendChild(canvas)
 
-        this.glContext = new GlContext(canvas)
-        this.glContext.resizeListeners.add((width, height) => {
-            this.camera.aspect = width / height
+        this.glContext = new GlContext(canvas, {
+            alpha: true,
+            antialias: true,
+            depth: true,
+            // desynchronized: true,
+            // failIfMajorPerformanceCaveat: true,
+            // powerPreference: '',
+            // premultipliedAlpha: true,
+            preserveDrawingBuffer: false,
+            stencil: false,
         })
 
-        this.#cameraUbo = new GlUbo(this.glContext.gl, (16 + 4) * 4)
+        this.glContext.resizeListeners.add(this.onResize.bind(this))
+
+
+        this.#cameraUbo = new GlUbo(this.glContext.gl, (16 + 16 + 16 + 4 + 2) * 4)
         this.#cameraUboF32a = new Float32Array(this.#cameraUbo.data)
 
         this.pointLightsRenderer = new PointLightsRenderer(this.glContext.gl)
         this.pointLightsRenderer.updateUbo(this.pointLights)
 
+        this.windowInfoRenderer = new WindowInfoRenderer(this.glContext.gl)
+
+
         this.uboIndex = {
             cameraUbo: this.#cameraUbo.index,
-            pointLightsUBO: this.pointLightsRenderer.uboIndex
+            pointLightsUBO: this.pointLightsRenderer.uboIndex,
+            windowUbo: this.windowInfoRenderer.uboIndex
         }
+    }
+
+    onResize(width, height) {
+        this.camera.aspect = width / height
+        this.windowInfoRenderer.setSize(width, height)
     }
 
     /** @type {Map<Material, GlProgram>} */
@@ -117,8 +137,19 @@ export class Renderer {
         this.scene.updateWorldMatrix()
         const cameraHasBeenUpdated = this.camera.update()
         if (cameraHasBeenUpdated) {
-            this.camera.projectionViewMatrix.toArray(this.#cameraUboF32a)
-            this.camera.position.toArray(this.#cameraUboF32a, 16)
+            let cursor = 0
+            this.camera.viewMatrix.toArray(this.#cameraUboF32a, cursor)
+            cursor += 16
+            this.camera.projectionMatrix.toArray(this.#cameraUboF32a, cursor)
+            cursor += 16
+            this.camera.projectionViewMatrix.toArray(this.#cameraUboF32a, cursor)
+            cursor += 16
+            this.camera.position.toArray(this.#cameraUboF32a, cursor)
+            cursor += 3
+            this.#cameraUboF32a[cursor] = this.camera.near
+            cursor += 1
+            this.#cameraUboF32a[cursor] = this.camera.far
+
             this.#cameraUbo.update()
         }
 
@@ -126,10 +157,13 @@ export class Renderer {
         if (lightUboHasChanged) {
             this.uboIndex = {
                 cameraUbo: this.#cameraUbo.index,
-                pointLightsUBO: this.pointLightsRenderer.uboIndex
+                pointLightsUBO: this.pointLightsRenderer.uboIndex,
+                windowUbo: this.windowInfoRenderer.uboIndex
             }
-            this.resetGlStates()            
+            this.resetGlStates()
         }
+
+        this.windowInfoRenderer.update()
     }
 
     getObjectsToDraw() {
@@ -241,6 +275,13 @@ export class Renderer {
         }
     }
 
+    allocTexture(texture) { this.#textureMap.set(texture, new GlTexture({ gl: this.glContext.gl, ...texture })) }
+    getGlTexture(texture) { return this.#textureMap.get(texture) }
+    freeTexture(texture) {
+        this.#textureMap.get(texture)?.dispose()
+        this.#textureMap.delete(texture)
+    }
+
     /**
      * 
      * @param {GlProgram} program 
@@ -249,10 +290,9 @@ export class Renderer {
     #bindTextures(program, textures) {
         for (const key in textures) {
             const texture = textures[key]
-            if (!this.#textureMap.has(texture)) this.#textureMap.set(texture, new GlTexture({
-                gl: this.glContext.gl,
-                ...texture
-            }))
+            if (!this.#textureMap.has(texture)) {
+                this.allocTexture(texture)
+            }
 
             const glTexture = this.#textureMap.get(texture)
 

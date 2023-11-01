@@ -19,3 +19,20 @@ export function printBuffer(gl, buffer, count = 4) {
     gl.getBufferSubData(WebGL2RenderingContext.ARRAY_BUFFER, 0, f)
     console.log(...f)
 }
+
+export function checkFrameBufferStatus(/** @type {WebGL2RenderingContext} */ gl) {
+    const result = gl.checkFramebufferStatus(gl.FRAMEBUFFER)
+    if (result === WebGL2RenderingContext.FRAMEBUFFER_COMPLETE) {
+        console.info(`The framebuffer is ready to display.`)
+    } else if (result === WebGL2RenderingContext.FRAMEBUFFER_INCOMPLETE_ATTACHMENT) {
+        console.warn('The attachment types are mismatched or not all framebuffer attachment points are framebuffer attachment complete.')
+    } else if (result === WebGL2RenderingContext.FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT) {
+        console.warn('There is no attachment.')
+    } else if (result === WebGL2RenderingContext.FRAMEBUFFER_INCOMPLETE_DIMENSIONS) {
+        console.warn('Height and width of the attachment are not the same.')
+    } else if (result === WebGL2RenderingContext.FRAMEBUFFER_UNSUPPORTED) {
+        console.warn('The format of the attachment is not supported or if depth and stencil attachments are not the same renderbuffer.')
+    } else if (result === WebGL2RenderingContext.FRAMEBUFFER_INCOMPLETE_MULTISAMPLE) {
+        console.warn('The values of gl.RENDERBUFFER_SAMPLES are different among attached renderbuffers, or are non-zero if the attached images are a mix of renderbuffers and textures.')
+    }
+}

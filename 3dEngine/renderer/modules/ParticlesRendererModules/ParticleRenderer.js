@@ -1,5 +1,6 @@
 import { ParticleSystem } from "../../../sceneGraph/particle/ParticleSystem.js"
 import { GlProgram } from "../../../webgl/GlProgram.js"
+import { GlTexture } from "../../../webgl/GlTexture.js"
 import { GlUbo } from "../../../webgl/GlUbo.js"
 import { copyBuffer } from "../../../webgl/utils.js"
 import { ParticlePhysicsGlProgram } from "./ParticlePhysicsGlProgram.js"
@@ -16,9 +17,12 @@ export class ParticleRenderer {
     /** @type {GlProgram} */ #physicsProgram
     /** @type {number} */ #systemUboIndex
     /** @type {GlProgram} */ #renderProgram
+    /** @type {GlTexture} */ #depthTexture
 
-    initGl(gl, uboIndex) {
+    initGl(gl, uboIndex, depthTexture) {
+        
         this.#gl = gl
+        this.#depthTexture = depthTexture
         this.#systemUboIndex = GlUbo.getIndex(gl)
         this.#physicsProgram = new ParticlePhysicsGlProgram(gl, { ...uboIndex, systemUBO: this.#systemUboIndex }, FRAME_COUNT)
         this.#renderProgram = new ParticleRenderGlProgram(gl, uboIndex)
@@ -106,20 +110,19 @@ export class ParticleRenderer {
         gl.disable(WebGL2RenderingContext.RASTERIZER_DISCARD)
         gl.bindTransformFeedback(WebGL2RenderingContext.TRANSFORM_FEEDBACK, null)
 
-
         // object
         this.#renderProgram.useProgram()
+        this.#depthTexture.bindToUnit(this.#renderProgram.textureUnit['depthMap'])
 
         for (const particleSystem of this.particleSystems) {
             const systemState = this.#particleSystemMap.get(particleSystem)
-            const count = systemState.count
 
-            copyBuffer(gl, systemState.vaoRender.buffers['position'], systemState.vaoPhysics.buffers['position'], count * 4 * 4)
-            copyBuffer(gl, systemState.transformFeedback.buffers['outVelocity'], systemState.vaoPhysics.buffers['velocity'], count * 4 * 4)
+            copyBuffer(gl, systemState.vaoRender.buffers['position'], systemState.vaoPhysics.buffers['position'], systemState.count * 4 * 4)
+            copyBuffer(gl, systemState.transformFeedback.buffers['outVelocity'], systemState.vaoPhysics.buffers['velocity'], systemState.count * 4 * 4)
 
             systemState.vaoRender.bind()
 
-            gl.drawArrays(WebGL2RenderingContext.POINTS, 0, count)
+            gl.drawArrays(WebGL2RenderingContext.POINTS, 0, systemState.count)
         }
     }
 }

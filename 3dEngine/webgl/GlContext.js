@@ -9,14 +9,14 @@ export class GlContext {
         canvas = document.createElement('canvas'),
         options = {
             alpha: false,
-            antialias: true,
+            antialias: false,
             depth: true,
             // desynchronized?: boolean
             failIfMajorPerformanceCaveat: false,
             powerPreference: 'default',
             premultipliedAlpha: true,
             preserveDrawingBuffer: false,
-            stencil: true
+            stencil: false
         }
     ) {
         this.gl = canvas.getContext("webgl2", options)

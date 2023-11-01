@@ -1,7 +1,7 @@
 export class GlTexture {
     /** @type {WebGL2RenderingContext} */ #gl
 
-    /** @type {WebGLTexture} */ #texture
+    /** @type {WebGLTexture} */ texture
 
     #target
 
@@ -10,6 +10,10 @@ export class GlTexture {
     #format
 
     #type
+
+    #internalFormat
+
+    #border
 
     #width
 
@@ -51,9 +55,11 @@ export class GlTexture {
         data = null,
         needsMipmap = true
     }) {
-        this.#texture = gl.createTexture()
+        this.texture = gl.createTexture()
 
         this.#target = WebGL2RenderingContext[target]
+        this.#internalFormat = WebGL2RenderingContext[internalformat]
+        this.#border = border
         this.#format = WebGL2RenderingContext[format]
         this.#type = WebGL2RenderingContext[type]
 
@@ -62,7 +68,7 @@ export class GlTexture {
         // @ts-ignore ts is bad for this kind of line
         this.#height = height ?? data.height ?? 1
 
-        gl.bindTexture(this.#target, this.#texture)
+        gl.bindTexture(this.#target, this.texture)
 
         gl.texParameteri(this.#target, WebGL2RenderingContext.TEXTURE_WRAP_S, WebGL2RenderingContext[wrapS])
         gl.texParameteri(this.#target, WebGL2RenderingContext.TEXTURE_WRAP_T, WebGL2RenderingContext[wrapT])
@@ -72,10 +78,10 @@ export class GlTexture {
         gl.texImage2D(
             this.#target,
             0, // level
-            WebGL2RenderingContext[internalformat],
+            this.#internalFormat,
             this.#width,
             this.#height,
-            border,
+            this.#border,
             this.#format,
             this.#type,
             // @ts-ignore ts want ArrayBufferView but WebGl.Texture.Pixels is more precise
@@ -88,13 +94,14 @@ export class GlTexture {
         this.#gl = gl
     }
 
+
     /**
      * @param {WebGl.Texture.Pixels} data
      * @param {number?} unit texture unit
     */
-    updateData(data, unit) {
+    updateData(data, unit = undefined) {
         if (unit !== undefined) this.#gl.activeTexture(unit)
-        this.#gl.bindTexture(this.#target, this.#texture)
+        this.#gl.bindTexture(this.#target, this.texture)
 
         this.#gl.texSubImage2D(
             this.#target,
@@ -112,12 +119,35 @@ export class GlTexture {
         if (this.#needsMipmap) this.#gl.generateMipmap(this.#target)
     }
 
+    updateSize(width, height, data = null, border = 0) {
+        this.#width = width
+        this.#height = height
+        this.#gl.bindTexture(this.#target, this.texture)
+
+        this.#gl.texImage2D(
+            this.#target,
+            0, // level
+            this.#internalFormat,
+            this.#width,
+            this.#height,
+            this.#border,
+            this.#format,
+            this.#type,
+            // @ts-ignore ts want ArrayBufferView but WebGl.Texture.Pixels is more precise
+            data
+        )
+    }
+
     /**
      * 
      * @param {number} unit 
      */
     bindToUnit(unit) {
         this.#gl.activeTexture(unit)
-        this.#gl.bindTexture(this.#target, this.#texture)
+        this.#gl.bindTexture(this.#target, this.texture)
+    }
+
+    dispose() {
+        this.#gl.deleteTexture(this.texture)
     }
 }

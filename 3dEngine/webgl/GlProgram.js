@@ -66,7 +66,7 @@ export class GlProgram {
 
                 const { type, name } = gl.getActiveUniform(program, i)
 
-                if (type === WebGL2RenderingContext.SAMPLER_2D || type === WebGL2RenderingContext.SAMPLER_CUBE) {
+                if (type === WebGL2RenderingContext.SAMPLER_2D || type === WebGL2RenderingContext.SAMPLER_CUBE || type === WebGL2RenderingContext.UNSIGNED_INT_SAMPLER_2D) {
                     gl.uniform1i(gl.getUniformLocation(program, name), unit)
                     this.textureUnit[name] = WebGL2RenderingContext[`TEXTURE${unit}`]
                     unit++
