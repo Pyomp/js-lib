@@ -5,6 +5,8 @@ export class ParticleRenderGlProgram extends GlProgram {
         super(
             gl,
             `#version 300 es
+            precision highp float;
+            precision highp sampler2D;
 
             in vec4 position; // .w is size
             in vec4 color;
@@ -24,16 +26,18 @@ export class ParticleRenderGlProgram extends GlProgram {
                 gl_Position = projectionViewMatrix * vec4(position.xyz, 1.);
 
                 gl_PointSize = position.w * 100. / gl_Position.z;
+
                 if(gl_PointSize < 0.01) {
                     gl_Position.x = 100.;
                     gl_Position.w = 1.;
                 }
+
                 v_color = color;
             }
             `,////////////////////////////////
             `#version 300 es
             precision highp float;
-            precision highp usampler2D;
+            precision highp sampler2D;
 
             in vec4 v_color;
 
@@ -71,7 +75,7 @@ export class ParticleRenderGlProgram extends GlProgram {
                 float l = abs(depthBetter(depth) - depthBetter(gl_FragCoord.z));
                 color.a *= clamp(l, 0., 1.);
                 
-                // color = vec4(gl_FragCoord.z/100., 0., 0., 1.);
+                // color = vec4(0.01, 0., 0., 1.);
             }
             `,
             { uboIndex }

@@ -1,3 +1,4 @@
+import { TextureObject } from "../extras/TextureObject.js"
 import { Texture } from "../sceneGraph/Texture.js"
 import { Renderer } from "./Renderer.js"
 import { ParticleRenderer } from "./modules/ParticlesRendererModules/ParticleRenderer.js"
@@ -36,6 +37,8 @@ export class RendererSoftParticle extends Renderer {
 
         if (!this.particles) this.particles = new ParticleRenderer()
         this.particles.initGl(this.glContext.gl, this.uboIndex, this.depthTexture)
+
+        this.textureObject = new TextureObject(depthTexture)
     }
 
     onResize(width, height) {
@@ -83,5 +86,8 @@ export class RendererSoftParticle extends Renderer {
         this.drawObjects(transparentObjects)
 
         this.particles.draw(deltatimeSecond)
+        
+        // gl.clear(WebGL2RenderingContext.COLOR_BUFFER_BIT | WebGL2RenderingContext.DEPTH_BUFFER_BIT)
+        // this.drawObjects([this.textureObject])
     }
 }

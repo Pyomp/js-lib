@@ -26,10 +26,17 @@ export class PhongMaterial extends Material {
                 out vec3 v_surfaceToView;
                 out vec3 v_worldPosition;
 
+                float linearizeDepth(vec4 position)
+                {
+                   return log(1. * position.w + 1) / log(1. * far + 1)
+                }
+
                 void main() {
                     vec4 worldPosition = modelView * vec4(position, 1.0);
                     
                     gl_Position = projectionViewMatrix * worldPosition;
+
+                    // gl_Position.z = linearizeDepth(gl_Position);
 
                     v_normal = mat3(modelView) * normal;
                     v_uv = uv;

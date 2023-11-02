@@ -8,7 +8,10 @@ export class TextureObject extends Object3D {
     set count(/** @type {number} */ value) {
         this.geometry.count = value
     }
-
+    /**
+     * 
+     * @param {Texture} texture 
+     */
     constructor(texture) {
         super({
             drawMode: 'TRIANGLES',
@@ -52,13 +55,19 @@ export class TextureObject extends Object3D {
 
                     uniform sampler2D map;
                             
+
+                    layout(std140) uniform windowUbo {
+                        vec2 resolution;
+                        vec2 mouse;
+                    };
+
                     out vec4 outColor;
         
                     void main() {
                         float red = texture(map, v_uv).r;
                         float f = (0.01 * 2000.) / ((2000. - 0.01) * red - 2000.);
                         outColor = vec4(red, 0.,0., 1.);
-                        // outColor=texture(map, v_uv);
+                        outColor=texture(map, v_uv);
                         // outColor = vec4(gl_FragCoord.x/1000. ,0. ,0.,1.);
                     }`,
                 textures: {

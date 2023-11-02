@@ -70,7 +70,7 @@ export class Renderer {
 
         this.domElement.innerHTML = ''
         this.domElement.appendChild(canvas)
-
+        
         this.glContext = new GlContext(canvas, {
             alpha: true,
             antialias: true,
@@ -84,7 +84,6 @@ export class Renderer {
         })
 
         this.glContext.resizeListeners.add(this.onResize.bind(this))
-
 
         this.#cameraUbo = new GlUbo(this.glContext.gl, (16 + 16 + 16 + 4 + 4) * 4)
         this.#cameraUboF32a = new Float32Array(this.#cameraUbo.data)
