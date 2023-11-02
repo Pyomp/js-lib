@@ -40,7 +40,7 @@ export class ParticleRenderGlProgram extends GlProgram {
             uniform sampler2D map;
             uniform sampler2D depthMap;
 
-            uniform cameraUbo {
+            layout(std140) uniform cameraUbo {
                 mat4 viewMatrix;
                 mat4 projectionMatrix;
                 mat4 projectionViewMatrix;
@@ -49,7 +49,7 @@ export class ParticleRenderGlProgram extends GlProgram {
                 float far;
             };
 
-            uniform windowUbo {
+            layout(std140) uniform windowUbo {
                 vec2 resolution;
                 vec2 mouse;
             };

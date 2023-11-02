@@ -20,7 +20,7 @@ export class LightParticleObject extends Object3D {
                     `#version 300 es
                     precision highp float;
                 
-                    uniform cameraUbo {
+                    layout(std140) uniform cameraUbo {
                         mat4 viewMatrix;
                         mat4 projectionMatrix;
                         mat4 projectionViewMatrix;
