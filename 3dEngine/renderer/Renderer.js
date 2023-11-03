@@ -341,7 +341,7 @@ export class Renderer {
 function getObjectStateId(/** @type {Object3D} */ object) {
     let id = 0
 
-    if (object.blending) id |= 0x0000_0001
+    if (object.additiveBlending) id |= 0x0000_0001
     if (object.cullFace) id |= 0x0000_0010
     if (object.depthTest) id |= 0x0000_0100
     if (object.depthWrite) id |= 0x0000_1000
@@ -354,7 +354,7 @@ function sortTransparencyObjects(/** @type {Object3D[]} */ objects) {
     const transparent = []
 
     for (const object of objects) {
-        if (object.blending) {
+        if (object.additiveBlending) {
             transparent.push(object)
         } else {
             opaque.push(object)

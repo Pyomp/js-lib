@@ -79,7 +79,6 @@ export function parseGltf(gltf) {
         for (const primitive of primitives) {
             if (primitive.material !== undefined) {
                 primitive.material = materials[primitive.material]
-                primitive.material.textures = {}
             }
             const attributes = primitive.attributes
             for (const key in attributes) {

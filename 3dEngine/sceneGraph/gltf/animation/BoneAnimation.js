@@ -1,6 +1,6 @@
-import { Euler } from '../../../math/Euler.js'
-import { Quaternion } from '../../../math/Quaternion.js'
-import { Vector3 } from '../../../math/Vector3.js'
+import { Euler } from '../../../../math/Euler.js'
+import { Quaternion } from '../../../../math/Quaternion.js'
+import { Vector3 } from '../../../../math/Vector3.js'
 import { KeyFrame } from './KeyFrame.js'
 
 // from gltf spec

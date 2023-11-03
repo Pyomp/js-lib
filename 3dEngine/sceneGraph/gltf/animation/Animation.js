@@ -1,6 +1,7 @@
-import { Quaternion } from '../../../math/Quaternion.js'
-import { Vector3 } from '../../../math/Vector3.js'
-import { LoopOnce, LoopPingpong, LoopRepeat } from './constants.js'
+import { Quaternion } from '../../../../math/Quaternion.js'
+import { Vector3 } from '../../../../math/Vector3.js'
+import { Bone } from './Bone.js'
+import { KeyFrame } from './KeyFrame.js'
 import { Track } from './Track.js'
 
 const vs_pars = () => `
@@ -33,11 +34,16 @@ const _quaternion = new Quaternion()
 const tracksCache = new WeakMap()
 const initialPoseCache = new WeakMap()
 
-export class AnimationSystem {
+export const LoopOnce = 0
+export const LoopRepeat = 1
+export const LoopPingpong = 2
+
+export class Animation {
     static vs_pars = vs_pars
     static vs_main = vs_main
 
-    #rootBone
+    buffer
+    rootBone
     #initialPose = {}
     #poseSaved = {}
 
@@ -52,17 +58,22 @@ export class AnimationSystem {
     fadeSpeed = 7
 
     /**
-     * @param {GltfAnimations} gltfAnimations 
-     * @param {Bone} rootBone
+     * @param {GltfSkin} gltfSkin
      * @param {{[gltfAnimationName: string]: string | number}} animationDictionary 
+     * @param {Matrix4} nodeWorldMatrix
      */
-    constructor(gltfAnimations, rootBone, animationDictionary = {}) {
-        this.#rootBone = rootBone
+    constructor(gltfSkin, animationDictionary = {}, nodeWorldMatrix) {
+        const gltfAnimations = gltfSkin.animations
+
+        this.buffer = new Float32Array(16 * gltfSkin.bonesCount)
+
+        this.rootBone = new Bone(gltfSkin.root, this.buffer, gltfSkin.inverseBindMatrices.buffer, nodeWorldMatrix)
+
         this.#initInitialPose()
         this.#initPoseSaved()
         this.#initTracks(gltfAnimations, animationDictionary)
         this.#initCurrentAnimation()
-        this.#rootBone.updateMatrix()
+        this.rootBone.updateMatrix()
     }
 
     #extractLoopFromName(animationName) {
@@ -101,13 +112,13 @@ export class AnimationSystem {
     }
 
     #initInitialPose() {
-        const cache = initialPoseCache.get(this.#rootBone)
+        const cache = initialPoseCache.get(this.rootBone)
         if (cache) {
             this.#initialPose = cache
             return
         }
 
-        this.#rootBone.traverse((bone) => {
+        this.rootBone.traverse((bone) => {
             this.#initialPose[bone.name] = {
                 position: new Vector3().copy(bone.position),
                 quaternion: new Quaternion().copy(bone.quaternion),
@@ -115,11 +126,11 @@ export class AnimationSystem {
             }
         })
 
-        initialPoseCache.set(this.#rootBone, this.#initialPose)
+        initialPoseCache.set(this.rootBone, this.#initialPose)
     }
 
     #initPoseSaved() {
-        this.#rootBone.traverse((bone) => {
+        this.rootBone.traverse((bone) => {
             this.#poseSaved[bone.name] = {
                 position: new Vector3().copy(bone.position),
                 quaternion: new Quaternion().copy(bone.quaternion),
@@ -299,10 +310,6 @@ export class AnimationSystem {
         }
     }
 
-    #updateFadeTime(deltaTime) {
-        this.#fadeTime += deltaTime * this.fadeSpeed
-    }
-
     #applyLoopToTime() {
         if (this.#t > this.#currentAnimation.end) {
             if (this.#currentAnimation.loop === LoopPingpong) {
@@ -319,13 +326,8 @@ export class AnimationSystem {
         }
     }
 
-    #updateTime(deltaTime) {
-        this.#t += deltaTime * this.#timeDirection * this.speed
-        this.#applyLoopToTime()
-    }
-
     #saveCurrentPose() {
-        this.#rootBone.traverse((bone) => {
+        this.rootBone.traverse((bone) => {
             const bonePose = this.#poseSaved[bone.name]
             bonePose.position.copy(bone.position)
             bonePose.quaternion.copy(bone.quaternion)
@@ -334,13 +336,14 @@ export class AnimationSystem {
     }
 
     updateTime(deltaTime) {
-        this.#updateFadeTime(deltaTime)
-        this.#updateTime(deltaTime)
+        this.#fadeTime += deltaTime * this.fadeSpeed
+        this.#t += deltaTime * this.#timeDirection * this.speed
+        this.#applyLoopToTime()
     }
 
-    updateBoneMatrix() {
-        this.#rootBone.traverse((bone) => { this.#updateBoneFromFrame(bone) })
-        this.#rootBone.updateMatrix()
+    updateBuffer() {
+        this.rootBone.traverse((bone) => { this.#updateBoneFromFrame(bone) })
+        this.rootBone.updateMatrix()
     }
 
     play(animationName, timeUpdate = 0) {

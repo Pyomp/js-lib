@@ -1,8 +1,6 @@
-import { Matrix4 } from '../../../math/Matrix4.js'
-import { Quaternion } from '../../../math/Quaternion.js'
-import { Vector3 } from '../../../math/Vector3.js'
-
-const _vector3 = new Vector3()
+import { Matrix4 } from '../../../../math/Matrix4.js'
+import { Quaternion } from '../../../../math/Quaternion.js'
+import { Vector3 } from '../../../../math/Vector3.js'
 
 export class Bone {
 
@@ -25,8 +23,7 @@ export class Bone {
         this.name = gltfBone.name
         this.#parent = parentBone
 
-        this.#inverseBindMatrix.fromArray(inverseBindMatricesF32a.slice(gltfBone.id * 16, gltfBone.id * 16 + 16))
-
+        this.#inverseBindMatrix.elements = inverseBindMatricesF32a.subarray(gltfBone.id * 16, gltfBone.id * 16 + 16)
         this.#localMatrix.elements = jointMatricesF32a.subarray(gltfBone.id * 16, gltfBone.id * 16 + 16)
 
         if (gltfBone.rotation) this.quaternion.fromArray(gltfBone.rotation)

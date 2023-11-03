@@ -7,6 +7,8 @@ import { Uniform } from "./Uniform.js"
 export class Object3D {
     drawMode
 
+    transparent = false
+
     /**
      * 
      * @param {{
@@ -15,7 +17,8 @@ export class Object3D {
      *  drawMode?: WebGl.Render.DrawMode
      *  uniforms?: {[name: string]: Uniform}
      *  textures?: {[name: string]: Texture}
-     *  blending?: boolean
+     *  additiveBlending?: boolean
+     *  normalBlending?: boolean
      *  depthTest?: boolean
      *  depthWrite?: boolean
      *  cullFace?: boolean
@@ -27,7 +30,8 @@ export class Object3D {
         drawMode = 'TRIANGLES',
         uniforms = {},
         textures = {},
-        blending = false,
+        additiveBlending = false,
+        normalBlending = false,
         depthTest = true,
         depthWrite = true,
         cullFace = true
@@ -40,7 +44,12 @@ export class Object3D {
         this.uniforms = uniforms
         this.textures = textures
 
-        this.blending = blending
+        this.normalBlending = normalBlending
+        this.additiveBlending = additiveBlending
+        if (additiveBlending || normalBlending) {
+            this.transparent = true
+        }
+
         this.depthTest = depthTest
         this.depthWrite = depthWrite
         this.cullFace = cullFace

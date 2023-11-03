@@ -37,10 +37,6 @@ declare type GltfMaterial = {
   doubleSided?: boolean;
   extensions?: GltfMaterialExtensions;
   pbrMetallicRoughness?: GltfPbrMetallicRoughness;
-
-  textures: {
-    [textureName: string]: Texture;
-  };
 };
 
 declare type GltfMesh = {
