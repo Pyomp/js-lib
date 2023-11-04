@@ -1,4 +1,4 @@
-import { AnimationSystem } from "../../3dEngine/sceneGraph/gltf/animation/Animation.js"
+import { AnimationSystem } from "../../3dEngine/sceneGraph/gltf/skinned/animation/Animation.js"
 import { Shader } from "../renderer/models/Shader.js"
 import { CameraRenderer } from "../renderer/modules/Camera.js"
 

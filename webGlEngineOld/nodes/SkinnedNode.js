@@ -2,8 +2,8 @@ import { Quaternion } from '../../math/Quaternion.js'
 import { Vector3 } from '../../math/Vector3.js'
 import { Node3D } from '../renderer/models/Node3D.js'
 import { Texture } from '../renderer/models/Texture.js'
-import { AnimationSystem } from '../../3dEngine/sceneGraph/gltf/animation/Animation.js'
-import { Bone } from '../../3dEngine/sceneGraph/gltf/animation/Bone.js'
+import { AnimationSystem } from '../../3dEngine/sceneGraph/gltf/skinned/animation/Animation.js'
+import { Bone } from '../../3dEngine/sceneGraph/gltf/skinned/animation/Bone.js'
 import { GltfMesh } from './objects/GltfMesh.js'
 
 export class SkinnedNode extends Node3D {

@@ -61,7 +61,7 @@ declare type GltfMaterialExtensions = {
 declare type GltfImage = {
   uri?: string;
   mimeType?: string;
-
+  image?: HTMLImageElement | Image | ImageBitmap // not standard to GLTF
   buffer?: GltfBuffer;
   name?: string;
   type?: "PNG" | "JPG" | "SVG";
@@ -76,8 +76,8 @@ declare type GltfSampler = {
 };
 
 declare type GltfTexture = {
-  sampler: any;
-  source: GltfImage;
+  sampler: GltfSampler;
+  source: HTMLImageElement;
   name?: string;
   texCoord?: number; // The set index of texture’s TEXCOORD attribute used for texture coordinate mapping.
 };

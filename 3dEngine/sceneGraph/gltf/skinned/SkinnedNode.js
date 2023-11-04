@@ -1,17 +1,16 @@
-import { Node3D } from "../Node3D.js"
-import { Texture } from "../Texture.js"
+import { Node3D } from "../../Node3D.js"
+import { Texture } from "../../Texture.js"
+import { SkinnedObject } from "./SkinnedObject.js"
 import { Animation } from "./animation/Animation.js"
 
-export class SkinnedMesh extends Node3D {
+export class SkinnedNode extends Node3D {
     /**
     * 
-    * @param {GltfNode} gltfNode 
-    * @param {string?} name 
+    * @param {GltfNode} gltfNode
     * @param {{[animationName: string]: number | string }} animationDictionary 
     */
     constructor(
         gltfNode,
-        name = '',
         animationDictionary = {}
     ) {
         super()
@@ -21,7 +20,7 @@ export class SkinnedMesh extends Node3D {
 
         this.animation = new Animation(gltfNode.skin, animationDictionary, this.worldMatrix)
 
-        const jointTexture = new Texture({
+        const jointsTexture = new Texture({
             data: this.animation.buffer,
 
             wrapS: 'CLAMP_TO_EDGE',
@@ -41,8 +40,7 @@ export class SkinnedMesh extends Node3D {
         })
 
         for (const primitive of gltfNode.mesh.primitives) {
-            this.objects.add(new SkinnedObject(primitive, jointTexture))
+            this.objects.add(new SkinnedObject(primitive, jointsTexture, this.worldMatrix))
         }
-
     }
 }

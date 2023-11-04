@@ -30,27 +30,33 @@ export class GlVao {
         this.#gl = gl
 
         const activeAttributeCount = gl.getProgramParameter(program, WebGL2RenderingContext.ACTIVE_ATTRIBUTES)
-        
+
         this.vao = gl.createVertexArray()
         gl.bindVertexArray(this.vao)
 
         for (let i = 0; i < activeAttributeCount; i++) {
             const { type, name } = gl.getActiveAttrib(program, i)
-            
-            const size = getSize(type)
 
-            this.count = attributes[name].data.length / size
+            const size = getElementCount(type)
+
+            const data = attributes[name].data
+
+            this.count = data.length / size
 
             const location = gl.getAttribLocation(program, name)
 
+
+
             const buffer = gl.createBuffer()
             gl.bindBuffer(WebGL2RenderingContext.ARRAY_BUFFER, buffer)
-            gl.bufferData(WebGL2RenderingContext.ARRAY_BUFFER, attributes[name].data, WebGL2RenderingContext[attributes[name].usage || 'STATIC_DRAW'])
+            gl.bufferData(WebGL2RenderingContext.ARRAY_BUFFER, data, WebGL2RenderingContext[attributes[name].usage || 'STATIC_DRAW'])
             gl.enableVertexAttribArray(location)
-
-            if (isFloat(type)) {
+            
+            if (isFloat(data)) {
                 gl.vertexAttribPointer(location, size, WebGL2RenderingContext.FLOAT, false, 0, 0,)
-            } else {
+            } else if (isUint(data)) {
+                gl.vertexAttribIPointer(location, size, WebGL2RenderingContext.UNSIGNED_INT, 0, 0)
+            } else if (isInt(data)) {
                 gl.vertexAttribIPointer(location, size, WebGL2RenderingContext.INT, 0, 0)
             }
 
@@ -81,8 +87,8 @@ export class GlVao {
         }
     }
 
-    initGl(){
-        
+    initGl() {
+
     }
 
     bind() {
@@ -98,17 +104,19 @@ export class GlVao {
     }
 }
 
-function isFloat(type) {
-    return type === WebGL2RenderingContext.FLOAT
-        || type === WebGL2RenderingContext.FLOAT_VEC2
-        || type === WebGL2RenderingContext.FLOAT_VEC3
-        || type === WebGL2RenderingContext.FLOAT_VEC4
-        || type === WebGL2RenderingContext.FLOAT_MAT2
-        || type === WebGL2RenderingContext.FLOAT_MAT3
-        || type === WebGL2RenderingContext.FLOAT_MAT4
+function isFloat(data) {
+    return data instanceof Float32Array || data instanceof Float64Array
 }
 
-function getSize(type) {
+function isUint(data) {
+    return data instanceof Uint8Array || data instanceof Uint8ClampedArray || data instanceof Uint16Array || data instanceof Uint32Array
+}
+
+function isInt(data) {
+    return data instanceof Int8Array || data instanceof Int16Array || data instanceof Int32Array
+}
+
+function getElementCount(type) {
     if (type === WebGL2RenderingContext.FLOAT) return 1
     else if (type === WebGL2RenderingContext.FLOAT_VEC2) return 2
     else if (type === WebGL2RenderingContext.FLOAT_VEC3) return 3
@@ -117,11 +125,15 @@ function getSize(type) {
     else if (type === WebGL2RenderingContext.INT_VEC2) return 2
     else if (type === WebGL2RenderingContext.INT_VEC3) return 3
     else if (type === WebGL2RenderingContext.INT_VEC4) return 4
+    else if (type === WebGL2RenderingContext.UNSIGNED_INT) return 1
+    else if (type === WebGL2RenderingContext.UNSIGNED_INT_VEC2) return 2
+    else if (type === WebGL2RenderingContext.UNSIGNED_INT_VEC3) return 3
+    else if (type === WebGL2RenderingContext.UNSIGNED_INT_VEC4) return 4
     else if (type === WebGL2RenderingContext.BOOL) return 1
     else if (type === WebGL2RenderingContext.BOOL_VEC2) return 2
     else if (type === WebGL2RenderingContext.BOOL_VEC3) return 3
     else if (type === WebGL2RenderingContext.BOOL_VEC4) return 4
-    else if (type === WebGL2RenderingContext.FLOAT_MAT2) return 2
-    else if (type === WebGL2RenderingContext.FLOAT_MAT3) return 3
-    else if (type === WebGL2RenderingContext.FLOAT_MAT4) return 4
+    else if (type === WebGL2RenderingContext.FLOAT_MAT2) return 2 * 2
+    else if (type === WebGL2RenderingContext.FLOAT_MAT3) return 3 * 3
+    else if (type === WebGL2RenderingContext.FLOAT_MAT4) return 4 * 4
 }

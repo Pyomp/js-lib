@@ -24,10 +24,10 @@ export class GlTexture {
      * @param {{
      *  gl: WebGL2RenderingContext
      *  target?: WebGl.Texture.Target
-     *  wrapS?: WebGl.Texture.Wrap
-     *  wrapT?: WebGl.Texture.Wrap
-     *  minFilter?: WebGl.Texture.MinFilter
-     *  magFilter?: WebGl.Texture.MagFilter
+     *  wrapS?: WebGl.Texture.Wrap | number
+     *  wrapT?: WebGl.Texture.Wrap | number
+     *  minFilter?: WebGl.Texture.MinFilter | number
+     *  magFilter?: WebGl.Texture.MagFilter | number
      *  level?: GLint
      *  internalformat?: WebGl.Texture.InternalFormat
      *  width?: GLsizei
@@ -70,10 +70,10 @@ export class GlTexture {
 
         gl.bindTexture(this.#target, this.texture)
 
-        gl.texParameteri(this.#target, WebGL2RenderingContext.TEXTURE_WRAP_S, WebGL2RenderingContext[wrapS])
-        gl.texParameteri(this.#target, WebGL2RenderingContext.TEXTURE_WRAP_T, WebGL2RenderingContext[wrapT])
-        gl.texParameteri(this.#target, WebGL2RenderingContext.TEXTURE_MIN_FILTER, WebGL2RenderingContext[minFilter])
-        gl.texParameteri(this.#target, WebGL2RenderingContext.TEXTURE_MAG_FILTER, WebGL2RenderingContext[magFilter])
+        gl.texParameteri(this.#target, WebGL2RenderingContext.TEXTURE_WRAP_S, WebGL2RenderingContext[wrapS] ?? wrapS)
+        gl.texParameteri(this.#target, WebGL2RenderingContext.TEXTURE_WRAP_T, WebGL2RenderingContext[wrapT] ?? wrapT)
+        gl.texParameteri(this.#target, WebGL2RenderingContext.TEXTURE_MIN_FILTER, WebGL2RenderingContext[minFilter] ?? minFilter)
+        gl.texParameteri(this.#target, WebGL2RenderingContext.TEXTURE_MAG_FILTER, WebGL2RenderingContext[magFilter] ?? magFilter)
 
         gl.texImage2D(
             this.#target,

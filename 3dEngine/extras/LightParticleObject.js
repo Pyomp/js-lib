@@ -12,11 +12,11 @@ export class LightParticleObject extends Object3D {
     constructor() {
         super({
             drawMode: 'POINTS',
-            blending: true,
+            additiveBlending: true,
             depthWrite: false,
             geometry: new Geometry(0),
             material: new Material({
-                vertexShader: (pointLightCount) =>
+                vertexShader: ({ pointLightCount }) =>
                     `#version 300 es
                     precision highp float;
                 

@@ -3,10 +3,13 @@ import { Uniform } from "./Uniform.js"
 
 export class Material {
     /**
+     * @typedef {{
+     *      pointLightCount: number
+     * }} ShaderParameters
      * 
      * @param {{
-     *  vertexShader: (data: any) => string
-     *  fragmentShader: (data: any) => string
+     *  vertexShader: (shaderParameters: ShaderParameters) => string
+     *  fragmentShader: (shaderParameters: ShaderParameters) => string
      *  uniforms?: { [name: string]: Uniform}
      *  textures?: { [name: string]: Texture}
      * }} param0 

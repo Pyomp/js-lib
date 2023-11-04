@@ -1,22 +1,22 @@
 export class Texture {
     needsUpdate = false
-      /**
-      * @param {{
-      *  target?: WebGl.Texture.Target
-      *  wrapS?: WebGl.Texture.Wrap
-      *  wrapT?: WebGl.Texture.Wrap
-      *  minFilter?: WebGl.Texture.MinFilter
-      *  magFilter?: WebGl.Texture.MagFilter
-      *  internalformat?: WebGl.Texture.InternalFormat
-      *  width?: GLsizei
-      *  height?: GLsizei
-      *  border?: GLint
-      *  format?: WebGl.Texture.Format
-      *  type?: WebGl.Texture.Type
-      *  data: WebGl.Texture.Pixels
-      *  needsMipmap?: boolean
-      * }} param0 
-      */
+    /**
+    * @param {{
+    *  target?: WebGl.Texture.Target
+    *  wrapS?: WebGl.Texture.Wrap | number
+    *  wrapT?: WebGl.Texture.Wrap | number
+    *  minFilter?: WebGl.Texture.MinFilter | number
+    *  magFilter?: WebGl.Texture.MagFilter | number
+    *  internalformat?: WebGl.Texture.InternalFormat
+    *  width?: GLsizei
+    *  height?: GLsizei
+    *  border?: GLint
+    *  format?: WebGl.Texture.Format
+    *  type?: WebGl.Texture.Type
+    *  data: WebGl.Texture.Pixels
+    *  needsMipmap?: boolean
+    * }} param0 
+    */
     constructor({
         target = 'TEXTURE_2D',
         wrapS = 'CLAMP_TO_EDGE',
@@ -33,10 +33,12 @@ export class Texture {
         needsMipmap = true
     }) {
         this.target = target
-        this.wrapS = wrapS
-        this.wrapT = wrapT
-        this.minFilter = minFilter
-        this.magFilter = magFilter
+
+        this.wrapS = WebGL2RenderingContext[wrapS] ?? wrapS
+        this.wrapT = WebGL2RenderingContext[wrapT] ?? wrapT
+        this.minFilter = WebGL2RenderingContext[minFilter] ?? minFilter
+        this.magFilter = WebGL2RenderingContext[magFilter] ?? magFilter
+
         this.internalformat = internalformat
         this.width = width
         this.height = height

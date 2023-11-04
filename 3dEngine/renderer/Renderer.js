@@ -70,7 +70,7 @@ export class Renderer {
 
         this.domElement.innerHTML = ''
         this.domElement.appendChild(canvas)
-        
+
         this.glContext = new GlContext(canvas, {
             alpha: true,
             antialias: true,
@@ -204,41 +204,42 @@ export class Renderer {
     drawObjects(objects) {
         const gl = this.glContext.gl
 
-        let material, program
-        let geometry
+        let currentMaterial, program
+        let currentGeometry
 
         for (const object of objects) {
-            if (material !== object.material) {
-                material = object.material
+            if (currentMaterial !== object.material) {
+                currentMaterial = object.material
 
-                if (!this.#programMap.has(material)) {
-                    this.#programMap.set(material, new GlProgram(
+                if (!this.#programMap.has(currentMaterial)) {
+                    this.#programMap.set(currentMaterial, new GlProgram(
                         gl,
-                        material.vertexShader(this.pointLightsRenderer.count),
-                        material.fragmentShader(this.pointLightsRenderer.count),
+                        currentMaterial.vertexShader({ pointLightCount: this.pointLightsRenderer.count }),
+                        currentMaterial.fragmentShader({ pointLightCount: this.pointLightsRenderer.count }),
                         {
                             uboIndex: this.uboIndex
                         }
                     ))
                 }
 
-                program = this.#programMap.get(material)
+                program = this.#programMap.get(currentMaterial)
                 program.useProgram()
 
-                this.#bindUniforms(program, material.uniforms)
-
-                this.#bindTextures(program, material.textures)
+                // TODO TO DELETE
+                this.#bindUniforms(program, currentMaterial.uniforms)
+                // TODO TO DELETE
+                this.#bindTextures(program, currentMaterial.textures)
             }
 
-            if (geometry !== object.geometry) {
-                geometry = object.geometry
+            if (currentGeometry !== object.geometry) {
+                currentGeometry = object.geometry
 
-                if (geometry.attributes) {
-                    if (!this.#vaoMap.has(geometry)) {
-                        this.#vaoMap.set(geometry, program.createVao(geometry.attributes, geometry.indices))
+                if (currentGeometry.attributes) {
+                    if (!this.#vaoMap.has(currentGeometry)) {
+                        this.#vaoMap.set(currentGeometry, program.createVao(currentGeometry.attributes, currentGeometry.indices))
                     }
 
-                    const vao = this.#vaoMap.get(geometry)
+                    const vao = this.#vaoMap.get(currentGeometry)
                     vao.bind()
                 }
             }
@@ -247,14 +248,20 @@ export class Renderer {
             this.glContext.depthTest = object.depthTest
             this.glContext.depthWrite = object.depthWrite
 
+            if(object.normalBlending){
+                this.glContext.setNormalBlending()
+            }else if(object.additiveBlending) {
+                this.glContext.setAdditiveBlending()
+            }
+
             this.#bindUniforms(program, object.uniforms)
 
             this.#bindTextures(program, object.textures)
 
-            if (object.geometry.indices) {
-                gl.drawElements(object.drawMode, object.geometry.count, WebGL2RenderingContext.UNSIGNED_SHORT, object.geometry.offset)
+            if (currentGeometry.indices) {
+                gl.drawElements(object.drawMode, currentGeometry.count, WebGL2RenderingContext.UNSIGNED_SHORT, currentGeometry.offset)
             } else {
-                gl.drawArrays(object.drawMode, object.geometry.offset, object.geometry.count)
+                gl.drawArrays(object.drawMode, currentGeometry.offset, currentGeometry.count)
             }
         }
     }
@@ -267,10 +274,10 @@ export class Renderer {
     #bindUniforms(program, uniforms) {
         for (const key in uniforms) {
             const uniform = uniforms[key]
-            if (uniform.needsUpdate) {
-                uniform.needsUpdate = false
-                program.uniformUpdate[key]?.(uniform.data)
-            }
+            // if (uniform.needsUpdate) {
+            //     uniform.needsUpdate = false
+            program.uniformUpdate[key]?.(uniform.data)
+            // }
         }
     }
 
@@ -280,7 +287,7 @@ export class Renderer {
         this.#textureMap.get(texture)?.dispose()
         this.#textureMap.delete(texture)
     }
-
+    
     /**
      * 
      * @param {GlProgram} program 
@@ -318,17 +325,17 @@ export class Renderer {
         const materialIdB = this.#programCache.get(b.material)
         if (materialIdA !== materialIdB) return materialIdA - materialIdB
 
-        if (!this.#vaoCache.has(a.attributes)) this.#vaoCache.set(a.attributes, this.#lastVaoId++)
-        if (!this.#vaoCache.has(b.attributes)) this.#vaoCache.set(b.attributes, this.#lastVaoId++)
-        const attributesIdA = this.#vaoCache.get(a.attributes)
-        const attributesIdB = this.#vaoCache.get(b.attributes)
-        if (attributesIdA !== attributesIdB) return attributesIdA - attributesIdB
+        if (!this.#vaoCache.has(a.geometry)) this.#vaoCache.set(a.geometry, this.#lastVaoId++)
+        if (!this.#vaoCache.has(b.geometry)) this.#vaoCache.set(b.geometry, this.#lastVaoId++)
+        const geometryIdA = this.#vaoCache.get(a.geometry)
+        const geometryIdB = this.#vaoCache.get(b.geometry)
+        if (geometryIdA !== geometryIdB) return geometryIdA - geometryIdB
 
         if (!this.#objectState.has(a)) this.#objectState.set(a, getObjectStateId(a))
         if (!this.#objectState.has(b)) this.#objectState.set(b, getObjectStateId(b))
         const stateIdA = this.#objectState.get(a)
         const stateIdB = this.#objectState.get(b)
-        if (stateIdA !== stateIdB) return attributesIdA - attributesIdB
+        if (stateIdA !== stateIdB) return stateIdA - stateIdB
 
         return 0
     }
@@ -354,7 +361,7 @@ function sortTransparencyObjects(/** @type {Object3D[]} */ objects) {
     const transparent = []
 
     for (const object of objects) {
-        if (object.additiveBlending) {
+        if (object.transparent) {
             transparent.push(object)
         } else {
             opaque.push(object)

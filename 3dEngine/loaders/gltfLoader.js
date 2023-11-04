@@ -19,7 +19,7 @@ const TYPE_CLASS = {
 export async function loadGLTF(url) {
     const arrayBuffer = await (await fetch(url)).arrayBuffer()
     const rawGltf = getGltf(arrayBuffer)
-    const gltf = parseGltf(rawGltf)
+    const gltf = await parseGltf(rawGltf)
     return gltf
 }
 
@@ -28,7 +28,7 @@ export async function loadGLTF(url) {
  * @param {*} gltf 
  * @returns 
  */
-export function parseGltf(gltf) {
+export async function parseGltf(gltf) {
     const body = gltf.body
     const content = gltf.content
     const nodes = content.nodes
@@ -71,6 +71,44 @@ export function parseGltf(gltf) {
             delete animation.samplers
         }
         content.animations = animations
+    }
+
+    // Images
+    let imagePromises = []
+    for (let i = 0; i < content.images.length; i++) {
+        const image = content.images[i]
+        const bufferView = bufferViews[image.bufferView]
+        const buffer = body.slice(bufferView.byteOffset, bufferView.byteOffset + bufferView.byteLength)
+
+        const blob = new Blob([buffer], { type: image.mimeType })
+        const url = URL.createObjectURL(blob)
+        const data = new Image()
+        data.alt = image.name
+        
+        imagePromises.push(new Promise((resolve) => data.onload = () => {
+            URL.revokeObjectURL(url)
+            resolve()
+        }))
+
+        data.src = url
+
+        content.images[i] = data
+    }
+
+    // Textures
+    for (const texture of content.textures) {
+        texture.source = content.images[texture.source]
+        texture.sampler = content.samplers[texture.sampler]
+    }
+
+    // PBR materials
+    for (const material of materials) {
+        if (material.pbrMetallicRoughness?.baseColorTexture) {
+            material.pbrMetallicRoughness.baseColorTexture = content.textures[material.pbrMetallicRoughness.baseColorTexture.index]
+        }
+        if (material.pbrMetallicRoughness?.metallicRoughnessTexture) {
+            material.pbrMetallicRoughness.metallicRoughnessTexture = content.textures[material.pbrMetallicRoughness.metallicRoughnessTexture.index]
+        }
     }
 
     // meshes
@@ -129,7 +167,7 @@ export function parseGltf(gltf) {
         if (node.skin !== undefined) node.skin = skins[node.skin]
     }
 
-    /** @type {Object.<string, GltfNode>} */
+    /** @type {{[name: string]: GltfNode}} */
     const gltfNodes = {}
 
     for (const key in nodes) {
@@ -138,6 +176,8 @@ export function parseGltf(gltf) {
             gltfNodes[node.name] = node
         }
     }
+
+    await Promise.all(imagePromises)
 
     return gltfNodes
 }
@@ -155,19 +195,19 @@ function getGltf(arrayBuffer) {
 
     const headerView = new DataView(arrayBuffer, 0, BINARY_EXTENSION_HEADER_LENGTH)
 
-    this.header = {
+    const header = {
         magic: textDecoder.decode(new Uint8Array(arrayBuffer.slice(0, 4))),
         version: headerView.getUint32(4, true),
         length: headerView.getUint32(8, true)
     }
 
-    if (this.header.magic !== BINARY_EXTENSION_HEADER_MAGIC) {
+    if (header.magic !== BINARY_EXTENSION_HEADER_MAGIC) {
         throw new Error('THREE.GLTFLoader: Unsupported glTF-Binary header.')
-    } else if (this.header.version < 2.0) {
+    } else if (header.version < 2.0) {
         throw new Error('THREE.GLTFLoader: Legacy binary file detected.')
     }
 
-    const chunkContentsLength = this.header.length - BINARY_EXTENSION_HEADER_LENGTH
+    const chunkContentsLength = header.length - BINARY_EXTENSION_HEADER_LENGTH
 
     const chunkView = new DataView(arrayBuffer, BINARY_EXTENSION_HEADER_LENGTH)
     let chunkIndex = 0

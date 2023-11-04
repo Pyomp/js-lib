@@ -15,7 +15,7 @@ export class TextureObject extends Object3D {
     constructor(texture) {
         super({
             drawMode: 'TRIANGLES',
-            blending: true,
+            normalBlending: true,
             depthWrite: false,
             depthTest: false,
             geometry: new Geometry(6, {
