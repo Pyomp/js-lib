@@ -1,4 +1,5 @@
 import { Attribute } from "../sceneGraph/Attribute.js"
+import { typedArrayToType } from "./utils.js"
 
 export class GlVao {
     /** @type {WebGL2RenderingContext} */ #gl
@@ -101,15 +102,6 @@ export class GlVao {
         }
     }
 }
-
-const typedArrayToType = new Map()
-typedArrayToType.set(Uint32Array, WebGL2RenderingContext.UNSIGNED_INT)
-typedArrayToType.set(Uint16Array, WebGL2RenderingContext.UNSIGNED_SHORT)
-typedArrayToType.set(Uint8Array, WebGL2RenderingContext.UNSIGNED_BYTE)
-typedArrayToType.set(Uint8ClampedArray, WebGL2RenderingContext.UNSIGNED_BYTE)
-typedArrayToType.set(Int8Array, WebGL2RenderingContext.BYTE)
-typedArrayToType.set(Int16Array, WebGL2RenderingContext.SHORT)
-typedArrayToType.set(Int32Array, WebGL2RenderingContext.INT)
 
 function getElementCount(type) {
     if (type === WebGL2RenderingContext.FLOAT) return 1

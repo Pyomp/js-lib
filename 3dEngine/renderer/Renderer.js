@@ -15,7 +15,7 @@ import { Uniform } from "../sceneGraph/Uniform.js"
 import { WindowInfoRenderer } from "./modules/WindowInfoRenderer.js"
 import { ParticleRenderer } from "./modules/ParticlesRendererModules/ParticleRenderer.js"
 import { DepthTexture } from "../textures/DepthTexture.js"
-import { blit } from "../webgl/utils.js"
+import { blit, typedArrayToType } from "../webgl/utils.js"
 import { SkinnedNode } from "../sceneGraph/gltf/skinned/SkinnedNode.js"
 
 const _box3 = new Box3()
@@ -281,9 +281,9 @@ export class Renderer {
             this.#bindUniforms(program, object.uniforms)
 
             this.#bindTextures(program, object.textures)
-
+            
             if (currentGeometry.indices) {
-                gl.drawElements(object.drawMode, currentGeometry.count, WebGL2RenderingContext.UNSIGNED_SHORT, currentGeometry.offset)
+                gl.drawElements(object.drawMode, currentGeometry.count, typedArrayToType.get(currentGeometry.indices.constructor), currentGeometry.offset)
             } else {
                 gl.drawArrays(object.drawMode, currentGeometry.offset, currentGeometry.count)
             }
