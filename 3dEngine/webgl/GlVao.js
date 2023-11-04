@@ -51,13 +51,11 @@ export class GlVao {
             gl.bindBuffer(WebGL2RenderingContext.ARRAY_BUFFER, buffer)
             gl.bufferData(WebGL2RenderingContext.ARRAY_BUFFER, data, WebGL2RenderingContext[attributes[name].usage || 'STATIC_DRAW'])
             gl.enableVertexAttribArray(location)
-            
-            if (isFloat(data)) {
+
+            if (data instanceof Float32Array) {
                 gl.vertexAttribPointer(location, size, WebGL2RenderingContext.FLOAT, false, 0, 0,)
-            } else if (isUint(data)) {
-                gl.vertexAttribIPointer(location, size, WebGL2RenderingContext.UNSIGNED_INT, 0, 0)
-            } else if (isInt(data)) {
-                gl.vertexAttribIPointer(location, size, WebGL2RenderingContext.INT, 0, 0)
+            } else {
+                gl.vertexAttribIPointer(location, size, typedArrayToType.get(data.constructor), 0, 0)
             }
 
             this.attributeUpdate[name] = (data, offset = 0) => {
@@ -104,17 +102,14 @@ export class GlVao {
     }
 }
 
-function isFloat(data) {
-    return data instanceof Float32Array || data instanceof Float64Array
-}
-
-function isUint(data) {
-    return data instanceof Uint8Array || data instanceof Uint8ClampedArray || data instanceof Uint16Array || data instanceof Uint32Array
-}
-
-function isInt(data) {
-    return data instanceof Int8Array || data instanceof Int16Array || data instanceof Int32Array
-}
+const typedArrayToType = new Map()
+typedArrayToType.set(Uint32Array, WebGL2RenderingContext.UNSIGNED_INT)
+typedArrayToType.set(Uint16Array, WebGL2RenderingContext.UNSIGNED_SHORT)
+typedArrayToType.set(Uint8Array, WebGL2RenderingContext.UNSIGNED_BYTE)
+typedArrayToType.set(Uint8ClampedArray, WebGL2RenderingContext.UNSIGNED_BYTE)
+typedArrayToType.set(Int8Array, WebGL2RenderingContext.BYTE)
+typedArrayToType.set(Int16Array, WebGL2RenderingContext.SHORT)
+typedArrayToType.set(Int32Array, WebGL2RenderingContext.INT)
 
 function getElementCount(type) {
     if (type === WebGL2RenderingContext.FLOAT) return 1

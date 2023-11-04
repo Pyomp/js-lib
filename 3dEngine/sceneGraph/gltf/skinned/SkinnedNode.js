@@ -20,7 +20,7 @@ export class SkinnedNode extends Node3D {
 
         this.animation = new Animation(gltfNode.skin, animationDictionary, this.worldMatrix)
 
-        const jointsTexture = new Texture({
+        this.jointsTexture = new Texture({
             data: this.animation.buffer,
 
             wrapS: 'CLAMP_TO_EDGE',
@@ -40,7 +40,7 @@ export class SkinnedNode extends Node3D {
         })
 
         for (const primitive of gltfNode.mesh.primitives) {
-            this.objects.add(new SkinnedObject(primitive, jointsTexture, this.worldMatrix))
+            this.objects.add(new SkinnedObject(primitive, this.jointsTexture, this.worldMatrix))
         }
     }
 }

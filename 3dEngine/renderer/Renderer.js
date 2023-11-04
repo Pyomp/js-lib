@@ -16,6 +16,7 @@ import { WindowInfoRenderer } from "./modules/WindowInfoRenderer.js"
 import { ParticleRenderer } from "./modules/ParticlesRendererModules/ParticleRenderer.js"
 import { DepthTexture } from "../textures/DepthTexture.js"
 import { blit } from "../webgl/utils.js"
+import { SkinnedNode } from "../sceneGraph/gltf/skinned/SkinnedNode.js"
 
 const _box3 = new Box3()
 
@@ -167,11 +168,8 @@ export class Renderer {
         this.windowInfoRenderer.update()
     }
 
-    getObjectsToDraw() {
-        const nodesToDraw = getNodesInFrustum(this.scene, this.camera.frustum)
-
-        // for (const node of nodesToDraw) { node.animation.updateBoneMatrix() }
-
+    /** @param {Node3D[]} nodesToDraw  */
+    getObjectsToDraw(nodesToDraw) {
         const objectsToDraw = getObjectsInFrustum(nodesToDraw, this.camera.frustum)
 
         for (const object of this.scene.objects) {
@@ -188,11 +186,26 @@ export class Renderer {
         return [opaque, transparent]
     }
 
+    /**
+     * 
+     * @param {number} deltatimeSecond 
+     */
     render(deltatimeSecond) {
         const gl = this.glContext.gl
         this.updateUbos()
 
-        const [opaqueObjects, transparentObjects] = this.getObjectsToDraw()
+        this.scene.traverse((node) => { if (node instanceof SkinnedNode) node.animation.updateTime(deltatimeSecond) })
+
+        const nodesToDraw = getNodesInFrustum(this.scene, this.camera.frustum)
+
+        for (const node of nodesToDraw) {
+            if (node instanceof SkinnedNode) {
+                node.animation.updateBuffer()
+                node.jointsTexture.needsUpdate = true
+            }
+        }
+
+        const [opaqueObjects, transparentObjects] = this.getObjectsToDraw(nodesToDraw)
 
         gl.clear(WebGL2RenderingContext.COLOR_BUFFER_BIT | WebGL2RenderingContext.DEPTH_BUFFER_BIT)
 
@@ -314,7 +327,7 @@ export class Renderer {
             const glTexture = this.getGlTexture(texture)
 
             if (texture.needsUpdate) {
-                texture.needsUpdate = true
+                texture.needsUpdate = false
                 glTexture.updateData(texture.data, program.textureUnit[key])
             }
 
@@ -383,6 +396,7 @@ function sortTransparencyObjects(/** @type {Object3D[]} */ objects) {
 }
 
 function getNodesInFrustum(scene, frustum) {
+    /** @type {Node3D[]} */
     const nodes = []
 
     scene.traverse((node) => {

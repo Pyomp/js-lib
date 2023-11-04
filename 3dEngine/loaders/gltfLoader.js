@@ -75,30 +75,34 @@ export async function parseGltf(gltf) {
 
     // Images
     let imagePromises = []
-    for (let i = 0; i < content.images.length; i++) {
-        const image = content.images[i]
-        const bufferView = bufferViews[image.bufferView]
-        const buffer = body.slice(bufferView.byteOffset, bufferView.byteOffset + bufferView.byteLength)
+    if (content.images) {
+        for (let i = 0; i < content.images.length; i++) {
+            const image = content.images[i]
+            const bufferView = bufferViews[image.bufferView]
+            const buffer = body.slice(bufferView.byteOffset, bufferView.byteOffset + bufferView.byteLength)
 
-        const blob = new Blob([buffer], { type: image.mimeType })
-        const url = URL.createObjectURL(blob)
-        const data = new Image()
-        data.alt = image.name
-        
-        imagePromises.push(new Promise((resolve) => data.onload = () => {
-            URL.revokeObjectURL(url)
-            resolve()
-        }))
+            const blob = new Blob([buffer], { type: image.mimeType })
+            const url = URL.createObjectURL(blob)
+            const data = new Image()
+            data.alt = image.name
 
-        data.src = url
+            imagePromises.push(new Promise((resolve) => data.onload = () => {
+                URL.revokeObjectURL(url)
+                resolve()
+            }))
 
-        content.images[i] = data
+            data.src = url
+
+            content.images[i] = data
+        }
     }
 
     // Textures
-    for (const texture of content.textures) {
-        texture.source = content.images[texture.source]
-        texture.sampler = content.samplers[texture.sampler]
+    if (content.textures) {
+        for (const texture of content.textures) {
+            texture.source = content.images[texture.source]
+            texture.sampler = content.samplers[texture.sampler]
+        }
     }
 
     // PBR materials

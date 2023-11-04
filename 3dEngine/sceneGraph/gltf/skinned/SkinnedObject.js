@@ -24,8 +24,8 @@ export class SkinnedObject extends Object3D {
 
         const textures = { jointsTexture }
 
-        if (gltfPrimitive.material.pbrMetallicRoughness.baseColorTexture?.source.image) {
-            const mapImage = gltfPrimitive.material.pbrMetallicRoughness.baseColorTexture.source.image
+        if (gltfPrimitive.material.pbrMetallicRoughness.baseColorTexture?.source) {
+            const mapImage = gltfPrimitive.material.pbrMetallicRoughness.baseColorTexture.source
 
             const map = getMapTexture(mapImage)
             textures['map'] = map

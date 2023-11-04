@@ -41,12 +41,10 @@ export class SkinnedPhongMaterial extends Material {
                                 getBoneMatrix(joints[1]) * weights[1] +
                                 getBoneMatrix(joints[2]) * weights[2] +
                                 getBoneMatrix(joints[3]) * weights[3];
-
-                vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+                                
+                vec4 worldPosition = modelMatrix * skinMatrix * vec4(position, 1.0);
                 
                 gl_Position = projectionViewMatrix * worldPosition;
-
-                // gl_Position.z = linearizeDepth(gl_Position);
 
                 v_normal = mat3(modelMatrix) * normal;
                 v_uv = uv;
