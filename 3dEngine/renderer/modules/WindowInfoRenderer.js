@@ -6,10 +6,10 @@ export class WindowInfoRenderer {
 
     #uboNeedsUpdate = true
 
-    #width = 1
-    #height = 1
-    #pointerX = -1
-    #pointerY = -1
+    width = 1
+    height = 1
+    pointerX = -1
+    pointerY = -1
 
     get uboIndex() { return this.#ubo?.index ?? 0 }
 
@@ -25,21 +25,21 @@ export class WindowInfoRenderer {
 
         gl.canvas.addEventListener("mouseleave", (e) => {
             removeEventListener('pointermove', this.pointermove)
-            this.#pointerX = -1
-            this.#pointerY = -1
+            this.pointerX = -1
+            this.pointerY = -1
             this.#uboNeedsUpdate = true
         })
     }
 
     pointermove = (event) => {
-        this.#pointerX = event.x
-        this.#pointerY = event.y
+        this.pointerX = event.x
+        this.pointerY = event.y
         this.#uboNeedsUpdate = true
     }
 
     setSize(width, height) {
-        this.#width = width
-        this.#height = height
+        this.width = width
+        this.height = height
         this.#uboNeedsUpdate = true
     }
 
@@ -55,10 +55,10 @@ export class WindowInfoRenderer {
 
     update() {
         if (this.#uboNeedsUpdate) {
-            this.#uboArray[0] = this.#width
-            this.#uboArray[1] = this.#height
-            this.#uboArray[2] = this.#pointerX
-            this.#uboArray[3] = this.#pointerY
+            this.#uboArray[0] = this.width
+            this.#uboArray[1] = this.height
+            this.#uboArray[2] = this.pointerX
+            this.#uboArray[3] = this.pointerY
             this.#ubo.update()
             this.#uboNeedsUpdate = false
         }

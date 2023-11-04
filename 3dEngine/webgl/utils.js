@@ -36,3 +36,19 @@ export function checkFrameBufferStatus(/** @type {WebGL2RenderingContext} */ gl)
         console.warn('The values of gl.RENDERBUFFER_SAMPLES are different among attached renderbuffers, or are non-zero if the attached images are a mix of renderbuffers and textures.')
     }
 }
+
+/**
+ * 
+ * @param {WebGL2RenderingContext} gl 
+ * @param {WebGLFramebuffer | null} src 
+ * @param {WebGLFramebuffer | null} target 
+ * @param {number} width 
+ * @param {number} height 
+ * @param {number} mask 
+ * @param {number} filter 
+ */
+export function blit(gl, src, target, width, height, mask = WebGL2RenderingContext.DEPTH_BUFFER_BIT, filter = WebGL2RenderingContext.NEAREST) {
+    gl.bindFramebuffer(WebGL2RenderingContext.READ_FRAMEBUFFER, src)
+    gl.bindFramebuffer(WebGL2RenderingContext.DRAW_FRAMEBUFFER, target)
+    gl.blitFramebuffer(0, 0, width, height, 0, 0, width, height, mask, filter)
+}

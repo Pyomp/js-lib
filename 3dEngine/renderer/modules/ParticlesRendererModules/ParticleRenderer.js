@@ -1,3 +1,4 @@
+import { Texture } from "../../../sceneGraph/Texture.js"
 import { ParticleSystem } from "../../../sceneGraph/particle/ParticleSystem.js"
 import { GlProgram } from "../../../webgl/GlProgram.js"
 import { GlTexture } from "../../../webgl/GlTexture.js"
@@ -19,13 +20,25 @@ export class ParticleRenderer {
     /** @type {GlProgram} */ #renderProgram
     /** @type {GlTexture} */ #depthTexture
 
-    initGl(gl, uboIndex, depthTexture) {
-        
+    /**
+     * 
+     * @param {WebGL2RenderingContext} gl 
+     * @param {*} uboIndex 
+     * @param {GlTexture} glDepthTexture 
+     */
+    initGl(gl, uboIndex, glDepthTexture) {
         this.#gl = gl
-        this.#depthTexture = depthTexture
         this.#systemUboIndex = GlUbo.getIndex(gl)
         this.#physicsProgram = new ParticlePhysicsGlProgram(gl, { ...uboIndex, systemUBO: this.#systemUboIndex }, FRAME_COUNT)
         this.#renderProgram = new ParticleRenderGlProgram(gl, uboIndex)
+
+        this.depthFrameBuffer = gl.createFramebuffer()
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this.depthFrameBuffer)
+
+        this.#depthTexture = glDepthTexture
+
+        gl.bindTexture(gl.TEXTURE_2D, this.#depthTexture.texture)
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, this.#depthTexture.texture, 0)
     }
 
     disposeGl() {
@@ -116,7 +129,7 @@ export class ParticleRenderer {
 
         for (const particleSystem of this.particleSystems) {
             const systemState = this.#particleSystemMap.get(particleSystem)
-
+            
             copyBuffer(gl, systemState.vaoRender.buffers['position'], systemState.vaoPhysics.buffers['position'], systemState.count * 4 * 4)
             copyBuffer(gl, systemState.transformFeedback.buffers['outVelocity'], systemState.vaoPhysics.buffers['velocity'], systemState.count * 4 * 4)
 

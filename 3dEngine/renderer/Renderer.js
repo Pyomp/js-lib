@@ -13,6 +13,9 @@ import { PointLight } from "../sceneGraph/light/PointLight.js"
 import { GlUbo } from "../webgl/GlUbo.js"
 import { Uniform } from "../sceneGraph/Uniform.js"
 import { WindowInfoRenderer } from "./modules/WindowInfoRenderer.js"
+import { ParticleRenderer } from "./modules/ParticlesRendererModules/ParticleRenderer.js"
+import { DepthTexture } from "../textures/DepthTexture.js"
+import { blit } from "../webgl/utils.js"
 
 const _box3 = new Box3()
 
@@ -56,6 +59,8 @@ export class Renderer {
         this.#setAllNeedsUpdateOnSceneToTrue()
 
         this.initGl()
+
+        this.particles.onContextLost()
     }
 
 
@@ -71,17 +76,7 @@ export class Renderer {
         this.domElement.innerHTML = ''
         this.domElement.appendChild(canvas)
 
-        this.glContext = new GlContext(canvas, {
-            alpha: true,
-            antialias: true,
-            depth: true,
-            // desynchronized: true,
-            // failIfMajorPerformanceCaveat: true,
-            // powerPreference: '',
-            // premultipliedAlpha: true,
-            preserveDrawingBuffer: false,
-            stencil: false,
-        })
+        this.glContext = new GlContext(canvas)
 
         this.glContext.resizeListeners.add(this.onResize.bind(this))
 
@@ -93,17 +88,20 @@ export class Renderer {
 
         this.windowInfoRenderer = new WindowInfoRenderer(this.glContext.gl)
 
-
         this.uboIndex = {
             cameraUbo: this.#cameraUbo.index,
             pointLightsUBO: this.pointLightsRenderer.uboIndex,
             windowUbo: this.windowInfoRenderer.uboIndex
         }
+
+        if (!this.particles) this.particles = new ParticleRenderer()
+        this.particles.initGl(this.glContext.gl, this.uboIndex, this.getGlTexture(this.depthTexture))
     }
 
     onResize(width, height) {
         this.camera.aspect = width / height
         this.windowInfoRenderer.setSize(width, height)
+        this.getGlTexture(this.depthTexture).updateSize(width, height)
     }
 
     /** @type {Map<Material, GlProgram>} */
@@ -126,10 +124,14 @@ export class Renderer {
         this.#textureMap.clear()
     }
 
+    depthTexture = new DepthTexture()
+
     resetGlStates() {
         this.#disposeGlPrograms()
         this.#disposeGlVaos()
         this.#setAllNeedsUpdateOnSceneToTrue()
+        this.particles.disposeGl()
+        this.particles.initGl(this.glContext.gl, this.uboIndex, this.getGlTexture(this.depthTexture))
     }
 
     updateUbos() {
@@ -186,15 +188,24 @@ export class Renderer {
         return [opaque, transparent]
     }
 
-    render() {
+    render(deltatimeSecond) {
+        const gl = this.glContext.gl
         this.updateUbos()
 
         const [opaqueObjects, transparentObjects] = this.getObjectsToDraw()
 
+        gl.clear(WebGL2RenderingContext.COLOR_BUFFER_BIT | WebGL2RenderingContext.DEPTH_BUFFER_BIT)
+
         this.glContext.blending = false
         this.drawObjects(opaqueObjects)
+
+        blit(gl, null, this.particles.depthFrameBuffer, this.windowInfoRenderer.width, this.windowInfoRenderer.height)
+        gl.bindFramebuffer(WebGL2RenderingContext.FRAMEBUFFER, null)
+
         this.glContext.blending = true
         this.drawObjects(transparentObjects)
+
+        this.particles.draw(deltatimeSecond)
     }
 
     /**
@@ -248,9 +259,9 @@ export class Renderer {
             this.glContext.depthTest = object.depthTest
             this.glContext.depthWrite = object.depthWrite
 
-            if(object.normalBlending){
+            if (object.normalBlending) {
                 this.glContext.setNormalBlending()
-            }else if(object.additiveBlending) {
+            } else if (object.additiveBlending) {
                 this.glContext.setAdditiveBlending()
             }
 
@@ -281,13 +292,16 @@ export class Renderer {
         }
     }
 
-    allocTexture(texture) { this.#textureMap.set(texture, new GlTexture({ gl: this.glContext.gl, ...texture })) }
-    getGlTexture(texture) { return this.#textureMap.get(texture) }
+    getGlTexture(texture) {
+        if (!this.#textureMap.has(texture))
+            this.#textureMap.set(texture, new GlTexture({ gl: this.glContext.gl, ...texture }))
+        return this.#textureMap.get(texture)
+    }
     freeTexture(texture) {
         this.#textureMap.get(texture)?.dispose()
         this.#textureMap.delete(texture)
     }
-    
+
     /**
      * 
      * @param {GlProgram} program 
@@ -296,11 +310,8 @@ export class Renderer {
     #bindTextures(program, textures) {
         for (const key in textures) {
             const texture = textures[key]
-            if (!this.#textureMap.has(texture)) {
-                this.allocTexture(texture)
-            }
 
-            const glTexture = this.#textureMap.get(texture)
+            const glTexture = this.getGlTexture(texture)
 
             if (texture.needsUpdate) {
                 texture.needsUpdate = true

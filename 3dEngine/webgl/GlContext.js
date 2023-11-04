@@ -8,8 +8,8 @@ export class GlContext {
     constructor(
         canvas = document.createElement('canvas'),
         options = {
-            alpha: false,
-            antialias: false,
+            alpha: true,
+            antialias: true,
             depth: true,
             // desynchronized?: boolean
             failIfMajorPerformanceCaveat: false,
