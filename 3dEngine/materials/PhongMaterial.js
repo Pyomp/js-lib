@@ -46,7 +46,6 @@ export class PhongMaterial extends Material {
             
                 in vec3 v_normal;
                 in vec2 v_uv;
-
                 in vec3 v_surfaceToView;
                 in vec3 v_worldPosition;
             
@@ -89,6 +88,7 @@ export class PhongMaterial extends Material {
                 void main() {
                     vec3 normal = normalize(v_normal);
                     
+                    // TODO
                     vec3 ambientLight = vec3(0.1, 0.1, 0.1);
 
                     vec3 pointLightColor;

@@ -1,4 +1,5 @@
 import { Box3 } from "../../math/Box3.js"
+import { Matrix3 } from "../../math/Matrix3.js"
 import { Matrix4 } from "../../math/Matrix4.js"
 import { Quaternion } from "../../math/Quaternion.js"
 import { Vector3 } from "../../math/Vector3.js"
@@ -13,6 +14,7 @@ export class Node3D {
     localMatrixNeedsUpdate = true
 
     worldMatrix = new Matrix4()
+    normalMatrix = new Matrix3()
 
     /** @type {Node3D | Scene | undefined} */
     parent
@@ -40,18 +42,17 @@ export class Node3D {
 
     updateWorldMatrix(force = false) {
         if (this.localMatrixNeedsUpdate) {
-            this.localMatrixNeedsUpdate = false
             this.localMatrix.compose(this.position, this.quaternion, this.scale)
-            this.worldMatrix.multiplyMatrices(this.localMatrix, this.parent.worldMatrix)
-            for (const node of this.nodes) node.updateWorldMatrix(true)
-
-        } else if (force) {
-            this.worldMatrix.multiplyMatrices(this.localMatrix, this.parent.worldMatrix)
-            for (const node of this.nodes) node.updateWorldMatrix(true)
-
-        } else {
-            for (const node of this.nodes) node.updateWorldMatrix()
         }
+
+        if (force || this.localMatrixNeedsUpdate) {
+            this.worldMatrix.multiplyMatrices(this.localMatrix, this.parent.worldMatrix)
+            this.normalMatrix.setFromMatrix4( this.worldMatrix ).invert().transpose()
+        }
+
+        for (const node of this.nodes) node.updateWorldMatrix(force || this.localMatrixNeedsUpdate)
+
+        this.localMatrixNeedsUpdate = false
     }
 
     traverse(/** @type {(node: Node3D) => void} */ callback) {

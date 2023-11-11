@@ -16,6 +16,7 @@ declare type GltfNode = {
 declare type GltfAttributes = {
   JOINTS_0?: GltfBuffer;
   NORMAL?: GltfBuffer;
+  TANGENT?: GltfBuffer;
   POSITION?: GltfBuffer;
   TEXCOORD_0?: GltfBuffer;
   WEIGHTS_0?: GltfBuffer;
