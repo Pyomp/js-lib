@@ -12,7 +12,7 @@ addEventListener('pointerdown', () => {
  * 
  * @returns {() => void} delete event listeners
  */
-export const addPointerMoveEvent = (element, onMove, onDown, onUp) => {
+export const addPointerMoveListener = (element, onMove, onDown, onUp) => {
     let lastX, lastY
     element.style.userSelect = 'none'
     element.style.touchAction = 'none'

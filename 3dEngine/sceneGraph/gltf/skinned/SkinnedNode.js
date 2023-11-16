@@ -18,10 +18,6 @@ export class SkinnedNode extends Node3D {
         this.quaternion.fromArray(gltfNode.rotation || [0, 0, 0, 1])
         this.scale.fromArray(gltfNode.scale || [1, 1, 1])
 
-        for (const primitive of gltfNode.mesh.primitives) {
-            this.objects.add(new SkinnedObject(primitive, this.jointsTexture, this.worldMatrix))
-        }
-        
         this.animation = new Animation(gltfNode.skin, animationDictionary, this.worldMatrix)
 
         this.jointsTexture = new Texture({
@@ -43,5 +39,8 @@ export class SkinnedNode extends Node3D {
             needsMipmap: false,
         })
 
+        for (const primitive of gltfNode.mesh.primitives) {
+            this.objects.add(new SkinnedObject(primitive, this.jointsTexture, this.worldMatrix))
+        }
     }
 }
