@@ -1,8 +1,7 @@
 import { clamp, PI2 } from '../../math/MathUtils.js'
 import { Vector3 } from '../../math/Vector3.js'
-import { EventSet } from '../../utils/EventSet.js'
 import { isMobile } from '../../dom/browserInfo.js'
-import { getGeometries3DHeight, getNode3DHeight } from '../extras/raycasterUtils.js'
+import { getGeometries3DHeight } from '../extras/raycasterUtils.js'
 import { Spherical } from '../../math/Spherical.js'
 import { Sphere } from '../../math/Sphere.js'
 
@@ -13,43 +12,9 @@ const MaxDistCam = 60
 const MinDistCamToGround = 1
 
 export class ThirdControls {
-    #offsetY = 1
-    onOffsetY = new EventSet()
-    get offsetY() { return this.#offsetY }
-    set offsetY(a) {
-        if (this.#offsetY !== a
-            && Number.isFinite(a)
-        ) {
-            this.#offsetY = a
-            this.onOffsetY.emit()
-        }
-    }
+    offsetY = 1
+    sensitivity = 8
 
-    onSensitivity = new EventSet()
-    #sensitivity = 8
-    get sensitivity() { return this.#sensitivity }
-    set sensitivity(a) {
-        if (this.#sensitivity !== a
-            && Number.isFinite(a)
-            && a >= 1
-        ) {
-            this.#sensitivity = a
-            this.onSensitivity.emit()
-        }
-    }
-
-    toArray() {
-        return [
-            this.#offsetY,
-            this.#sensitivity
-        ]
-    }
-
-    fromArray(array) {
-        if (array?.constructor !== Array) return
-        this.offset_y = array[0]
-        this.sensitivity = array[1]
-    }
 
     #targetOffset = new Vector3()
     target = new Vector3()
@@ -67,6 +32,10 @@ export class ThirdControls {
     #camera
 
     #boundingSphere = new Sphere(undefined, 2)
+
+    #dx = 0
+    #dy = 0
+    #domElement
     /**
      * 
      * @param {Camera} camera
@@ -76,6 +45,7 @@ export class ThirdControls {
         camera,
         domElement
     ) {
+        this.#domElement = domElement
         domElement.style.touchAction = 'none'
         domElement.oncontextmenu = (event) => { event.stopPropagation(); event.preventDefault(); return }
 
@@ -89,6 +59,20 @@ export class ThirdControls {
     update = this.#update.bind(this)
     #update() {
         if (!this.enabled) return
+
+        if (this.#dx > 0 || this.#dy > 0) {
+            const deltaTheta = this.#dx * this.sensitivity / this.#domElement.clientHeight // yes, height
+            const deltaPhi = this.#dy * this.sensitivity / this.#domElement.clientHeight // rotate Up
+            this.#wantedSpherical.theta = (this.#wantedSpherical.theta - deltaTheta) % PI2
+            this.#wantedSpherical.phi = (this.#wantedSpherical.phi - deltaPhi) % PI2
+
+            if (this.#wantedSpherical.phi < MinPolarAngle) this.#wantedSpherical.phi = MinPolarAngle
+            else if (this.#wantedSpherical.phi > MaxPolarAngle) this.#wantedSpherical.phi = MaxPolarAngle
+
+            this.#dx = 0
+            this.#dy = 0
+        }
+
         this.#targetOffset.copy(this.target)
         this.#targetOffset.y += this.offsetY
 
@@ -110,8 +94,7 @@ export class ThirdControls {
             }
         }
 
-        this.#camera.lookAt(this.#targetOffset)
-        this.#camera.needsUpdate = true
+        this.#camera.target.copy(this.#targetOffset)
     }
 
     #initMobileEvent(domElement) {
@@ -165,15 +148,9 @@ export class ThirdControls {
 
                     this.spherical.radius = this.#wantedSpherical.radius
                 } else {
-                    const dx = e.clientX - p1X
-                    const dy = e.clientY - p1Y
+                    this.#dx += e.clientX - p1X
+                    this.#dy += e.clientY - p1Y
                     p1X = e.clientX; p1Y = e.clientY // save last mouse position
-                    const deltaTheta = dx * this.sensitivity / domElement.clientHeight // yes, height
-                    const deltaPhi = dy * this.sensitivity / domElement.clientHeight // rotate Up
-                    this.#wantedSpherical.theta = (this.#wantedSpherical.theta - deltaTheta) % PI2
-                    this.#wantedSpherical.phi = (this.#wantedSpherical.phi - deltaPhi) % PI2
-
-                    if (this.#wantedSpherical.phi < MinPolarAngle) this.#wantedSpherical.phi = MinPolarAngle; else if (this.#wantedSpherical.phi > MaxPolarAngle) this.#wantedSpherical.phi = MaxPolarAngle
                 }
             }
         }
@@ -203,11 +180,8 @@ export class ThirdControls {
         }
 
         const onPointermove = (e) => {
-            const deltaTheta = e.movementX * this.sensitivity / domElement.clientHeight // yes, height
-            const deltaPhi = e.movementY * this.sensitivity / domElement.clientHeight // rotate Up
-
-            this.#wantedSpherical.theta = (this.#wantedSpherical.theta - deltaTheta) % PI2
-            this.#wantedSpherical.phi = clamp((this.#wantedSpherical.phi - deltaPhi) % PI2, MinPolarAngle, MaxPolarAngle)
+            this.#dx += e.movementX
+            this.#dy += e.movementY
         }
 
         domElement.addEventListener('pointerdown', (e) => {

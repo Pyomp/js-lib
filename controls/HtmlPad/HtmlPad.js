@@ -1,4 +1,4 @@
-import { addPointerMoveListener } from "../../eventUtils.js"
+import { addPointerMoveListener } from "../../dom/eventUtils.js"
 
 const HTML_CENTER_X = 120
 const HTML_CENTER_Y = 120
@@ -9,7 +9,6 @@ const BACKGROUND_FOLLOW_DISTANCE = 60
 export class HtmlPad {
     directionX = 0
     directionY = 0
-    theta = 0
     length = 0
 
     constructor() {
