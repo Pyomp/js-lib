@@ -80,7 +80,7 @@ export class GlProgram {
     /**
      * 
      * @param {{[attributeName: string]: Attribute}} attributes 
-     * @param {Uint16Array?} indices 
+     * @param {Uint8Array | Uint16Array | Uint32Array} indices 
      * @returns 
      */
     createVao(attributes, indices = undefined) {

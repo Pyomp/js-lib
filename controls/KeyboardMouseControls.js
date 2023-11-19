@@ -14,25 +14,12 @@ export class KeyboardMouseControls {
         this.keyboardMouseState = new KeyboardMouseState(element)
     }
 
-    #updateKeys() {
-        for (const key of this.ongoing) {
-            if (!this.keyboardMouseState.keys.has(key)) {
-                this.ongoing.delete(key)
-                this.end.add(key)
-            }
-        }
+    update() {
+        this.start.clear()
+        this.end.clear()
 
-        for (const key of this.keyboardMouseState.keys) {
-            if (!this.ongoing.has(key)) {
-                this.start.add(key)
-                this.ongoing.add(key)
-            }
-        }
-    }
-
-    #updateButtons() {
         for (const key of this.ongoing) {
-            if (!this.keyboardMouseState.buttons.has(key)) {
+            if (!this.keyboardMouseState.buttons.has(key) && !this.keyboardMouseState.keys.has(key)) {
                 this.ongoing.delete(key)
                 this.end.add(key)
             }
@@ -44,13 +31,11 @@ export class KeyboardMouseControls {
                 this.ongoing.add(key)
             }
         }
-    }
-
-    update() {
-        this.start.clear()
-        this.end.clear()
-
-        this.#updateKeys()
-        this.#updateButtons()
+        for (const key of this.keyboardMouseState.keys) {
+            if (!this.ongoing.has(key)) {
+                this.start.add(key)
+                this.ongoing.add(key)
+            }
+        }
     }
 }

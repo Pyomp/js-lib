@@ -4,7 +4,7 @@ import { Attribute } from "./Attribute.js"
 export class Geometry {
     /** @type {{[name: string]: Attribute}} */ attributes
 
-    /** @type {Uint16Array | undefined} */ indices
+    /** @type {Uint8Array | Uint16Array | Uint32Array | undefined} */ indices
 
     offset = 0
 
@@ -16,7 +16,7 @@ export class Geometry {
      * 
      * @param {{[name: string]: WebGl.Attribute.data}?} attributes 
      * @param {number} count 
-     * @param {Uint16Array?} indices 
+     * @param {Uint8Array | Uint16Array | Uint32Array} indices 
      */
     constructor(count, attributes = undefined, indices = undefined) {
         if (attributes) {

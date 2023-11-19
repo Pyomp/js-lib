@@ -44,7 +44,7 @@ export class HtmlPad {
         document.body.appendChild(pad)
 
         const onMove = (e) => {
-            this.x = e.x - htmlCenterX
+            this.directionX = e.x - htmlCenterX
             this.directionY = -e.y + htmlCenterY
             let distPx = this.directionX ** 2 + this.directionY ** 2
             if (distPx) {

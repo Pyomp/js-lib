@@ -3,7 +3,7 @@ import { PI, PI025, PI05, PI075 } from "../math/MathUtils.js"
 export function getMoveFromKey(up, down, left, right) {
     let length = 0
     let theta = 0
-
+    
     if (up === true) {
         if (left === true) theta = -PI075
         else if (right === true) theta = PI075

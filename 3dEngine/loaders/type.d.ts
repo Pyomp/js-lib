@@ -1,6 +1,12 @@
 declare type GltfPrimitive = {
   attributes: GltfAttributes;
-  indices?: GltfBuffer;
+  indices?: { // GltfBuffer without Float32Array
+    buffer: Uint8Array | Uint16Array | Uint32Array;
+    count: number;
+    type: "SCALAR" | "VEC2" | "VEC3" | "VEC4" | "MAT2" | "MAT3" | "MAT4";
+    min?: number;
+    max?: number;
+  };
   material?: GltfMaterial;
 };
 

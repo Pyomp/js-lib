@@ -25,7 +25,7 @@ export class GlVao {
      * @param {WebGL2RenderingContext} gl 
      * @param {WebGLProgram} program
      * @param {{[attributeName: string]: Attribute}} attributes ex: point count
-     * @param {Uint16Array?} indices
+     * @param {Uint8Array | Uint16Array | Uint32Array} indices 
      */
     constructor(gl, program, attributes, indices = undefined) {
         this.#gl = gl

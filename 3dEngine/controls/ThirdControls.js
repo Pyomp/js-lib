@@ -1,9 +1,10 @@
 import { clamp, PI2 } from '../../math/MathUtils.js'
-import { Vector3 } from '../../math/Vector3.js'
+import { _down, Vector3 } from '../../math/Vector3.js'
 import { isMobile } from '../../dom/browserInfo.js'
-import { getGeometries3DHeight } from '../extras/raycasterUtils.js'
+import { distanceRayMesh } from '../extras/raycasterUtils.js'
 import { Spherical } from '../../math/Spherical.js'
 import { Sphere } from '../../math/Sphere.js'
+import { Ray } from '../../math/Ray.js'
 
 const MinPolarAngle = 0.1
 const MaxPolarAngle = 3.05
@@ -18,18 +19,18 @@ export class ThirdControls {
 
     #targetOffset = new Vector3()
     target = new Vector3()
-    /** @type {Geometry[]} */ groundGeometries
-    enabled = false
+    enabled = true
 
     #isModeFollow = true
 
-    spherical = new Spherical(40, 0.8, 0)
+    spherical = new Spherical(10, 0.8, 0.8)
     #wantedSpherical = new Spherical().copy(this.spherical)
 
     #direction = new Vector3(5, 5, 5)
 
     #cameraPosition
     #camera
+    #rayDown
 
     #boundingSphere = new Sphere(undefined, 2)
 
@@ -53,14 +54,22 @@ export class ThirdControls {
 
         this.#camera = camera
         this.#cameraPosition = camera.position
+        this.#rayDown = new Ray(camera.position, _down)
         this.#boundingSphere.center = camera.position
+    }
+
+    #groundIndices
+    #positionAttribute
+    setGround(indices, positionAttribute) {
+        this.#groundIndices = indices
+        this.#positionAttribute = positionAttribute
     }
 
     update = this.#update.bind(this)
     #update() {
         if (!this.enabled) return
 
-        if (this.#dx > 0 || this.#dy > 0) {
+        if (this.#dx !== 0 || this.#dy !== 0) {
             const deltaTheta = this.#dx * this.sensitivity / this.#domElement.clientHeight // yes, height
             const deltaPhi = this.#dy * this.sensitivity / this.#domElement.clientHeight // rotate Up
             this.#wantedSpherical.theta = (this.#wantedSpherical.theta - deltaTheta) % PI2
@@ -87,8 +96,8 @@ export class ThirdControls {
 
         this.#cameraPosition.addVectors(this.#targetOffset, this.#direction)
 
-        if (this.groundGeometries) {
-            const groundHeight = getGeometries3DHeight(this.groundGeometries, this.#cameraPosition.x, this.#cameraPosition.z)
+        if (this.#groundIndices) {
+            const groundHeight = distanceRayMesh(this.#rayDown, this.#groundIndices, this.#positionAttribute)
             if (this.#cameraPosition.y < groundHeight + MinDistCamToGround) {
                 this.#cameraPosition.y = groundHeight + MinDistCamToGround
             }
@@ -180,6 +189,7 @@ export class ThirdControls {
         }
 
         const onPointermove = (e) => {
+
             this.#dx += e.movementX
             this.#dy += e.movementY
         }
@@ -188,9 +198,8 @@ export class ThirdControls {
             domElement.requestPointerLock()
         })
 
-        const lockChangeAlert = (e) => {
-            // @ts-ignore vscode ts is so bad
-            document.activeElement.blur()
+        const lockChangeAlert = () => {
+            domElement.focus()
             if (document.pointerLockElement === null) {
                 domElement.removeEventListener('mousemove', onPointermove)
                 this.#isModeFollow = true

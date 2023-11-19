@@ -194,14 +194,13 @@ export class Renderer {
         const gl = this.glContext.gl
         this.updateUbos()
 
-        this.scene.traverse((node) => { if (node instanceof SkinnedNode) node.animation.updateTime(deltatimeSecond) })
+        this.scene.traverse((node) => { if (node instanceof SkinnedNode) node.mixer.updateTime(deltatimeSecond) })
 
         const nodesToDraw = getNodesInFrustum(this.scene, this.camera.frustum)
 
         for (const node of nodesToDraw) {
             if (node instanceof SkinnedNode) {
-                node.animation.updateBuffer()
-                node.jointsTexture.needsUpdate = true
+                node.mixer.updateBuffer()
             }
         }
 
@@ -281,7 +280,7 @@ export class Renderer {
             this.#bindUniforms(program, object.uniforms)
 
             this.#bindTextures(program, object.textures)
-            
+
             if (currentGeometry.indices) {
                 gl.drawElements(object.drawMode, currentGeometry.count, typedArrayToType.get(currentGeometry.indices.constructor), currentGeometry.offset)
             } else {

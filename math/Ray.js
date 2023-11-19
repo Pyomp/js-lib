@@ -395,8 +395,7 @@ class Ray {
 
 	}
 
-	intersectTriangle(a, b, c, backfaceCulling, target) {
-
+	distanceFromTriangle(a, b, c, backfaceCulling) {
 		// Compute the offset origin, edges, and normal.
 
 		// from https://github.com/pmjoniak/GeometricTools/blob/master/GTEngine/Include/Mathematics/GteIntrRay3Triangle3.h
@@ -415,7 +414,7 @@ class Ray {
 
 		if (DdN > 0) {
 
-			if (backfaceCulling) return null
+			if (backfaceCulling) return Infinity
 			sign = 1
 
 		} else if (DdN < 0) {
@@ -425,7 +424,7 @@ class Ray {
 
 		} else {
 
-			return null
+			return Infinity
 
 		}
 
@@ -435,7 +434,7 @@ class Ray {
 		// b1 < 0, no intersection
 		if (DdQxE2 < 0) {
 
-			return null
+			return Infinity
 
 		}
 
@@ -444,14 +443,14 @@ class Ray {
 		// b2 < 0, no intersection
 		if (DdE1xQ < 0) {
 
-			return null
+			return Infinity
 
 		}
 
 		// b1+b2 > 1, no intersection
 		if (DdQxE2 + DdE1xQ > DdN) {
 
-			return null
+			return Infinity
 
 		}
 
@@ -461,13 +460,22 @@ class Ray {
 		// t < 0, no intersection
 		if (QdN < 0) {
 
-			return null
+			return Infinity
 
 		}
 
 		// Ray intersects triangle.
-		return this.at(QdN / DdN, target)
+		return QdN / DdN
+	}
 
+	intersectTriangle(a, b, c, backfaceCulling, target) {
+		const distance = this.distanceFromTriangle(a, b, c, backfaceCulling)
+
+		if (distance !== Infinity) {
+			return this.at(distance, target)
+		}
+
+		return null
 	}
 
 	applyMatrix4(matrix4) {

@@ -15,11 +15,7 @@ export class Bone {
     #localMatrix = new Matrix4()
     worldMatrix = new Matrix4()
 
-    #nodeWorldMatrix
-
-    constructor(gltfBone, jointMatricesF32a, inverseBindMatricesF32a, nodeWorldMatrix, parentBone) {
-        this.#nodeWorldMatrix = nodeWorldMatrix
-
+    constructor(gltfBone, jointMatricesF32a, inverseBindMatricesF32a, parentBone) {
         this.name = gltfBone.name
         this.#parent = parentBone
 
@@ -32,7 +28,7 @@ export class Bone {
 
         if (gltfBone.children) {
             for (const childJoint of gltfBone.children) {
-                this.#children.add(new Bone(childJoint, jointMatricesF32a, inverseBindMatricesF32a, nodeWorldMatrix, this))
+                this.#children.add(new Bone(childJoint, jointMatricesF32a, inverseBindMatricesF32a, this))
             }
         }
     }
@@ -70,17 +66,5 @@ export class Bone {
             const result = child.findByName(boneName)
             if (result) return result
         }
-    }
-
-    applyTranslationTo(vector3) {
-        return vector3
-            .applyWorldMatrix4(this.worldMatrix)
-            .applyWorldMatrix4(this.#nodeWorldMatrix)
-    }
-
-    applyTransformation(matrix4) {
-        return matrix4
-            .copy(this.worldMatrix)
-            .premultiply(this.#nodeWorldMatrix)
     }
 }

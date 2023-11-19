@@ -12,6 +12,7 @@ export class KeyboardMouseState {
      * @param {HTMLElement} element 
      */
     constructor(element) {
+        element.tabIndex = 123
         element.addEventListener("mousedown", (event) => {
             this.buttons.add(event.button)
             this.alt = event.altKey
