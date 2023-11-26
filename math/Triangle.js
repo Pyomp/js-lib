@@ -22,7 +22,7 @@ class Triangle {
 
 	}
 
-	static getNormal(a, b, c, target) {
+	static getNormal(a, b, c, target = new Vector3()) {
 
 		target.subVectors(c, b)
 		_v0.subVectors(a, b)
