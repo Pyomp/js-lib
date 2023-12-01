@@ -16,7 +16,7 @@ export class StaticBody {
 
             const indices = primitive.indices.buffer
             const position = primitive.attributes.POSITION.buffer
-
+            
             for (let i = 0; i < indices.length; i += 3) {
                 const aIndex = indices[i]
                 const bIndex = indices[i + 1]
