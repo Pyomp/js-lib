@@ -40,7 +40,7 @@ export class ThirdControls {
     /**
      * 
      * @param {Camera} camera
-     * @param {HTMLCanvasElement} domElement
+     * @param {HTMLElement} domElement
      */
     constructor(
         camera,

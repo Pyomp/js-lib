@@ -47,7 +47,7 @@ export class Node3D {
 
         if (force || this.localMatrixNeedsUpdate) {
             this.worldMatrix.multiplyMatrices(this.localMatrix, this.parent.worldMatrix)
-            this.normalMatrix.setFromMatrix4( this.worldMatrix ).invert().transpose()
+            this.normalMatrix.setFromMatrix4(this.worldMatrix).invert().transpose()
         }
 
         for (const node of this.nodes) node.updateWorldMatrix(force || this.localMatrixNeedsUpdate)
@@ -67,5 +67,11 @@ export class Node3D {
         for (const object of this.objects) {
             this.boundingBox.union(object.geometry.boundingBox)
         }
+    }
+
+    dispose() {
+        this.traverse((child) => { child.dispose() })
+        if (this.parent)
+            this.parent.removeNode3D(this)     
     }
 }

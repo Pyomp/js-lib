@@ -17,6 +17,7 @@ import { ParticleRenderer } from "./modules/ParticlesRendererModules/ParticleRen
 import { DepthTexture } from "../textures/DepthTexture.js"
 import { blit, typedArrayToType } from "../webgl/utils.js"
 import { SkinnedNode } from "../sceneGraph/gltf/skinned/SkinnedNode.js"
+import { GlVao } from "../webgl/GlVao.js"
 
 const _box3 = new Box3()
 
@@ -112,6 +113,7 @@ export class Renderer {
         this.#programMap.clear()
     }
 
+    /** @type {Map<Geometry, GlVao>} */
     #vaoMap = new Map()
     #disposeGlVaos() {
         for (const vao of Object.values(this.#vaoMap)) vao.dispose()
@@ -123,6 +125,28 @@ export class Renderer {
     #disposeGlTextures() {
         for (const texture of Object.values(this.#textureMap)) texture.dispose()
         this.#textureMap.clear()
+    }
+
+
+    #deleteToBeDeleted() {
+        for (const [material, program] of this.#programMap) {
+            if (material.needsDelete) {
+                program.dispose()
+                this.#programMap.delete(material)
+            }
+        }
+        for (const [geometry, vao] of this.#vaoMap) {
+            if (geometry.needsDelete) {
+                vao.dispose()
+                this.#vaoMap.delete(geometry)
+            }
+        }
+        for (const [texture, glTexture] of this.#textureMap) {
+            if (texture.needsDelete) {
+                glTexture.dispose()
+                this.#textureMap.delete(texture)
+            }
+        }
     }
 
     depthTexture = new DepthTexture()
@@ -191,6 +215,8 @@ export class Renderer {
      * @param {number} deltatimeSecond 
      */
     render(deltatimeSecond) {
+        this.#deleteToBeDeleted()
+        
         const gl = this.glContext.gl
         this.updateUbos()
 
@@ -232,6 +258,11 @@ export class Renderer {
 
         for (const object of objects) {
             if (currentMaterial !== object.material) {
+                if (object.material.needsDelete) {
+                    console.warn('Material deleted, object not draw. You should remove 3D objects when dispose its elements.')
+                    continue
+                }
+
                 currentMaterial = object.material
 
                 if (!this.#programMap.has(currentMaterial)) {
@@ -255,6 +286,11 @@ export class Renderer {
             }
 
             if (currentGeometry !== object.geometry) {
+                if (object.geometry.needsDelete) {
+                    console.warn('Geometry deleted, object not draw. You should remove 3D objects when dispose its elements.')
+                    continue
+                }
+
                 currentGeometry = object.geometry
 
                 if (currentGeometry.attributes) {
@@ -323,14 +359,18 @@ export class Renderer {
         for (const key in textures) {
             const texture = textures[key]
 
+            if (texture.needsDelete) {
+                console.warn('Texture deleted,  unknown texture is bound. You should remove 3D objects when dispose its elements.')
+            }
+
             const glTexture = this.getGlTexture(texture)
 
             if (texture.needsUpdate) {
                 texture.needsUpdate = false
                 glTexture.updateData(texture.data, program.textureUnit[key])
+            } else {
+                glTexture.bindToUnit(program.textureUnit[key])
             }
-
-            glTexture.bindToUnit(program.textureUnit[key])
         }
     }
 

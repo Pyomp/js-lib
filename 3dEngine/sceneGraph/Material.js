@@ -2,6 +2,9 @@ import { Texture } from "./Texture.js"
 import { Uniform } from "./Uniform.js"
 
 export class Material {
+
+    needsDelete = false
+
     /**
      * @typedef {{
      *      pointLightCount: number

@@ -1,5 +1,8 @@
 export class Texture {
     needsUpdate = false
+
+    needsDelete = false
+
     /**
     * @param {{
     *  target?: WebGl.Texture.Target

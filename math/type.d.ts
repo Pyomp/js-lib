@@ -1,0 +1,19 @@
+
+declare type Box2 = import("./Box2.js").Box2;
+declare type Box3 = import("./Box3.js").Box3;
+declare type Color = import("./Color.js").Color;
+declare type Cylindrical = import("./Cylindrical.js").Cylindrical;
+declare type Euler = import("./Euler.js").Euler;
+declare type Frustum = import("./Frustum.js").Frustum;
+declare type Line3 = import("./Line3.js").Line3;
+declare type Matrix3 = import("./Matrix3.js").Matrix3;
+declare type Matrix4 = import("./Matrix4.js").Matrix4;
+declare type Plane = import("./Plane.js").Plane;
+declare type Quaternion = import("./Quaternion.js").Quaternion;
+declare type Ray = import("./Ray.js").Ray;
+declare type Sphere = import("./Sphere.js").Sphere;
+declare type Spherical = import("./Spherical.js").Spherical;
+declare type Triangle = import("./Triangle.js").Triangle;
+declare type Vector2 = import("./Vector2.js").Vector2;
+declare type Vector3 = import("./Vector3.js").Vector3;
+declare type Vector4 = import("./Vector4.js").Vector4;

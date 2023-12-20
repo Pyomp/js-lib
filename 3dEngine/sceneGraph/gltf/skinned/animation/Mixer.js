@@ -36,6 +36,10 @@ export class Mixer {
         this.rootBone.updateMatrix()
     }
 
+    dispose(){
+        this.jointsTexture.needsDelete = true
+    }
+
     #initCurrentTrack() {
         const idle = Object.keys(this.#tracks).find((name) => name.includes('idle'))
         if (idle) {

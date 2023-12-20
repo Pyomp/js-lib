@@ -12,6 +12,8 @@ export class Geometry {
 
     boundingBox = new Box3()
 
+    needsDelete = false
+
     /**
      * 
      * @param {{[name: string]: WebGl.Attribute.data}?} attributes 
