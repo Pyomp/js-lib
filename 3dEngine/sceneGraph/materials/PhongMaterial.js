@@ -1,42 +1,38 @@
-import { Color } from "../../../../math/Color.js"
-import { Geometry } from "../../Geometry.js"
-import { Object3D } from "../../Object3D.js"
-import { Texture } from "../../Texture.js"
+import { Color } from "../../../math/Color.js"
+import { Geometry } from "../Geometry.js"
+import { Object3D } from "../Object3D.js"
+import { Texture } from "../Texture.js"
 
 /**
  * @implements {Material}
-*/
-export class SkinnedPhongMaterial {
+ */
+export class PhongMaterial {
     needsDelete = false
-
-    createUniforms({
+    createUniforms(
         /** @type {Matrix4} */ worldMatrix,
         /** @type {Matrix3} */ normalMatrix,
         /** @type {number} */ shininess = 30,
-        /** @type {Color} */ specular = new Color(0x444444),
-        /** @type {Number} */ alphaTest = -1
-    }) {
+        /** @type {Color} */ specular = new Color(0x444444)
+    ) {
         return {
             modelView: worldMatrix,
             specular,
             shininess,
-            alphaTest, // TODO not implemented in shaders
             normalMatrix // TODO not implemented in shaders
         }
     }
-    createUniformsFromGltf({
-        /** @type {Matrix4} */ worldMatrix = undefined,
-        /** @type {Matrix3} */ normalMatrix = undefined,
+    createUniformsFromGltf(
+        /** @type {Matrix4} */ worldMatrix,
+        /** @type {Matrix3} */ normalMatrix,
         /** @type {GltfPrimitive} */ gltfPrimitive,
         /** @type {Color} */ specular = new Color(0x444444)
-    }) {
-        return this.createUniforms({
+    ) {
+        return this.createUniforms(
             worldMatrix,
             normalMatrix,
-            shininess: 200 ** (1 - gltfPrimitive.material.pbrMetallicRoughness.roughnessFactor),
-            alphaTest: gltfPrimitive.material.alphaMode === 'MASK' ? 0.5 : -1,
+            200 ** (1 - gltfPrimitive.material.pbrMetallicRoughness.roughnessFactor),
             specular
-        })
+        )
     }
     createTextures( /** @type {Image} */ image) {
         return { map: new Texture({ data: image }) }
@@ -48,8 +44,6 @@ export class SkinnedPhongMaterial {
         /** @type {Float32Array} */ positionAttributeBuffer,
         /** @type {Float32Array} */ uvAttributeBuffer,
         /** @type {Float32Array} */ normalAttributeBuffer,
-        /** @type {Float32Array} */ jointsAttributeBuffer,
-        /** @type {Float32Array} */ weightsAttributeBuffer,
         /** @type {number} */ count,
         /** @type {Uint8Array | Uint16Array | Uint32Array} */ indices
     ) {
@@ -57,9 +51,6 @@ export class SkinnedPhongMaterial {
             position: positionAttributeBuffer,
             uv: uvAttributeBuffer,
             normal: normalAttributeBuffer,
-            joints: jointsAttributeBuffer,
-            weights: weightsAttributeBuffer
-
         }
         return new Geometry(count, attributes, indices)
     }
@@ -68,12 +59,11 @@ export class SkinnedPhongMaterial {
             gltfPrimitive.attributes.POSITION.buffer,
             gltfPrimitive.attributes.TEXCOORD_0.buffer,
             gltfPrimitive.attributes.NORMAL.buffer,
-            gltfPrimitive.attributes.WEIGHTS_0.buffer,
-            gltfPrimitive.attributes.JOINTS_0.buffer,
             gltfPrimitive.indices.count,
             gltfPrimitive.indices.buffer
         )
     }
+
     createObjectFromGltf(
         /** @type {Node3D} */ node3D,
         /** @type {GltfPrimitive} */ gltfPrimitive,
@@ -92,8 +82,6 @@ export class SkinnedPhongMaterial {
 in vec3 position;
 in vec3 normal;
 in vec2 uv;
-in vec4 weights;
-in uvec4 joints;
 
 layout(std140) uniform cameraUbo {
     mat4 viewMatrix;
@@ -104,37 +92,26 @@ layout(std140) uniform cameraUbo {
     float far;
 };
 
-uniform mat4 modelMatrix;
-uniform sampler2D jointsTexture;
+uniform mat4 modelView;
 
 out vec3 v_normal;
 out vec2 v_uv;
 out vec3 v_surfaceToView;
 out vec3 v_worldPosition;
 
-mat4 getBoneMatrix(uint jointNdx) {
-    return mat4(
-        texelFetch(jointsTexture, ivec2(0, jointNdx), 0),
-        texelFetch(jointsTexture, ivec2(1, jointNdx), 0),
-        texelFetch(jointsTexture, ivec2(2, jointNdx), 0),
-        texelFetch(jointsTexture, ivec2(3, jointNdx), 0));
-}
-
 void main() {
-    mat4 skinMatrix = getBoneMatrix(joints[0]) * weights[0] +
-                    getBoneMatrix(joints[1]) * weights[1] +
-                    getBoneMatrix(joints[2]) * weights[2] +
-                    getBoneMatrix(joints[3]) * weights[3];
-                    
-    vec4 worldPosition = modelMatrix * skinMatrix * vec4(position, 1.0);
+    vec4 worldPosition = modelView * vec4(position, 1.0);
     
     gl_Position = projectionViewMatrix * worldPosition;
 
-    v_normal = mat3(modelMatrix) * normal;
+    // gl_Position.z = linearizeDepth(gl_Position);
+
+    v_normal = mat3(modelView) * normal;
     v_uv = uv;
     v_worldPosition = worldPosition.xyz / worldPosition.w;
     v_surfaceToView = cameraPosition - v_worldPosition;
-}`}
+}`
+    }
 
     fragmentShader({ pointLightCount }) {
         return `#version 300 es
@@ -144,7 +121,6 @@ ${pointLightCount > 0 ? '#define POINT_LIGHT' : ''}
 
 in vec3 v_normal;
 in vec2 v_uv;
-
 in vec3 v_surfaceToView;
 in vec3 v_worldPosition;
 
@@ -159,34 +135,35 @@ out vec4 outColor
 struct PointLight {
     vec3 position;
     float intensity;
-    vec3 color
+    vec3 color;
 };
 
 layout(std140) uniform pointLightsUBO {
-PointLight pointLights[${pointLightCount}];
+    PointLight pointLights[${pointLightCount}];
 };
 
 void calcPointLight(in vec3 normal, out vec3 color, out float specular){
     for (int i = 0; i < ${pointLightCount}; i++) {
-                    PointLight pointLight = pointLights[i];
+        PointLight pointLight = pointLights[i];
 
-                    vec3 L = normalize(pointLight.position - v_worldPosition);
+        vec3 L = normalize(pointLight.position - v_worldPosition);
 
-                    float lambertian = max(dot(normal, L), 0.0)
+        float lambertian = max(dot(normal, L), 0.0)
         color += lambertian * pointLight.color;
 
-                    vec3 R = reflect(L, normal) // Reflected light vector
-                    vec3 V = normalize(-v_worldPosition) // Vector to viewer
+        vec3 R = reflect(L, normal) // Reflected light vector
+        vec3 V = normalize(-v_worldPosition) // Vector to viewer
 
-                    float specAngle = max(dot(R, V), 0.0)
+        float specAngle = max(dot(R, V), 0.0)
         specular += pow(specAngle, shininess)
     }
 }
 #endif
 
 void main() {
-    vec3 normal = normalize(v_normal);
-    
+    vec3 normal = normalize(v_normal)
+
+    // TODO
     vec3 ambientLight = vec3(0.1, 0.1, 0.1);
 
     vec3 pointLightColor;
@@ -202,7 +179,6 @@ void main() {
     vec4 color = texture(map, v_uv)
 
     outColor = vec4(color.xyz * lightColor + lightSpecular * specular, color.a)
-    // outColor = vec4(1.0, 0.,0.,1.);
-} `}
+}`
+    }
 }
-

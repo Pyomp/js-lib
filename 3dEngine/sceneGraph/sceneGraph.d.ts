@@ -4,6 +4,12 @@ declare type Node3D = import("./Node3D.js").Node3D;
 declare type Object3D = import("./Object3D.js").Object3D;
 declare type Texture = import("./Texture.js").Texture;
 declare type Geometry = import("./Geometry.js").Geometry;
-declare type Material = import("./Material.js").Material;
-declare type Uniform = import("./Uniform.js").Uniform;
+declare interface Material {
+    needsDelete: bool
+    vertexShader(...args): string
+    fragmentShader(...args): string
+    createUniforms(...args): { [name: string]: WebGl.UniformData }
+    createTextures(...args): { [name: string]: Texture }
+    createGeometry(...args): Geometry
+}
 declare type Camera = import("./Camera.js").Camera;

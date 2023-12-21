@@ -1,4 +1,6 @@
 declare namespace WebGl {
+  type UniformData = number | Vector2 | Vector3 | Vector4 | Matrix3 | Matrix4 | Color
+
   namespace Texture {
     type Target = 'TEXTURE_2D' | 'TEXTURE_CUBE_MAP_POSITIVE_X' | 'TEXTURE_CUBE_MAP_NEGATIVE_X' | 'TEXTURE_CUBE_MAP_POSITIVE_Y' | 'TEXTURE_CUBE_MAP_NEGATIVE_Y' | 'TEXTURE_CUBE_MAP_POSITIVE_Z' | 'TEXTURE_CUBE_MAP_NEGATIVE_Z'
 
@@ -14,7 +16,7 @@ declare namespace WebGl {
 
     type Type = 'UNSIGNED_INT' | 'UNSIGNED_SHORT' | 'UNSIGNED_BYTE' | 'UNSIGNED_SHORT_5_6_5' | 'UNSIGNED_SHORT_4_4_4_4' | 'UNSIGNED_SHORT_5_5_5_1' | 'HALF_FLOAT' | 'FLOAT' | 'UNSIGNED_INT_10F_11F_11F_REV' | 'HALF_FLOAT' | 'UNSIGNED_INT_2_10_10_10_REV' | 'UNSIGNED_INT_24_8'
 
-    type Pixels = Uint8Array | Uint16Array | Float32Array | ImageData | HTMLImageElement | HTMLCanvasElement | HTMLVideoElement | ImageBitmap
+    type Pixels = Image | Uint8Array | Uint16Array | Float32Array | ImageData | HTMLImageElement | HTMLCanvasElement | HTMLVideoElement | ImageBitmap
   }
 
   namespace Vao {
@@ -30,6 +32,5 @@ declare namespace WebGl {
 
   namespace Render {
     type DrawMode = 'POINTS' | 'LINE_STRIP' | 'LINE_LOOP' | 'LINES' | 'TRIANGLE_STRIP' | 'TRIANGLE_FAN' | 'TRIANGLES'
-
   }
 }

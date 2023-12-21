@@ -77,6 +77,11 @@ export function doItOnceNextRaf(callback) {
     rafCallbacks.add(callback)
 }
 
+/**
+ * 
+ * @param {string} url 
+ * @returns {Promise<HTMLImageElement>}
+ */
 export function getImage(url) {
     const image = new Image()
     return new Promise((resolve) => {

@@ -16,7 +16,7 @@ export class Texture {
     *  border?: GLint
     *  format?: WebGl.Texture.Format
     *  type?: WebGl.Texture.Type
-    *  data: WebGl.Texture.Pixels
+    *  data?: WebGl.Texture.Pixels | null
     *  needsMipmap?: boolean
     * }} param0 
     */
@@ -27,12 +27,12 @@ export class Texture {
         minFilter = 'LINEAR',
         magFilter = 'LINEAR',
         internalformat = 'RGBA',
-        width,
-        height,
+        width = undefined,
+        height = undefined,
         border = 0,
         format = 'RGBA',
         type = 'UNSIGNED_BYTE',
-        data = null,
+        data = new Image(),
         needsMipmap = true
     }) {
         this.target = target
@@ -43,12 +43,17 @@ export class Texture {
         this.magFilter = WebGL2RenderingContext[magFilter] ?? magFilter
 
         this.internalformat = internalformat
-        this.width = width
-        this.height = height
+        this.width = width ?? data?.width ?? 1
+        this.height = height ?? data?.height ?? 1
         this.border = border
         this.format = format
         this.type = type
         this.data = data
+        if (this.data instanceof Image) {
+            this.data.onload = () => { this.needsUpdate = true }
+            this.width = this.data.width
+            this.height = this.data.height
+        }
         this.needsMipmap = needsMipmap
     }
 }

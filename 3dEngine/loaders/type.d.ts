@@ -84,7 +84,7 @@ declare type GltfSampler = {
 
 declare type GltfTexture = {
   sampler: GltfSampler;
-  source: HTMLImageElement;
+  source: Image;
   name?: string;
   texCoord?: number; // The set index of texture’s TEXCOORD attribute used for texture coordinate mapping.
 };

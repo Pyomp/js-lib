@@ -3,15 +3,12 @@ import { GlContext } from "../webgl/GlContext.js"
 import { GlProgram } from "../webgl/GlProgram.js"
 import { GlTexture } from "../webgl/GlTexture.js"
 import { Camera } from "../sceneGraph/Camera.js"
-import { Material } from "../sceneGraph/Material.js"
 import { Node3D } from "../sceneGraph/Node3D.js"
 import { Object3D } from "../sceneGraph/Object3D.js"
 import { Scene } from "../sceneGraph/Scene.js"
-import { Texture } from "../sceneGraph/Texture.js"
 import { PointLightsRenderer } from "./modules/PointLightsRenderer.js"
 import { PointLight } from "../sceneGraph/light/PointLight.js"
 import { GlUbo } from "../webgl/GlUbo.js"
-import { Uniform } from "../sceneGraph/Uniform.js"
 import { WindowInfoRenderer } from "./modules/WindowInfoRenderer.js"
 import { ParticleRenderer } from "./modules/ParticlesRendererModules/ParticleRenderer.js"
 import { DepthTexture } from "../textures/DepthTexture.js"
@@ -22,7 +19,7 @@ import { GlVao } from "../webgl/GlVao.js"
 const _box3 = new Box3()
 
 export class Renderer {
-    domElement = document.createElement('div')
+    htmlElement = document.createElement('div')
 
     scene = new Scene()
 
@@ -31,11 +28,11 @@ export class Renderer {
     /** @type {Set<PointLight>} */ pointLights = new Set()
 
     constructor() {
-        this.domElement.style.top = '0'
-        this.domElement.style.left = '0'
-        this.domElement.style.width = '100%'
-        this.domElement.style.height = '100%'
-        this.domElement.style.position = 'absolute'
+        this.htmlElement.style.top = '0'
+        this.htmlElement.style.left = '0'
+        this.htmlElement.style.width = '100%'
+        this.htmlElement.style.height = '100%'
+        this.htmlElement.style.position = 'absolute'
 
         this.initGl()
     }
@@ -75,8 +72,8 @@ export class Renderer {
         canvas.style.height = '100%'
         canvas.addEventListener("webglcontextlost", this.onContextLost.bind(this))
 
-        this.domElement.innerHTML = ''
-        this.domElement.appendChild(canvas)
+        this.htmlElement.innerHTML = ''
+        this.htmlElement.appendChild(canvas)
 
         this.glContext = new GlContext(canvas)
 
@@ -278,11 +275,6 @@ export class Renderer {
 
                 program = this.#programMap.get(currentMaterial)
                 program.useProgram()
-
-                // TODO TO DELETE
-                this.#bindUniforms(program, currentMaterial.uniforms)
-                // TODO TO DELETE
-                this.#bindTextures(program, currentMaterial.textures)
             }
 
             if (currentGeometry !== object.geometry) {
@@ -328,15 +320,11 @@ export class Renderer {
     /**
      * 
      * @param {GlProgram} program 
-     * @param {{ [name: string]: Uniform }} uniforms 
+     * @param {{ [name: string]: WebGl.UniformData }} uniforms 
      */
     #bindUniforms(program, uniforms) {
         for (const key in uniforms) {
-            const uniform = uniforms[key]
-            // if (uniform.needsUpdate) {
-            //     uniform.needsUpdate = false
-            program.uniformUpdate[key]?.(uniform.data)
-            // }
+            program.uniformUpdate[key]?.(uniforms[key])
         }
     }
 

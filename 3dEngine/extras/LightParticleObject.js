@@ -1,5 +1,5 @@
 import { Geometry } from "../sceneGraph/Geometry.js"
-import { Material } from "../sceneGraph/Material.js"
+import { Material } from "../sceneGraph/MaterialOld.js"
 import { Object3D } from "../sceneGraph/Object3D.js"
 import { Texture } from "../sceneGraph/Texture.js"
 import { createSparkleCanvas } from "../textures/sparkle.js"

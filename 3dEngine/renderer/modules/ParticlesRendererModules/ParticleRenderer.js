@@ -1,4 +1,3 @@
-import { Texture } from "../../../sceneGraph/Texture.js"
 import { ParticleSystem } from "../../../sceneGraph/particle/ParticleSystem.js"
 import { GlProgram } from "../../../webgl/GlProgram.js"
 import { GlTexture } from "../../../webgl/GlTexture.js"

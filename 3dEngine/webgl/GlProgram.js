@@ -154,21 +154,122 @@ function createShader(gl, type, source) {
 }
 
 const createUniformUpdateFunction = {
-    [WebGL2RenderingContext.FLOAT]: (gl, location) => (data) => { gl.uniform1f(location, data) },
-    [WebGL2RenderingContext.FLOAT_VEC2]: (gl, location) => (vector2) => { gl.uniform2f(location, vector2.x, vector2.y) },
-    [WebGL2RenderingContext.FLOAT_VEC3]: (gl, location) => (vector3) => { gl.uniform3f(location, vector3.x, vector3.y, vector3.z) },
-    [WebGL2RenderingContext.FLOAT_VEC4]: (gl, location) => (vector4) => { gl.uniform4f(location, vector4.x, vector4.y, vector4.z, vector4.w) },
-    [WebGL2RenderingContext.INT]: (gl, location) => (data) => { gl.uniform1i(location, data) },
-    [WebGL2RenderingContext.INT_VEC2]: (gl, location) => (vector2) => { gl.uniform2i(location, vector2.x, vector2.y) },
-    [WebGL2RenderingContext.INT_VEC3]: (gl, location) => (vector3) => { gl.uniform3i(location, vector3.x, vector3.y, vector3.z) },
-    [WebGL2RenderingContext.INT_VEC4]: (gl, location) => (vector4) => { gl.uniform4i(location, vector4.x, vector4.y, vector4.z, vector4.w) },
+    [WebGL2RenderingContext.FLOAT]: (gl, location) => {
+        let lastData = 0
+        return (/** @type {number} */ data) => { if (lastData != data) { lastData = data; gl.uniform1f(location, lastData) } }
+    },
+    [WebGL2RenderingContext.FLOAT_VEC2]: (gl, location) => {
+        let lastData = new Float32Array(2)
+        return (/** @type {Vector2} */ vector2) => {
+            if (lastData[0] !== vector2.x || lastData[1] !== vector2.y) {
+                lastData[0] = vector2.x; lastData[1] = vector2.y
+                gl.uniform2fv(location, lastData)
+            }
+        }
+    },
+    [WebGL2RenderingContext.FLOAT_VEC3]: (gl, location) => {
+        let lastData = new Float32Array(3)
+        return (/** @type {Vector3} */ vector3) => {
+            if (lastData[0] !== vector3.x || lastData[1] !== vector3.y || lastData[2] !== vector3.z) {
+                lastData[0] = vector3.x; lastData[1] = vector3.y; lastData[2] = vector3.z
+                gl.uniform3fv(location, lastData)
+            }
+        }
+    },
+    [WebGL2RenderingContext.FLOAT_VEC4]: (gl, location) => {
+        let lastData = new Float32Array(4)
+        return (/** @type {Vector4} */ vector4) => {
+            if (lastData[0] !== vector4.x || lastData[1] !== vector4.y || lastData[2] !== vector4.z || lastData[3] !== vector4.w) {
+                lastData[0] = vector4.x; lastData[1] = vector4.y; lastData[2] = vector4.z; lastData[3] = vector4.w
+                gl.uniform4fv(location, lastData)
+            }
+        }
+    },
+    [WebGL2RenderingContext.INT]: (gl, location) => {
+        let lastData = 0
+        return (/** @type {number} */ data) => { if (lastData != data) { lastData = data; gl.uniform1i(location, lastData) } }
+    },
+    [WebGL2RenderingContext.INT_VEC2]: (gl, location) => {
+        let lastData = new Int32Array(2)
+        return (/** @type {Vector2} */ vector2) => {
+            if (lastData[0] !== vector2.x || lastData[1] !== vector2.y) {
+                lastData[0] = vector2.x; lastData[1] = vector2.y
+                gl.uniform2iv(location, lastData)
+            }
+        }
+    },
+    [WebGL2RenderingContext.INT_VEC3]: (gl, location) => {
+        let lastData = new Int32Array(3)
+        return (/** @type {Vector3} */ vector3) => {
+            if (lastData[0] !== vector3.x || lastData[1] !== vector3.y || lastData[2] !== vector3.z) {
+                lastData[0] = vector3.x; lastData[1] = vector3.y; lastData[2] = vector3.z
+                gl.uniform3iv(location, lastData)
+            }
+        }
+    },
+    [WebGL2RenderingContext.INT_VEC4]: (gl, location) => {
+        let lastData = new Int32Array(4)
+        return (/** @type {Vector4} */ vector4) => {
+            if (lastData[0] !== vector4.x || lastData[1] !== vector4.y || lastData[2] !== vector4.z || lastData[3] !== vector4.w) {
+                lastData[0] = vector4.x; lastData[1] = vector4.y; lastData[2] = vector4.z; lastData[3] = vector4.w
+                gl.uniform4iv(location, lastData)
+            }
+        }
+    },
     [WebGL2RenderingContext.BOOL]: (gl, location) => (data) => { gl.uniform1i(location, data) },
     [WebGL2RenderingContext.BOOL_VEC2]: (gl, location) => (data) => { gl.uniform2iv(location, data) },
     [WebGL2RenderingContext.BOOL_VEC3]: (gl, location) => (data) => { gl.uniform3iv(location, data) },
     [WebGL2RenderingContext.BOOL_VEC4]: (gl, location) => (data) => { gl.uniform4iv(location, data) },
     [WebGL2RenderingContext.FLOAT_MAT2]: (gl, location) => (data) => { gl.uniformMatrix2fv(location, false, data) },
-    [WebGL2RenderingContext.FLOAT_MAT3]: (gl, location) => (data) => { gl.uniformMatrix3fv(location, false, data.elements) },
-    [WebGL2RenderingContext.FLOAT_MAT4]: (gl, location) => (data) => { gl.uniformMatrix4fv(location, false, data.elements) },
+    [WebGL2RenderingContext.FLOAT_MAT3]: (gl, location) => {
+        let lastData = new Float32Array(9)
+
+        return (/** @type {Matrix3} */ matrix3) => {
+            const matrix3Array = matrix3.elements
+            if (
+                lastData[0] !== matrix3Array[0]
+                || lastData[1] !== matrix3Array[1]
+                || lastData[2] !== matrix3Array[2]
+                || lastData[3] !== matrix3Array[3]
+                || lastData[4] !== matrix3Array[4]
+                || lastData[5] !== matrix3Array[5]
+                || lastData[6] !== matrix3Array[6]
+                || lastData[7] !== matrix3Array[7]
+                || lastData[8] !== matrix3Array[8]
+            ) {
+                lastData.set(matrix3Array)
+                gl.uniformMatrix3fv(location, false, lastData)
+            }
+        }
+    },
+    [WebGL2RenderingContext.FLOAT_MAT4]: (gl, location) => {
+        let lastData = new Float32Array(16)
+
+        return (/** @type {Matrix4} */ matrix4) => {
+            const matrix4Array = matrix4.elements
+            if (
+                lastData[12] !== matrix4Array[12]
+                || lastData[13] !== matrix4Array[13]
+                || lastData[14] !== matrix4Array[14]
+                || lastData[0] !== matrix4Array[0]
+                || lastData[1] !== matrix4Array[1]
+                || lastData[2] !== matrix4Array[2]
+                || lastData[3] !== matrix4Array[3]
+                || lastData[4] !== matrix4Array[4]
+                || lastData[5] !== matrix4Array[5]
+                || lastData[6] !== matrix4Array[6]
+                || lastData[7] !== matrix4Array[7]
+                || lastData[8] !== matrix4Array[8]
+                || lastData[9] !== matrix4Array[9]
+                || lastData[10] !== matrix4Array[10]
+                || lastData[11] !== matrix4Array[11]
+                || lastData[15] !== matrix4Array[15]
+            ) {
+                lastData.set(matrix4Array)
+                gl.uniformMatrix4fv(location, false, lastData)
+            }
+        }
+    },
 }
 
 /** I keep it there for information, it is when data is an array (not a vector3 from math lib)*/

@@ -58,12 +58,8 @@ export class ThirdControls {
         this.#boundingSphere.center = camera.position
     }
 
-    #groundIndices
-    #positionAttribute
-    setGround(indices, positionAttribute) {
-        this.#groundIndices = indices
-        this.#positionAttribute = positionAttribute
-    }
+    /** @type {Geometry[]} */
+    groundGeometries = []
 
     update = this.#update.bind(this)
     #update() {
@@ -96,10 +92,12 @@ export class ThirdControls {
 
         this.#cameraPosition.addVectors(this.#targetOffset, this.#direction)
 
-        if (this.#groundIndices) {
-            const groundHeight = distanceRayMesh(this.#rayDown, this.#groundIndices, this.#positionAttribute)
-            if (this.#cameraPosition.y < groundHeight + MinDistCamToGround) {
-                this.#cameraPosition.y = groundHeight + MinDistCamToGround
+        for (const geometry of this.groundGeometries) {
+            if (geometry.indices && geometry.attributes.position?.data instanceof Float32Array) {
+                const groundHeight = distanceRayMesh(this.#rayDown, geometry.indices, geometry.attributes.position.data)
+                if (this.#cameraPosition.y < groundHeight + MinDistCamToGround) {
+                    this.#cameraPosition.y = groundHeight + MinDistCamToGround
+                }
             }
         }
 

@@ -1,9 +1,3 @@
-import { Box3 } from "../../math/Box3.js"
-import { Geometry } from "./Geometry.js"
-import { Material } from "./Material.js"
-import { Texture } from "./Texture.js"
-import { Uniform } from "./Uniform.js"
-
 export class Object3D {
     drawMode
 
@@ -15,7 +9,7 @@ export class Object3D {
      *  material: Material
      *  geometry: Geometry
      *  drawMode?: WebGl.Render.DrawMode
-     *  uniforms?: {[name: string]: Uniform}
+     *  uniforms?: {[name: string]: WebGl.UniformData}
      *  textures?: {[name: string]: Texture}
      *  additiveBlending?: boolean
      *  normalBlending?: boolean

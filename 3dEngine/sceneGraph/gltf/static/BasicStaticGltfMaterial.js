@@ -1,4 +1,4 @@
-import { Material } from "../../Material.js"
+import { Material } from "../../MaterialOld.js"
 
 export class BasicStaticGltfMaterial extends Material {
     constructor() {
