@@ -4,7 +4,7 @@ import { Object3D } from "../Object3D.js"
 import { Texture } from "../Texture.js"
 
 /**
- * @implements {Material}
+ * @implements {MaterialGltf}
  */
 export class PhongMaterial {
     needsDelete = false
@@ -15,22 +15,22 @@ export class PhongMaterial {
         /** @type {Color} */ specular = new Color(0x444444)
     ) {
         return {
-            modelView: worldMatrix,
+            modelMatrix: worldMatrix,
             specular,
             shininess,
             normalMatrix // TODO not implemented in shaders
         }
     }
-    createUniformsFromGltf(
+    createUniformsFromGltf({
         /** @type {Matrix4} */ worldMatrix,
         /** @type {Matrix3} */ normalMatrix,
         /** @type {GltfPrimitive} */ gltfPrimitive,
         /** @type {Color} */ specular = new Color(0x444444)
-    ) {
+    }) {
         return this.createUniforms(
             worldMatrix,
             normalMatrix,
-            200 ** (1 - gltfPrimitive.material.pbrMetallicRoughness.roughnessFactor),
+            200 ** (1 - gltfPrimitive.material?.pbrMetallicRoughness?.roughnessFactor ?? 0),
             specular
         )
     }
@@ -38,7 +38,7 @@ export class PhongMaterial {
         return { map: new Texture({ data: image }) }
     }
     createTexturesFromGltf(/** @type {GltfPrimitive} */ gltfPrimitive) {
-        return this.createTextures(gltfPrimitive.material.pbrMetallicRoughness.baseColorTexture.source)
+        return this.createTextures(gltfPrimitive.material?.pbrMetallicRoughness?.baseColorTexture?.source ?? null)
     }
     createGeometry(
         /** @type {Float32Array} */ positionAttributeBuffer,
@@ -73,7 +73,7 @@ export class PhongMaterial {
             material: this,
             geometry: this.createGeometryFromGltf(gltfPrimitive),
             textures: this.createTexturesFromGltf(gltfPrimitive),
-            uniforms: this.createUniformsFromGltf(node3D.worldMatrix, node3D.normalMatrix, gltfPrimitive, specular)
+            uniforms: this.createUniformsFromGltf({ worldMatrix: node3D.worldMatrix, normalMatrix: node3D.normalMatrix, gltfPrimitive, specular })
         })
     }
 
@@ -92,7 +92,7 @@ layout(std140) uniform cameraUbo {
     float far;
 };
 
-uniform mat4 modelView;
+uniform mat4 modelMatrix;
 
 out vec3 v_normal;
 out vec2 v_uv;
@@ -100,13 +100,13 @@ out vec3 v_surfaceToView;
 out vec3 v_worldPosition;
 
 void main() {
-    vec4 worldPosition = modelView * vec4(position, 1.0);
+    vec4 worldPosition = modelMatrix * vec4(position, 1.0);
     
     gl_Position = projectionViewMatrix * worldPosition;
 
     // gl_Position.z = linearizeDepth(gl_Position);
 
-    v_normal = mat3(modelView) * normal;
+    v_normal = mat3(modelMatrix) * normal;
     v_uv = uv;
     v_worldPosition = worldPosition.xyz / worldPosition.w;
     v_surfaceToView = cameraPosition - v_worldPosition;
@@ -129,7 +129,7 @@ uniform sampler2D map;
 uniform vec3 specular;
 uniform float shininess;               
         
-out vec4 outColor
+out vec4 outColor;
 
 #ifdef POINT_LIGHT
 struct PointLight {
@@ -148,37 +148,37 @@ void calcPointLight(in vec3 normal, out vec3 color, out float specular){
 
         vec3 L = normalize(pointLight.position - v_worldPosition);
 
-        float lambertian = max(dot(normal, L), 0.0)
+        float lambertian = max(dot(normal, L), 0.0);
         color += lambertian * pointLight.color;
 
-        vec3 R = reflect(L, normal) // Reflected light vector
-        vec3 V = normalize(-v_worldPosition) // Vector to viewer
+        vec3 R = reflect(L, normal); // Reflected light vector
+        vec3 V = normalize(-v_worldPosition); // Vector to viewer
 
-        float specAngle = max(dot(R, V), 0.0)
-        specular += pow(specAngle, shininess)
-    }
-}
+        float specAngle = max(dot(R, V), 0.0);
+        specular += pow(specAngle, shininess);
+    };
+};
 #endif
 
 void main() {
-    vec3 normal = normalize(v_normal)
+    vec3 normal = normalize(v_normal);
 
     // TODO
     vec3 ambientLight = vec3(0.1, 0.1, 0.1);
 
     vec3 pointLightColor;
-    float pointLightSpecular
+    float pointLightSpecular;
 
     #ifdef POINT_LIGHT
-    calcPointLight(normal, pointLightColor, pointLightSpecular)
+    calcPointLight(normal, pointLightColor, pointLightSpecular);
     #endif
 
     vec3 lightColor = ambientLight + pointLightColor;
     float lightSpecular = pointLightSpecular;
 
-    vec4 color = texture(map, v_uv)
+    vec4 color = texture(map, v_uv);
 
-    outColor = vec4(color.xyz * lightColor + lightSpecular * specular, color.a)
+    outColor = vec4(color.xyz * lightColor + lightSpecular * specular, color.a);
 }`
     }
 }

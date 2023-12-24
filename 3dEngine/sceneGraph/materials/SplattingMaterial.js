@@ -2,7 +2,7 @@ import { Geometry } from "../Geometry.js"
 import { Texture } from "../Texture.js"
 
 /**
- * @implements {Material}
+ * @implements {MaterialGltf}
  */
 export class SplattingMaterial {
     needsDelete = false
@@ -24,7 +24,7 @@ export class SplattingMaterial {
         return new Geometry(count, attributes, indices)
     }
 
-    createGeometryFromGltf(/** @type {GltfPrimitive} */ gltfPrimitive){
+    createGeometryFromGltf(/** @type {GltfPrimitive} */ gltfPrimitive) {
         return this.createGeometry(
             gltfPrimitive.attributes.POSITION.buffer,
             gltfPrimitive.attributes.TEXCOORD_0.buffer,

@@ -54,7 +54,7 @@ export class ThirdControls {
 
         this.#camera = camera
         this.#cameraPosition = camera.position
-        this.#rayDown = new Ray(camera.position, _down)
+        this.#rayDown = new Ray(new Vector3(0, 1000, 0), _down)
         this.#boundingSphere.center = camera.position
     }
 
@@ -94,7 +94,7 @@ export class ThirdControls {
 
         for (const geometry of this.groundGeometries) {
             if (geometry.indices && geometry.attributes.position?.data instanceof Float32Array) {
-                const groundHeight = distanceRayMesh(this.#rayDown, geometry.indices, geometry.attributes.position.data)
+                const groundHeight = this.#rayDown.origin.y - distanceRayMesh(this.#rayDown, geometry.indices, geometry.attributes.position.data)
                 if (this.#cameraPosition.y < groundHeight + MinDistCamToGround) {
                     this.#cameraPosition.y = groundHeight + MinDistCamToGround
                 }

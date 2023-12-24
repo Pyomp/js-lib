@@ -31,13 +31,15 @@ export function distanceRayMesh(
     matrixWorld = undefined,
     isFrontSide = true,
 ) {
+    _ray.copy(ray)
+
     if (matrixWorld) {
         _inverseMatrix.copy(matrixWorld).invert()
-        _ray.copy(ray).applyMatrix4(_inverseMatrix)
+        _ray.applyMatrix4(_inverseMatrix)
     }
 
     if (boundingBox) {
-        if (_ray.intersectsBox(boundingBox) === false) return
+        if (_ray.intersectsBox(boundingBox) === false) return Infinity
     }
 
     const count = indices.length / 3

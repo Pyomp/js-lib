@@ -63,17 +63,19 @@ export class SkinnedPhongMaterial {
         }
         return new Geometry(count, attributes, indices)
     }
+    
     createGeometryFromGltf(/** @type {GltfPrimitive} */ gltfPrimitive) {
         return this.createGeometry(
             gltfPrimitive.attributes.POSITION.buffer,
             gltfPrimitive.attributes.TEXCOORD_0.buffer,
             gltfPrimitive.attributes.NORMAL.buffer,
-            gltfPrimitive.attributes.WEIGHTS_0.buffer,
             gltfPrimitive.attributes.JOINTS_0.buffer,
+            gltfPrimitive.attributes.WEIGHTS_0.buffer,
             gltfPrimitive.indices.count,
             gltfPrimitive.indices.buffer
         )
     }
+
     createObjectFromGltf(
         /** @type {Node3D} */ node3D,
         /** @type {GltfPrimitive} */ gltfPrimitive,
@@ -83,7 +85,7 @@ export class SkinnedPhongMaterial {
             material: this,
             geometry: this.createGeometryFromGltf(gltfPrimitive),
             textures: this.createTexturesFromGltf(gltfPrimitive),
-            uniforms: this.createUniformsFromGltf(node3D.worldMatrix, node3D.normalMatrix, gltfPrimitive, specular)
+            uniforms: this.createUniformsFromGltf({ worldMatrix: node3D.worldMatrix, normalMatrix: node3D.normalMatrix, gltfPrimitive, specular })
         })
     }
 
@@ -153,7 +155,7 @@ uniform sampler2D map;
 uniform vec3 specular;
 uniform float shininess;               
         
-out vec4 outColor
+out vec4 outColor;
 
 #ifdef POINT_LIGHT
 struct PointLight {
@@ -168,20 +170,20 @@ PointLight pointLights[${pointLightCount}];
 
 void calcPointLight(in vec3 normal, out vec3 color, out float specular){
     for (int i = 0; i < ${pointLightCount}; i++) {
-                    PointLight pointLight = pointLights[i];
+        PointLight pointLight = pointLights[i];
 
-                    vec3 L = normalize(pointLight.position - v_worldPosition);
+        vec3 L = normalize(pointLight.position - v_worldPosition);
 
-                    float lambertian = max(dot(normal, L), 0.0)
+        float lambertian = max(dot(normal, L), 0.0);
         color += lambertian * pointLight.color;
 
-                    vec3 R = reflect(L, normal) // Reflected light vector
-                    vec3 V = normalize(-v_worldPosition) // Vector to viewer
+        vec3 R = reflect(L, normal); // Reflected light vector
+        vec3 V = normalize(-v_worldPosition); // Vector to viewer
 
-                    float specAngle = max(dot(R, V), 0.0)
-        specular += pow(specAngle, shininess)
+        float specAngle = max(dot(R, V), 0.0);
+        specular += pow(specAngle, shininess);
     }
-}
+};
 #endif
 
 void main() {
@@ -190,18 +192,18 @@ void main() {
     vec3 ambientLight = vec3(0.1, 0.1, 0.1);
 
     vec3 pointLightColor;
-    float pointLightSpecular
+    float pointLightSpecular;
 
     #ifdef POINT_LIGHT
-    calcPointLight(normal, pointLightColor, pointLightSpecular)
+    calcPointLight(normal, pointLightColor, pointLightSpecular);
     #endif
 
     vec3 lightColor = ambientLight + pointLightColor;
     float lightSpecular = pointLightSpecular;
 
-    vec4 color = texture(map, v_uv)
+    vec4 color = texture(map, v_uv);
 
-    outColor = vec4(color.xyz * lightColor + lightSpecular * specular, color.a)
+    outColor = vec4(color.xyz * lightColor + lightSpecular * specular, color.a);
     // outColor = vec4(1.0, 0.,0.,1.);
 } `}
 }

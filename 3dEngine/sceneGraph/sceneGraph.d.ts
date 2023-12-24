@@ -12,4 +12,10 @@ declare interface Material {
     createTextures(...args): { [name: string]: Texture }
     createGeometry(...args): Geometry
 }
+declare interface MaterialGltf implements Material{
+    createUniformsFromGltf?(...args): { [name: string]: WebGl.UniformData }
+    createTexturesFromGltf?(...args): { [name: string]: Texture }
+    createGeometryFromGltf?(...args): Geometry
+}
+
 declare type Camera = import("./Camera.js").Camera;
