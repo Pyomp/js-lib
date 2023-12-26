@@ -1,11 +1,12 @@
 export class Texture {
+    static getCubeTexture = getCubeTexture
+
     needsUpdate = false
 
     needsDelete = false
 
     /**
     * @param {{
-    *  target?: WebGl.Texture.Target
     *  wrapS?: WebGl.Texture.Wrap | number
     *  wrapT?: WebGl.Texture.Wrap | number
     *  minFilter?: WebGl.Texture.MinFilter | number
@@ -16,15 +17,14 @@ export class Texture {
     *  border?: GLint
     *  format?: WebGl.Texture.Format
     *  type?: WebGl.Texture.Type
-    *  data?: WebGl.Texture.Pixels | null
+    *  data?: WebGl.Texture.Pixels | null | WebGl.Texture.Pixels[]
     *  needsMipmap?: boolean
     * }} param0 
     */
     constructor({
-        target = 'TEXTURE_2D',
         wrapS = 'CLAMP_TO_EDGE',
         wrapT = 'CLAMP_TO_EDGE',
-        minFilter = 'LINEAR',
+        minFilter = 'LINEAR_MIPMAP_LINEAR',
         magFilter = 'LINEAR',
         internalformat = 'RGBA',
         width = undefined,
@@ -35,8 +35,6 @@ export class Texture {
         data = new Image(),
         needsMipmap = true
     }) {
-        this.target = target
-
         this.wrapS = WebGL2RenderingContext[wrapS] ?? wrapS
         this.wrapT = WebGL2RenderingContext[wrapT] ?? wrapT
         this.minFilter = WebGL2RenderingContext[minFilter] ?? minFilter
@@ -49,11 +47,48 @@ export class Texture {
         this.format = format
         this.type = type
         this.data = data
+
         if (this.data instanceof Image) {
             this.data.onload = () => { this.needsUpdate = true }
             this.width = this.data.width
             this.height = this.data.height
+        } else if (this.data instanceof Array) {
+            for (const element of this.data) {
+                if (element instanceof Image) {
+                    element.onload = () => { this.needsUpdate = true }
+                    this.width = element.width
+                    this.height = element.height
+                }
+            }
         }
+
         this.needsMipmap = needsMipmap
     }
+}
+function getImage(url) {
+    const image = new Image()
+    return new Promise((resolve) => {
+        image.onload = () => { resolve(image) }
+        image.src = url
+    })
+}
+
+async function getCubeTexture(
+    /** @type {string} */ urlPositiveX,
+    /** @type {string} */ urlNegativeX,
+    /** @type {string} */ urlPositiveY,
+    /** @type {string} */ urlNegativeY,
+    /** @type {string} */ urlPositiveZ,
+    /** @type {string} */ urlNegativeZ,
+) {
+    const images = await Promise.all([
+        getImage(urlPositiveX),
+        getImage(urlNegativeX),
+        getImage(urlPositiveY),
+        getImage(urlNegativeY),
+        getImage(urlPositiveZ),
+        getImage(urlNegativeZ),
+    ])
+
+    return [new Texture({ data: images })]
 }

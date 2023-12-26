@@ -18,14 +18,17 @@ export class ParticleRenderer {
     /** @type {number} */ #systemUboIndex
     /** @type {GlProgram} */ #renderProgram
     /** @type {GlTexture} */ #depthTexture
+    /** @type {Renderer} */ #renderer
 
     /**
      * 
      * @param {WebGL2RenderingContext} gl 
-     * @param {*} uboIndex 
+     * @param {{[uboName: string]: number}} uboIndex 
      * @param {GlTexture} glDepthTexture 
+     * @param {Renderer} renderer
      */
-    initGl(gl, uboIndex, glDepthTexture) {
+    initGl(gl, uboIndex, glDepthTexture, renderer) {
+        this.#renderer = renderer
         this.#gl = gl
         this.#systemUboIndex = GlUbo.getIndex(gl)
         this.#physicsProgram = new ParticlePhysicsGlProgram(gl, { ...uboIndex, systemUBO: this.#systemUboIndex }, FRAME_COUNT)
@@ -128,12 +131,12 @@ export class ParticleRenderer {
 
         for (const particleSystem of this.particleSystems) {
             const systemState = this.#particleSystemMap.get(particleSystem)
-            
+
             copyBuffer(gl, systemState.vaoRender.buffers['position'], systemState.vaoPhysics.buffers['position'], systemState.count * 4 * 4)
             copyBuffer(gl, systemState.transformFeedback.buffers['outVelocity'], systemState.vaoPhysics.buffers['velocity'], systemState.count * 4 * 4)
 
             systemState.vaoRender.bind()
-
+            this.#renderer.getGlTexture(particleSystem.map).bindToUnit(this.#renderProgram.textureUnit['map'])
             gl.drawArrays(WebGL2RenderingContext.POINTS, 0, systemState.count)
         }
     }

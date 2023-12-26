@@ -47,15 +47,15 @@ export class SplattingMaterial {
         /** @type {HTMLImageElement} */ normalImage4,
     ) {
         return {
-            mapSplatting: new Texture({ data: splattingImage }),
-            map1: new Texture({ data: image1 }),
-            normalMap1: new Texture({ data: normalImage1 }),
-            map2: new Texture({ data: image2 }),
-            normalMap2: new Texture({ data: normalImage2 }),
-            map3: new Texture({ data: image3 }),
-            normalMap3: new Texture({ data: normalImage3 }),
-            map4: new Texture({ data: image4 }),
-            normalMap4: new Texture({ data: normalImage4 }),
+            mapSplatting: new Texture({ data: splattingImage, needsMipmap: false, minFilter: 'LINEAR' }),
+            map1: new Texture({ data: image1, wrapS: 'REPEAT', wrapT: 'REPEAT' }),
+            normalMap1: new Texture({ data: normalImage1, wrapS: 'REPEAT', wrapT: 'REPEAT' }),
+            map2: new Texture({ data: image2, wrapS: 'REPEAT', wrapT: 'REPEAT' }),
+            normalMap2: new Texture({ data: normalImage2, wrapS: 'REPEAT', wrapT: 'REPEAT' }),
+            map3: new Texture({ data: image3, wrapS: 'REPEAT', wrapT: 'REPEAT' }),
+            normalMap3: new Texture({ data: normalImage3, wrapS: 'REPEAT', wrapT: 'REPEAT' }),
+            map4: new Texture({ data: image4, wrapS: 'REPEAT', wrapT: 'REPEAT' }),
+            normalMap4: new Texture({ data: normalImage4, wrapS: 'REPEAT', wrapT: 'REPEAT' }),
         }
     }
 
@@ -88,6 +88,7 @@ layout(std140) uniform cameraUbo {
     mat4 viewMatrix;
     mat4 projectionMatrix;
     mat4 projectionViewMatrix;
+    mat4 projectionViewMatrixInverse;
     vec3 cameraPosition;
     float near;
     float far;
@@ -176,18 +177,13 @@ void calcPointLight(in vec3 normal, out vec3 color, out float specular){
     for (int i = 0; i < ${pointLightCount}; i++) {
         PointLight pointLight = pointLights[i];
 
-        vec3 distance = pointLight.position - v_worldPosition;
-        float distanceLength = length(distance);
-        vec3 L = distance / distanceLength;
-
-        float lambertian = max(dot(normal, L) * pointLight.intensity / sqrt(distanceLength), 0.0);
-        color += lambertian * pointLight.color;
-
-        vec3 R = reflect(-L, normal); // Reflected light vector
-        vec3 V = normalize(v_surfaceToView); // Vector to viewer
-
-        float specAngle = max(dot(R, V) * pointLight.intensity / sqrt(distanceLength*100.), 0.0);
-        specular += pow(specAngle, shininess);
+        vec3 eyeVec = normalize(v_surfaceToView);
+        vec3 incidentVec = normalize(v_worldPosition - pointLight.position);
+        vec3 lightVec = -incidentVec;
+        float diffuse = max(dot(lightVec, normal), 0.0);
+        float highlight = pow(max(dot(eyeVec, reflect(incidentVec, normal)), 0.0), shininess);
+        color += diffuse * pointLight.color;
+        specular += highlight;
     }
 }
 #endif

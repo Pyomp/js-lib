@@ -9,6 +9,7 @@ export class Camera {
     worldCameraMatrix = new Matrix4()
     viewMatrix = new Matrix4()
     projectionViewMatrix = new Matrix4()
+    projectionViewMatrixInverse = new Matrix4()
 
     #cameraHasMoved = true
     position = new Vector3(0, 0, -10)
@@ -78,10 +79,9 @@ export class Camera {
             .invert()
     }
 
-
     #updateProjectionViewMatrix() {
         this.projectionViewMatrix.multiplyMatrices(this.projectionMatrix, this.viewMatrix)
-
+        this.projectionViewMatrixInverse.copy(this.projectionViewMatrix).invert()
     }
 
     #updateFrustum() {

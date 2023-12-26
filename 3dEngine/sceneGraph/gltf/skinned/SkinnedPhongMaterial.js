@@ -2,6 +2,7 @@ import { Color } from "../../../../math/Color.js"
 import { Geometry } from "../../Geometry.js"
 import { Object3D } from "../../Object3D.js"
 import { Texture } from "../../Texture.js"
+import { SkinnedNode } from "./SkinnedNode.js"
 
 /**
  * @implements {Material}
@@ -17,7 +18,7 @@ export class SkinnedPhongMaterial {
         /** @type {Number} */ alphaTest = -1
     }) {
         return {
-            modelView: worldMatrix,
+            modelMatrix: worldMatrix,
             specular,
             shininess,
             alphaTest, // TODO not implemented in shaders
@@ -38,17 +39,17 @@ export class SkinnedPhongMaterial {
             specular
         })
     }
-    createTextures( /** @type {Image} */ image) {
-        return { map: new Texture({ data: image }) }
+    createTextures( /** @type {Image} */ image, /** @type {Texture} */ jointsTexture) {
+        return { map: new Texture({ data: image }), jointsTexture }
     }
-    createTexturesFromGltf(/** @type {GltfPrimitive} */ gltfPrimitive) {
-        return this.createTextures(gltfPrimitive.material.pbrMetallicRoughness.baseColorTexture.source)
+    createTexturesFromGltf(/** @type {GltfPrimitive} */ gltfPrimitive, /** @type {Texture} */ jointsTexture) {
+        return this.createTextures(gltfPrimitive.material.pbrMetallicRoughness.baseColorTexture.source, jointsTexture)
     }
     createGeometry(
         /** @type {Float32Array} */ positionAttributeBuffer,
         /** @type {Float32Array} */ uvAttributeBuffer,
         /** @type {Float32Array} */ normalAttributeBuffer,
-        /** @type {Float32Array} */ jointsAttributeBuffer,
+        /** @type {Uint8Array} */ jointsAttributeBuffer,
         /** @type {Float32Array} */ weightsAttributeBuffer,
         /** @type {number} */ count,
         /** @type {Uint8Array | Uint16Array | Uint32Array} */ indices
@@ -63,7 +64,7 @@ export class SkinnedPhongMaterial {
         }
         return new Geometry(count, attributes, indices)
     }
-    
+
     createGeometryFromGltf(/** @type {GltfPrimitive} */ gltfPrimitive) {
         return this.createGeometry(
             gltfPrimitive.attributes.POSITION.buffer,
@@ -77,14 +78,15 @@ export class SkinnedPhongMaterial {
     }
 
     createObjectFromGltf(
-        /** @type {Node3D} */ node3D,
+        /** @type {SkinnedNode} */ node3D,
         /** @type {GltfPrimitive} */ gltfPrimitive,
         /** @type {Color} */ specular = new Color(0x444444)
     ) {
         return new Object3D({
+            normalBlending: gltfPrimitive.material.alphaMode === 'BLEND',
             material: this,
             geometry: this.createGeometryFromGltf(gltfPrimitive),
-            textures: this.createTexturesFromGltf(gltfPrimitive),
+            textures: this.createTexturesFromGltf(gltfPrimitive, node3D.mixer.jointsTexture),
             uniforms: this.createUniformsFromGltf({ worldMatrix: node3D.worldMatrix, normalMatrix: node3D.normalMatrix, gltfPrimitive, specular })
         })
     }
@@ -101,6 +103,7 @@ layout(std140) uniform cameraUbo {
     mat4 viewMatrix;
     mat4 projectionMatrix;
     mat4 projectionViewMatrix;
+    mat4 projectionViewMatrixInverse;
     vec3 cameraPosition;
     float near;
     float far;
@@ -132,7 +135,7 @@ void main() {
     
     gl_Position = projectionViewMatrix * worldPosition;
 
-    v_normal = mat3(modelMatrix) * normal;
+    v_normal = mat3(modelMatrix) * mat3(skinMatrix) * normal;
     v_uv = uv;
     v_worldPosition = worldPosition.xyz / worldPosition.w;
     v_surfaceToView = cameraPosition - v_worldPosition;
@@ -161,7 +164,7 @@ out vec4 outColor;
 struct PointLight {
     vec3 position;
     float intensity;
-    vec3 color
+    vec3 color;
 };
 
 layout(std140) uniform pointLightsUBO {
@@ -171,19 +174,16 @@ PointLight pointLights[${pointLightCount}];
 void calcPointLight(in vec3 normal, out vec3 color, out float specular){
     for (int i = 0; i < ${pointLightCount}; i++) {
         PointLight pointLight = pointLights[i];
-
-        vec3 L = normalize(pointLight.position - v_worldPosition);
-
-        float lambertian = max(dot(normal, L), 0.0);
-        color += lambertian * pointLight.color;
-
-        vec3 R = reflect(L, normal); // Reflected light vector
-        vec3 V = normalize(-v_worldPosition); // Vector to viewer
-
-        float specAngle = max(dot(R, V), 0.0);
-        specular += pow(specAngle, shininess);
+        
+        vec3 eyeVec = normalize(v_surfaceToView);
+        vec3 incidentVec = normalize(v_worldPosition - pointLight.position);
+        vec3 lightVec = -incidentVec;
+        float diffuse = max(dot(lightVec, normal), 0.0);
+        float highlight = pow(max(dot(eyeVec, reflect(incidentVec, normal)), 0.0), shininess);
+        color += diffuse * pointLight.color;
+        specular += highlight;
     }
-};
+}
 #endif
 
 void main() {
@@ -207,4 +207,3 @@ void main() {
     // outColor = vec4(1.0, 0.,0.,1.);
 } `}
 }
-

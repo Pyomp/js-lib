@@ -17,6 +17,7 @@ export class ParticleRenderGlProgram extends GlProgram {
                 mat4 viewMatrix;
                 mat4 projectionMatrix;
                 mat4 projectionViewMatrix;
+                mat4 projectionViewMatrixInverse;
                 vec3 cameraPosition;
                 float near;
                 float far;
@@ -48,6 +49,7 @@ export class ParticleRenderGlProgram extends GlProgram {
                 mat4 viewMatrix;
                 mat4 projectionMatrix;
                 mat4 projectionViewMatrix;
+                mat4 projectionViewMatrixInverse;
                 vec3 cameraPosition;
                 float near;
                 float far;

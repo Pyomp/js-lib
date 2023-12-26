@@ -20,16 +20,16 @@ declare type GltfNode = {
 };
 
 declare type GltfAttributes = {
-  JOINTS_0?: GltfBuffer;
-  NORMAL?: GltfBuffer;
-  TANGENT?: GltfBuffer;
-  POSITION?: GltfBuffer;
-  TEXCOORD_0?: GltfBuffer;
-  WEIGHTS_0?: GltfBuffer;
+  JOINTS_0?: GltfBuffer<Uint8Array>;
+  NORMAL?: GltfBuffer<Float32Array>;
+  TANGENT?: GltfBuffer<Float32Array>;
+  POSITION?: GltfBuffer<Float32Array>;
+  TEXCOORD_0?: GltfBuffer<Float32Array>;
+  WEIGHTS_0?: GltfBuffer<Float32Array>;
 };
 
-declare type GltfBuffer = {
-  buffer: Uint8Array | Uint16Array | Uint32Array | Float32Array;
+declare type GltfBuffer<T extends Uint8Array | Uint16Array | Uint32Array | Float32Array> = {
+  buffer: T;
   count: number;
   type: "SCALAR" | "VEC2" | "VEC3" | "VEC4" | "MAT2" | "MAT3" | "MAT4";
   min?: number;

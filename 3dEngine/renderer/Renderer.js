@@ -15,6 +15,7 @@ import { DepthTexture } from "../textures/DepthTexture.js"
 import { blit, typedArrayToType } from "../webgl/utils.js"
 import { SkinnedNode } from "../sceneGraph/gltf/skinned/SkinnedNode.js"
 import { GlVao } from "../webgl/GlVao.js"
+import { SkyBoxRenderer } from "./modules/SkyBoxRenderer.js"
 
 const _box3 = new Box3()
 
@@ -27,6 +28,8 @@ export class Renderer {
 
     /** @type {Set<PointLight>} */ pointLights = new Set()
 
+    /** @type {SkyBoxRenderer} */ skyBoxRenderer
+
     constructor() {
         this.htmlElement.style.top = '0'
         this.htmlElement.style.left = '0'
@@ -37,25 +40,10 @@ export class Renderer {
         this.initGl()
     }
 
-    #setAllNeedsUpdateOnSceneToTrue() {
-        this.scene.traverse(node => {
-            for (const object of node.objects) {
-                for (const key in object.uniforms) {
-                    object.uniforms[key].needsUpdate = true
-                }
-                for (const key in object.material.uniforms) {
-                    object.material.uniforms[key].needsUpdate = true
-                }
-            }
-        })
-    }
-
     onContextLost() {
         this.#programMap.clear()
         this.#vaoMap.clear()
         this.#textureMap.clear()
-
-        this.#setAllNeedsUpdateOnSceneToTrue()
 
         this.initGl()
 
@@ -79,7 +67,7 @@ export class Renderer {
 
         this.glContext.resizeListeners.add(this.onResize.bind(this))
 
-        this.#cameraUbo = new GlUbo(this.glContext.gl, (16 + 16 + 16 + 4 + 4) * 4)
+        this.#cameraUbo = new GlUbo(this.glContext.gl, (16 + 16 + 16 + 16 + 4 + 4) * 4)
         this.#cameraUboF32a = new Float32Array(this.#cameraUbo.data)
 
         this.pointLightsRenderer = new PointLightsRenderer(this.glContext.gl)
@@ -94,7 +82,10 @@ export class Renderer {
         }
 
         if (!this.particles) this.particles = new ParticleRenderer()
-        this.particles.initGl(this.glContext.gl, this.uboIndex, this.getGlTexture(this.depthTexture))
+        this.particles.initGl(this.glContext.gl, this.uboIndex, this.getGlTexture(this.depthTexture), this)
+
+        if (!this.skyBoxRenderer) this.skyBoxRenderer = new SkyBoxRenderer()
+        this.skyBoxRenderer.initGl(this.glContext.gl, this.uboIndex)
     }
 
     onResize(width, height) {
@@ -119,11 +110,6 @@ export class Renderer {
 
     /** @type {Map<Texture, GlTexture>} */
     #textureMap = new Map()
-    #disposeGlTextures() {
-        for (const texture of Object.values(this.#textureMap)) texture.dispose()
-        this.#textureMap.clear()
-    }
-
 
     #deleteToBeDeleted() {
         for (const [material, program] of this.#programMap) {
@@ -151,9 +137,10 @@ export class Renderer {
     resetGlStates() {
         this.#disposeGlPrograms()
         this.#disposeGlVaos()
-        this.#setAllNeedsUpdateOnSceneToTrue()
         this.particles.disposeGl()
-        this.particles.initGl(this.glContext.gl, this.uboIndex, this.getGlTexture(this.depthTexture))
+        this.particles.initGl(this.glContext.gl, this.uboIndex, this.getGlTexture(this.depthTexture), this)
+        this.skyBoxRenderer.dispose()
+        this.skyBoxRenderer.initGl(this.glContext.gl, this.uboIndex)
     }
 
     updateUbos() {
@@ -166,6 +153,8 @@ export class Renderer {
             this.camera.projectionMatrix.toArray(this.#cameraUboF32a, cursor)
             cursor += 16
             this.camera.projectionViewMatrix.toArray(this.#cameraUboF32a, cursor)
+            cursor += 16
+            this.camera.projectionViewMatrixInverse.toArray(this.#cameraUboF32a, cursor)
             cursor += 16
             this.camera.position.toArray(this.#cameraUboF32a, cursor)
             cursor += 3
@@ -213,7 +202,7 @@ export class Renderer {
      */
     render(deltatimeSecond) {
         this.#deleteToBeDeleted()
-        
+
         const gl = this.glContext.gl
         this.updateUbos()
 
@@ -232,6 +221,7 @@ export class Renderer {
         gl.clear(WebGL2RenderingContext.COLOR_BUFFER_BIT | WebGL2RenderingContext.DEPTH_BUFFER_BIT)
 
         this.glContext.blending = false
+        this.skyBoxRenderer.render()
         this.drawObjects(opaqueObjects)
 
         blit(gl, null, this.particles.depthFrameBuffer, this.windowInfoRenderer.width, this.windowInfoRenderer.height)
@@ -333,6 +323,7 @@ export class Renderer {
             this.#textureMap.set(texture, new GlTexture({ gl: this.glContext.gl, ...texture }))
         return this.#textureMap.get(texture)
     }
+
     freeTexture(texture) {
         this.#textureMap.get(texture)?.dispose()
         this.#textureMap.delete(texture)
