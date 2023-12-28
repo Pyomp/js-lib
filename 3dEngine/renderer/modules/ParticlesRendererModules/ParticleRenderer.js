@@ -96,8 +96,11 @@ export class ParticleRenderer {
                 if (systemState.count > particleSystem.geometry.count) systemState.count = particleSystem.geometry.count
             }
 
-            this.#physicsProgram.uniformUpdate['modelPosition'](particleSystem.position)
-            this.#physicsProgram.uniformUpdate['modelRotation'](particleSystem.rotation)
+            if(particleSystem.worldMatrixNeedsUpdate){
+                particleSystem.worldMatrixNeedsUpdate = false
+                
+            }
+            this.#physicsProgram.uniformUpdate['worldMatrix'](particleSystem.worldMatrix)
 
             if (particleSystem.stopRequest && !systemState.stopRequest) {
                 systemState.stopRequest = true

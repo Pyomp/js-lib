@@ -777,3 +777,4 @@ const _quaternion = /*@__PURE__*/ new Quaternion()
 
 export const _up = new Vector3(0, 1, 0)
 export const _down = new Vector3(0, -1, 0)
+export const _defaultScale = new Vector3(1, 1, 1)

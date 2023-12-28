@@ -12,26 +12,35 @@ export class PhongMaterial {
         /** @type {Matrix4} */ worldMatrix,
         /** @type {Matrix3} */ normalMatrix,
         /** @type {number} */ shininess = 30,
-        /** @type {Color} */ specular = new Color(0x444444)
+        /** @type {Color} */ specular = new Color(0x444444),
+        /** @type {number} */ alphaTest = -1,
     ) {
         return {
             modelMatrix: worldMatrix,
             specular,
             shininess,
-            normalMatrix // TODO not implemented in shaders
+            normalMatrix, // TODO not implemented in shaders
+            alphaTest
         }
     }
-    createUniformsFromGltf({
-        /** @type {Matrix4} */ worldMatrix,
-        /** @type {Matrix3} */ normalMatrix,
-        /** @type {GltfPrimitive} */ gltfPrimitive,
-        /** @type {Color} */ specular = new Color(0x444444)
-    }) {
+
+    /**
+     * 
+     * @param {{
+     *      worldMatrix: Matrix4
+     *      normalMatrix: Matrix3
+     *      gltfPrimitive: GltfPrimitive
+     *      specular: Color
+     * }} param0 
+     * @returns 
+     */
+    createUniformsFromGltf({ worldMatrix, normalMatrix, gltfPrimitive, specular = new Color(0x444444) }) {
         return this.createUniforms(
             worldMatrix,
             normalMatrix,
             200 ** (1 - gltfPrimitive.material?.pbrMetallicRoughness?.roughnessFactor ?? 0),
-            specular
+            specular,
+            gltfPrimitive.material?.alphaMode === 'MASK' ? 0.5 : -1
         )
     }
     createTextures( /** @type {Image} */ image) {
@@ -128,7 +137,8 @@ in vec3 v_worldPosition;
 uniform sampler2D map;
 
 uniform vec3 specular;
-uniform float shininess;               
+uniform float shininess;      
+uniform float alphaTest;
         
 out vec4 outColor;
 
@@ -159,6 +169,10 @@ void calcPointLight(in vec3 normal, out vec3 color, out float specular){
 #endif
 
 void main() {
+    vec4 color = texture(map, v_uv);
+
+    if(color.a < alphaTest) discard;
+
     vec3 normal = normalize(v_normal);
 
     // TODO
@@ -174,7 +188,6 @@ void main() {
     vec3 lightColor = ambientLight + pointLightColor;
     float lightSpecular = pointLightSpecular;
 
-    vec4 color = texture(map, v_uv);
 
     outColor = vec4(color.xyz * lightColor + lightSpecular * specular, color.a);
 }`

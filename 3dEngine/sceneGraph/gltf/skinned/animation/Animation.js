@@ -69,7 +69,6 @@ export class Animation {
             minFilter: 'NEAREST',
             magFilter: 'NEAREST',
 
-            target: 'TEXTURE_2D',
             internalformat: 'RGBA32F',
             width: 4, // 16 element (matrix 4x4)
             height: this.#bonesCount,
@@ -90,9 +89,9 @@ export class Animation {
      */
     #initInitialPose(gltfBone) {
         this.initialPose[gltfBone.name] = {
-            position: gltfBone.translation ? new Vector3().fromArray(gltfBone.translation) : null,
-            quaternion: gltfBone.rotation ? new Quaternion().fromArray(gltfBone.rotation) : null,
-            scale: gltfBone.scale ? new Vector3().fromArray(gltfBone.scale) : null,
+            position: new Vector3().fromArray(gltfBone.translation ?? [0, 0, 0]),
+            quaternion: new Quaternion().fromArray(gltfBone.rotation ?? [0, 0, 0, 1]),
+            scale: new Vector3().fromArray(gltfBone.scale ?? [1, 1, 1]),
         }
         if (gltfBone.children) {
             for (const bone of gltfBone.children) {
