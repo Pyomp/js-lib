@@ -98,7 +98,7 @@ export class ParticleRenderer {
 
             if(particleSystem.worldMatrixNeedsUpdate){
                 particleSystem.worldMatrixNeedsUpdate = false
-                
+                particleSystem.updateWorldMatrix()
             }
             this.#physicsProgram.uniformUpdate['worldMatrix'](particleSystem.worldMatrix)
 
@@ -131,7 +131,7 @@ export class ParticleRenderer {
         // object
         this.#renderProgram.useProgram()
         this.#depthTexture.bindToUnit(this.#renderProgram.textureUnit['depthMap'])
-
+        
         for (const particleSystem of this.particleSystems) {
             const systemState = this.#particleSystemMap.get(particleSystem)
 

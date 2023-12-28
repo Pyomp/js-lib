@@ -23,11 +23,11 @@ export class GlContext {
 
         this.gl.clearColor(0, 0, 0, 0)
 
-        this.gl.enable(this.gl.CULL_FACE)
+        this.gl.enable(WebGL2RenderingContext.CULL_FACE)
         this.setFrontFace()
-        this.gl.enable(this.gl.DEPTH_TEST)
+        this.gl.enable(WebGL2RenderingContext.DEPTH_TEST)
         this.gl.depthMask(true)
-        this.gl.disable(this.gl.BLEND)
+        this.gl.disable(WebGL2RenderingContext.BLEND)
         this.setAdditiveBlending()
 
         this.#resizeObserver.observe(canvas)

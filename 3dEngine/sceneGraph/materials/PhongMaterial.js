@@ -82,7 +82,8 @@ export class PhongMaterial {
             material: this,
             geometry: this.createGeometryFromGltf(gltfPrimitive),
             textures: this.createTexturesFromGltf(gltfPrimitive),
-            uniforms: this.createUniformsFromGltf({ worldMatrix: node3D.worldMatrix, normalMatrix: node3D.normalMatrix, gltfPrimitive, specular })
+            uniforms: this.createUniformsFromGltf({ worldMatrix: node3D.worldMatrix, normalMatrix: node3D.normalMatrix, gltfPrimitive, specular }),
+            additiveBlending: gltfPrimitive.material?.alphaMode === 'BLEND'
         })
     }
 
@@ -122,7 +123,6 @@ void main() {
     v_surfaceToView = cameraPosition - v_worldPosition;
 }`
     }
-
     fragmentShader({ pointLightCount }) {
         return `#version 300 es
 precision highp float;
@@ -190,6 +190,8 @@ void main() {
 
 
     outColor = vec4(color.xyz * lightColor + lightSpecular * specular, color.a);
+     outColor =  texture(map, v_uv);
+    // outColor= vec4(1.,0.,0.,1.);
 }`
     }
 }

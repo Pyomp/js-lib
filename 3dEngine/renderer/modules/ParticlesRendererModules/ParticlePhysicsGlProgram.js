@@ -51,8 +51,8 @@ export class ParticlePhysicsGlProgram extends GlProgram {
 
                 if(outVelocity.w > particleLifeTime && !stopRequest){
                     outVelocity.w = mod(outVelocity.w, particleLifeTime);
-                    outVelocity.xyz = initVelocity * mat3(worldMatrix);
-                    outPosition.xyz = worldMatrix * initPosition;
+                    outVelocity.xyz = initVelocity;
+                    outPosition = worldMatrix * vec4(initPosition, 1.0);
                     dt = outVelocity.w;
                 } else {
                     outVelocity.xyz = velocity.xyz;
@@ -79,10 +79,6 @@ export class ParticlePhysicsGlProgram extends GlProgram {
                     outColor = mix(previousFrame.color, frame.color, alpha);
                     outPosition.w = mix(previousFrame.size, frame.size, alpha);
                 }
-
-                // outVelocity.y -= mass;
-                // outPosition = position.xyz;
-                // outColor = vec4(1., 0., 0., 1.);     
             }
             `,
             `#version 300 es

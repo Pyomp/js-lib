@@ -230,6 +230,9 @@ export class Renderer {
         this.glContext.blending = true
         this.drawObjects(transparentObjects)
 
+        this.glContext.setAdditiveBlending()
+        this.glContext.depthTest = false
+
         this.particles.draw(deltatimeSecond)
     }
 
@@ -287,12 +290,15 @@ export class Renderer {
 
             this.glContext.cullFace = object.cullFace
             this.glContext.depthTest = object.depthTest
-            this.glContext.depthWrite = object.depthWrite
 
             if (object.normalBlending) {
                 this.glContext.setNormalBlending()
+                this.glContext.depthWrite = false
             } else if (object.additiveBlending) {
                 this.glContext.setAdditiveBlending()
+                this.glContext.depthWrite = false
+            } else {
+                this.glContext.depthWrite = object.depthWrite
             }
 
             this.#bindUniforms(program, object.uniforms)
@@ -403,7 +409,7 @@ function sortTransparencyObjects(/** @type {Object3D[]} */ objects) {
     const transparent = []
 
     for (const object of objects) {
-        if (object.transparent) {
+        if (object.normalBlending || object.additiveBlending) {
             transparent.push(object)
         } else {
             opaque.push(object)
