@@ -1,5 +1,5 @@
 import { Attribute } from "../sceneGraph/Attribute.js"
-import { Geometry } from "../sceneGraph/Geometry.js"
+import { Geometry } from "../webgl/glDescriptors/GlVaoData.js"
 
 export class CubeGeometry extends Geometry {
     constructor() {

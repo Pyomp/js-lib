@@ -1,6 +1,6 @@
-import { Geometry } from "../sceneGraph/Geometry.js"
+import { Geometry } from "../webgl/glDescriptors/GlVaoData.js"
 import { Object3D } from "../sceneGraph/Object3D.js"
-import { Texture } from "../sceneGraph/Texture.js"
+import { Texture } from "../webgl/glDescriptors/GlTextureData.js"
 import { createSparkleCanvas } from "../textures/sparkle.js"
 
 /**

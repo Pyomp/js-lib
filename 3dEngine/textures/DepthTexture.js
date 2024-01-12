@@ -1,4 +1,4 @@
-import { Texture } from "../sceneGraph/Texture.js"
+import { Texture } from "../webgl/glDescriptors/GlTextureData.js"
 
 export class DepthTexture extends Texture {
     constructor() {

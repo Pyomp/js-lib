@@ -1,7 +1,7 @@
-export class Capabilities {
+export class GlInfos {
     #gl
 
-    initGl(/** @type {WebGL2RenderingContext} */ gl) {
+    constructor(/** @type {WebGL2RenderingContext} */ gl) {
         this.#gl = gl
 
         this.maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE) //	max size of a texture
@@ -45,7 +45,7 @@ export class Capabilities {
         return hasError
     }
 
-    toString() {
+    consoleInfo() {
         console.info(JSON.stringify(this, null, '  '))
     }
 }

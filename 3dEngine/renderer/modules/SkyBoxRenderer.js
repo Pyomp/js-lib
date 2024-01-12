@@ -1,7 +1,7 @@
 import { Attribute } from "../../sceneGraph/Attribute.js"
-import { GlProgram } from "../../webgl/GlProgram.js"
-import { GlTexture } from "../../webgl/GlTexture.js"
-import { GlVao } from "../../webgl/GlVao.js"
+import { GlProgram } from "../../webgl/glContext/GlProgram.js"
+import { GlTexture } from "../../webgl/glContext/GlTexture.js"
+import { GlVao } from "../../webgl/glContext/GlVao.js"
 
 export class SkyBoxRenderer {
     /** @type {HTMLImageElement[] | undefined} */ images

@@ -1,7 +1,7 @@
-export class Texture {
+export class GlTextureData {
     static getCubeTexture = getCubeTexture
 
-    needsUpdate = false
+    version = 0
 
     needsDelete = false
 
@@ -11,12 +11,12 @@ export class Texture {
     *  wrapT?: WebGl.Texture.Wrap | number
     *  minFilter?: WebGl.Texture.MinFilter | number
     *  magFilter?: WebGl.Texture.MagFilter | number
-    *  internalformat?: WebGl.Texture.InternalFormat
+    *  internalformat?: WebGl.Texture.InternalFormat | number
     *  width?: GLsizei
     *  height?: GLsizei
     *  border?: GLint
-    *  format?: WebGl.Texture.Format
-    *  type?: WebGl.Texture.Type
+    *  format?: WebGl.Texture.Format | number
+    *  type?: WebGl.Texture.Type | number
     *  data?: WebGl.Texture.Pixels | null | WebGl.Texture.Pixels[]
     *  needsMipmap?: boolean
     * }} param0 
@@ -40,22 +40,22 @@ export class Texture {
         this.minFilter = WebGL2RenderingContext[minFilter] ?? minFilter
         this.magFilter = WebGL2RenderingContext[magFilter] ?? magFilter
 
-        this.internalformat = internalformat
+        this.internalformat = WebGL2RenderingContext[internalformat] ?? internalformat
         this.width = width ?? data?.width ?? 1
         this.height = height ?? data?.height ?? 1
         this.border = border
-        this.format = format
-        this.type = type
+        this.format = WebGL2RenderingContext[format] ?? format
+        this.type = WebGL2RenderingContext[type] ?? type
         this.data = data
 
         if (this.data instanceof Image) {
-            this.data.onload = () => { this.needsUpdate = true }
+            this.data.onload = () => { this.version++ }
             this.width = this.data.width
             this.height = this.data.height
         } else if (this.data instanceof Array) {
             for (const element of this.data) {
                 if (element instanceof Image) {
-                    element.onload = () => { this.needsUpdate = true }
+                    element.onload = () => { this.version++ }
                     this.width = element.width
                     this.height = element.height
                 }
@@ -90,5 +90,5 @@ async function getCubeTexture(
         getImage(urlNegativeZ),
     ])
 
-    return [new Texture({ data: images })]
+    return [new GlTextureData({ data: images })]
 }

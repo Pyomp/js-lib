@@ -1,3 +1,6 @@
+import { GlTransformFeedbackData } from "../glDescriptors/GlTransformFeedbackData.js"
+import { GlContext } from "./GlContext.js"
+
 export class GlTransformFeedback {
     /** @type {WebGL2RenderingContext} */ #gl
 
@@ -8,33 +11,23 @@ export class GlTransformFeedback {
 
     /**
      * 
-     * @param {WebGL2RenderingContext} gl 
-     * @param {WebGLProgram} program
-     * @param {number} count
-     * @param {{[name: string]: WebGLBuffer}} buffers
+     * @param {GlContext} glContext
+     * @param {GlTransformFeedbackData} glTransformFeedbackData
      */
-    constructor(gl, program, count, buffers = {}) {
-        this.#gl = gl
+    constructor(glContext, glTransformFeedbackData) {
+        this.#gl = glContext.gl
 
-        const transformFeedbackVaryingCount = gl.getProgramParameter(program, WebGL2RenderingContext.TRANSFORM_FEEDBACK_VARYINGS)
+        const program = glContext.getGlProgram(glTransformFeedbackData.glProgramData)
 
-        this.transformFeedback = gl.createTransformFeedback()
-        gl.bindTransformFeedback(WebGL2RenderingContext.TRANSFORM_FEEDBACK, this.transformFeedback)
+        const transformFeedbackVaryingCount = this.#gl.getProgramParameter(program, WebGL2RenderingContext.TRANSFORM_FEEDBACK_VARYINGS)
+
+        this.transformFeedback = this.#gl.createTransformFeedback()
+        this.#gl.bindTransformFeedback(WebGL2RenderingContext.TRANSFORM_FEEDBACK, this.transformFeedback)
 
         for (let i = 0; i < transformFeedbackVaryingCount; i++) {
-            const { name, type } = gl.getTransformFeedbackVarying(program, i)
-
-            const size = getSize(type)
-
-            const buffer = buffers[name] || gl.createBuffer()
-
-            if (!buffers[name]) {
-                this.#gl.bindBuffer(WebGL2RenderingContext.ARRAY_BUFFER, buffer)
-                this.#gl.bufferData(WebGL2RenderingContext.ARRAY_BUFFER, count * size, WebGL2RenderingContext.DYNAMIC_COPY)
-                this.buffers[name] = buffer
-            }
-
-            gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, i, buffer)
+            const { name } = this.#gl.getTransformFeedbackVarying(program, i)
+            const buffer = glContext.getGlArrayBuffer(glTransformFeedbackData.glArrayBufferDatas[name])
+            this.#gl.bindBufferBase(this.#gl.TRANSFORM_FEEDBACK_BUFFER, i, buffer)
         }
     }
 

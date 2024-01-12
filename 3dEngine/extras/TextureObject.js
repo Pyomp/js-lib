@@ -1,4 +1,4 @@
-import { Geometry } from "../sceneGraph/Geometry.js"
+import { Geometry } from "../webgl/glDescriptors/GlVaoData.js"
 import { Material } from "../sceneGraph/MaterialOld.js"
 import { Object3D } from "../sceneGraph/Object3D.js"
 
@@ -8,7 +8,7 @@ export class TextureObject extends Object3D {
     }
     /**
      * 
-     * @param {Texture} texture 
+     * @param {GlTextureData} texture 
      */
     constructor(texture) {
         super({

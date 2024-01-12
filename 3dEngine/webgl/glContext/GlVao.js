@@ -1,14 +1,13 @@
-import { Attribute } from "../sceneGraph/Attribute.js"
+import { Attribute } from "../../sceneGraph/Attribute.js"
+import { GlArrayBuffer } from "./GlArrayBuffer.js"
+import { GlArrayBufferData } from "../glDescriptors/GlArrayBufferData.js"
+import { GlVaoData } from "../glDescriptors/GlVaoData.js"
 import { typedArrayToType } from "./utils.js"
 
 export class GlVao {
     /** @type {WebGL2RenderingContext} */ #gl
 
-    /** @type {WebGLVertexArrayObject} */ vao
-
-    /** @type {{[attributeName: string]: (data, offset?: number) => void}} */
-    attributeUpdate = {}
-    indicesUpdate(data, offset = 0) { }
+    /** @type {WebGLVertexArrayObject} */ glVao
 
     // for draw
     count = 0
@@ -19,68 +18,44 @@ export class GlVao {
 
     indicesBuffers
 
+    /** @type {Map<GlArrayBufferData, GlArrayBuffer>} */ glArrayBuffers = new Map()
 
     /**
      * 
      * @param {WebGL2RenderingContext} gl 
      * @param {WebGLProgram} program
-     * @param {{[attributeName: string]: Attribute}} attributes ex: point count
-     * @param {Uint8Array | Uint16Array | Uint32Array} indices 
+     * @param {GlVaoData} glVaoData
      */
-    constructor(gl, program, attributes, indices = undefined) {
+    constructor(gl, program, glVaoData) {
         this.#gl = gl
 
         const activeAttributeCount = gl.getProgramParameter(program, WebGL2RenderingContext.ACTIVE_ATTRIBUTES)
 
-        this.vao = gl.createVertexArray()
-        gl.bindVertexArray(this.vao)
+        this.glVao = gl.createVertexArray()
+        gl.bindVertexArray(this.glVao)
 
-        for (let i = 0; i < activeAttributeCount; i++) {
-            const { type, name } = gl.getActiveAttrib(program, i)
-
-            const size = getElementCount(type)
-
-            const data = attributes[name].data
-
-            this.count = data.length / size
-
-            const location = gl.getAttribLocation(program, name)
-
-
-
-            const buffer = gl.createBuffer()
-            gl.bindBuffer(WebGL2RenderingContext.ARRAY_BUFFER, buffer)
-            gl.bufferData(WebGL2RenderingContext.ARRAY_BUFFER, data, WebGL2RenderingContext[attributes[name].usage || 'STATIC_DRAW'])
-            gl.enableVertexAttribArray(location)
-
-            if (data instanceof Float32Array) {
-                gl.vertexAttribPointer(location, size, WebGL2RenderingContext.FLOAT, false, 0, 0,)
-            } else {
-                gl.vertexAttribIPointer(location, size, typedArrayToType.get(data.constructor), 0, 0)
-            }
-
-            this.attributeUpdate[name] = (data, offset = 0) => {
-                gl.bindBuffer(WebGL2RenderingContext.ARRAY_BUFFER, buffer)
-                gl.bufferSubData(WebGL2RenderingContext.ARRAY_BUFFER, offset, data)
-            }
-
-            this.buffers[name] = buffer
+        for (const arrayBufferData of glVaoData.arrayBuffersData) {
+            this.glArrayBuffers.set(arrayBufferData, new GlArrayBuffer(gl, arrayBufferData))
         }
 
-        if (indices) {
+        for (const attribute of glVaoData.attributesData) {
+            const location = gl.getAttribLocation(program, attribute.name)
+            this.glArrayBuffers.get(attribute.glArrayBufferData).bind()
+            gl.enableVertexAttribArray(location)
+            if (attribute.type === WebGL2RenderingContext.FLOAT) {
+                gl.vertexAttribPointer(location, attribute.size, WebGL2RenderingContext.FLOAT, attribute.normalized, attribute.stride, attribute.offset)
+            } else {
+                gl.vertexAttribIPointer(location, attribute.size, attribute.type, attribute.stride, attribute.offset)
+            }
+        }
+
+        if (glVaoData.indicesUintArray) {
             this.hasIndices = true
 
             const buffer = gl.createBuffer()
 
             gl.bindBuffer(WebGL2RenderingContext.ELEMENT_ARRAY_BUFFER, buffer)
-            gl.bufferData(WebGL2RenderingContext.ELEMENT_ARRAY_BUFFER, indices, WebGL2RenderingContext.STATIC_DRAW)
-
-            this.indices = (data, offset = 0) => {
-                gl.bindBuffer(WebGL2RenderingContext.ELEMENT_ARRAY_BUFFER, buffer)
-                gl.bufferSubData(WebGL2RenderingContext.ELEMENT_ARRAY_BUFFER, offset, data)
-            }
-
-            this.count = indices.length
+            gl.bufferData(WebGL2RenderingContext.ELEMENT_ARRAY_BUFFER, glVaoData.indicesUintArray, WebGL2RenderingContext.STATIC_DRAW)
 
             this.indicesBuffers = buffer
         }
@@ -91,11 +66,11 @@ export class GlVao {
     }
 
     bind() {
-        this.#gl.bindVertexArray(this.vao)
+        this.#gl.bindVertexArray(this.glVao)
     }
 
     dispose() {
-        this.#gl.deleteVertexArray(this.vao)
+        this.#gl.deleteVertexArray(this.glVao)
         if (this.indicesBuffers) this.#gl.deleteBuffer(this.indicesBuffers)
         for (const buffer of Object.values(this.buffers)) {
             this.#gl.deleteBuffer(buffer)

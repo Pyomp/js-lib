@@ -10,7 +10,7 @@ export class Object3D {
      *  geometry: Geometry
      *  drawMode?: WebGl.Render.DrawMode
      *  uniforms?: {[name: string]: WebGl.UniformData}
-     *  textures?: {[name: string]: Texture}
+     *  textures?: {[name: string]: GlTextureData}
      *  additiveBlending?: boolean
      *  normalBlending?: boolean
      *  depthTest?: boolean

@@ -19,7 +19,7 @@ export class ParticleSystem {
      *  particleKeyframes: ParticleKeyframe[]
      *  geometry: ParticleGeometry
      *  mass?: number
-     *  map: Texture
+     *  map: GlTextureData
      * }} param0 
      */
     constructor({

@@ -1,5 +1,5 @@
-import { Geometry } from "../Geometry.js"
-import { Texture } from "../Texture.js"
+import { Geometry } from "../../webgl/glDescriptors/GlVaoData.js"
+import { Texture } from "../../webgl/glDescriptors/GlTextureData.js"
 
 /**
  * @implements {MaterialGltf}

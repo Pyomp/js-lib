@@ -1,4 +1,4 @@
-import { GlUbo } from "../../webgl/GlUbo.js"
+import { GlUbo } from "../../webgl/glContext/GlUbo.js"
 
 export class WindowInfoRenderer {
     #ubo

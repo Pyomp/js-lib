@@ -1,6 +1,6 @@
 import { Quaternion } from '../../../../../math/Quaternion.js'
 import { Vector3 } from '../../../../../math/Vector3.js'
-import { Texture } from '../../../Texture.js'
+import { Texture } from '../../../../webgl/glDescriptors/GlTextureData.js'
 import { Bone } from './Bone.js'
 import { KeyFrame } from './KeyFrame.js'
 import { Track } from './Track.js'

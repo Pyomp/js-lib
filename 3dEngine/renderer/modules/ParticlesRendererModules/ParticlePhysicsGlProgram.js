@@ -1,4 +1,4 @@
-import { GlProgram } from "../../../webgl/GlProgram.js"
+import { GlProgram } from "../../../webgl/glContext/GlProgram.js"
 
 export class ParticlePhysicsGlProgram extends GlProgram {
     constructor(gl, uboIndex, frameCount) {

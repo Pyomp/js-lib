@@ -1,7 +1,10 @@
-import { Attribute } from "../sceneGraph/Attribute.js"
+import { Attribute } from "../../sceneGraph/Attribute.js"
 import { GlTransformFeedback } from "./GlTransformFeedback.js"
 import { GlUbo } from "./GlUbo.js"
 import { GlVao } from "./GlVao.js"
+import { GlVaoData } from "../glDescriptors/GlVaoData.js"
+import { GlContext } from "./GlContext.js"
+import { GlProgramData } from "../glDescriptors/GlProgramData.js"
 
 export class GlProgram {
     /** @type {{[uniformName: string]: ((data: number | Vector2 | Vector3 | Vector4 | Matrix3 | Matrix4 | Color) => void)}} */
@@ -16,62 +19,54 @@ export class GlProgram {
 
     /**
      * 
-     * @param {WebGL2RenderingContext} gl 
-     * @param {string} vertexShader 
-     * @param {string} fragmentShader 
-     * @param {{
-     *      uboIndex?: {[UboName: string]: number},
-     *      outVaryings?: string[]
-     * }} options
+     * @param {GlContext} glContext
+     * @param {GlProgramData} glProgramData 
      */
-    constructor(gl, vertexShader, fragmentShader, options = {
-        uboIndex: {},
-        outVaryings: [],
-    }) {
-        this.#gl = gl
+    constructor(glContext, glProgramData) {
+        this.#gl = glContext.gl
 
-        const glVertexShader = createShader(gl, WebGL2RenderingContext.VERTEX_SHADER, vertexShader)
-        const glFragmentShader = createShader(gl, WebGL2RenderingContext.FRAGMENT_SHADER, fragmentShader)
+        const glVertexShader = createShader(this.#gl, WebGL2RenderingContext.VERTEX_SHADER, glProgramData.vertexShader())
+        const glFragmentShader = createShader(this.#gl, WebGL2RenderingContext.FRAGMENT_SHADER, glProgramData.fragmentShader())
 
-        const program = createProgram(gl, glVertexShader, glFragmentShader, options.outVaryings)
+        const program = createProgram(this.#gl, glVertexShader, glFragmentShader, glProgramData.outVaryings)
 
         this.program = program
-        gl.detachShader(program, glVertexShader)
-        gl.deleteShader(glVertexShader)
-        gl.detachShader(program, glFragmentShader)
-        gl.deleteShader(glFragmentShader)
+        this.#gl.detachShader(program, glVertexShader)
+        this.#gl.deleteShader(glVertexShader)
+        this.#gl.detachShader(program, glFragmentShader)
+        this.#gl.deleteShader(glFragmentShader)
 
         { // uniforms setup
-            gl.useProgram(program)
+            this.#gl.useProgram(program)
 
-            const activeUboCount = gl.getProgramParameter(program, WebGL2RenderingContext.ACTIVE_UNIFORM_BLOCKS)
+            const activeUboCount = this.#gl.getProgramParameter(program, WebGL2RenderingContext.ACTIVE_UNIFORM_BLOCKS)
 
             const uniformIndexFromUbo = []
 
-            const uboIndex = options.uboIndex
+            const uboIndex = glProgramData.uboIndex
             for (let i = 0; i < activeUboCount; i++) {
-                const name = gl.getActiveUniformBlockName(program, i)
+                const name = this.#gl.getActiveUniformBlockName(program, i)
                 if (uboIndex[name] !== undefined) {
-                    gl.uniformBlockBinding(program, i, uboIndex[name])
-                    uniformIndexFromUbo.push(...gl.getActiveUniformBlockParameter(program, i, WebGL2RenderingContext.UNIFORM_BLOCK_ACTIVE_UNIFORM_INDICES))
+                    this.#gl.uniformBlockBinding(program, i, uboIndex[name])
+                    uniformIndexFromUbo.push(...this.#gl.getActiveUniformBlockParameter(program, i, WebGL2RenderingContext.UNIFORM_BLOCK_ACTIVE_UNIFORM_INDICES))
                 }
             }
 
-            const activeUniformCount = gl.getProgramParameter(program, WebGL2RenderingContext.ACTIVE_UNIFORMS)
+            const activeUniformCount = this.#gl.getProgramParameter(program, WebGL2RenderingContext.ACTIVE_UNIFORMS)
 
             let unit = 0
 
             for (let i = 0; i < activeUniformCount; i++) {
                 if (uniformIndexFromUbo.includes(i)) continue
 
-                const { type, name } = gl.getActiveUniform(program, i)
+                const { type, name } = this.#gl.getActiveUniform(program, i)
 
                 if (type === WebGL2RenderingContext.SAMPLER_2D || type === WebGL2RenderingContext.SAMPLER_CUBE || type === WebGL2RenderingContext.UNSIGNED_INT_SAMPLER_2D) {
-                    gl.uniform1i(gl.getUniformLocation(program, name), unit)
+                    this.#gl.uniform1i(this.#gl.getUniformLocation(program, name), unit)
                     this.textureUnit[name] = WebGL2RenderingContext[`TEXTURE${unit}`]
                     unit++
                 } else {
-                    this.uniformUpdate[name] = createUniformUpdateFunction[type](gl, gl.getUniformLocation(program, name))
+                    this.uniformUpdate[name] = createUniformUpdateFunction[type](this.#gl, this.#gl.getUniformLocation(program, name))
                 }
             }
         }
@@ -79,12 +74,11 @@ export class GlProgram {
 
     /**
      * 
-     * @param {{[attributeName: string]: Attribute}} attributes 
-     * @param {Uint8Array | Uint16Array | Uint32Array} indices 
+     * @param {GlVaoData} glVaoData
      * @returns 
      */
-    createVao(attributes, indices = undefined) {
-        return new GlVao(this.#gl, this.program, attributes, indices)
+    createVao(glVaoData) {
+        return new GlVao(this.#gl, this.program, glVaoData)
     }
 
     /**
@@ -120,12 +114,12 @@ function createProgram(gl, vertexShader, fragmentShader, outVaryings = []) {
     gl.attachShader(program, fragmentShader)
 
     if (outVaryings.length > 0) {
-        gl.transformFeedbackVaryings(program, outVaryings, gl.SEPARATE_ATTRIBS)
+        gl.transformFeedbackVaryings(program, outVaryings, WebGL2RenderingContext.SEPARATE_ATTRIBS)
     }
 
     gl.linkProgram(program)
 
-    if (gl.getProgramParameter(program, gl.LINK_STATUS)) {
+    if (gl.getProgramParameter(program, WebGL2RenderingContext.LINK_STATUS)) {
         return program
     } else {
         console.warn(gl.getProgramInfoLog(program))
@@ -142,7 +136,7 @@ function createShader(gl, type, source) {
     const shader = gl.createShader(type)
     gl.shaderSource(shader, source)
     gl.compileShader(shader)
-    if (gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+    if (gl.getShaderParameter(shader, WebGL2RenderingContext.COMPILE_STATUS)) {
         return shader
     } else {
         console.warn(('\n' + source).split('\n').map((glslLine, lineNumber) => `${lineNumber} ${glslLine}`).join('\n'))
