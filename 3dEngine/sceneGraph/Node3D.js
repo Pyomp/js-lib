@@ -3,10 +3,13 @@ import { Matrix3 } from "../../math/Matrix3.js"
 import { Matrix4 } from "../../math/Matrix4.js"
 import { Quaternion } from "../../math/Quaternion.js"
 import { Vector3 } from "../../math/Vector3.js"
-import { Object3D } from "./Object3D.js"
+import { GlObjectData } from "../webgl/glDescriptors/GlObjectData.js"
 import { Scene } from "./Scene.js"
+import { Mixer } from "./gltf/skinned/animation/Mixer.js"
 
 export class Node3D {
+    name = 'no_name'
+
     position = new Vector3()
     quaternion = new Quaternion()
     scale = new Vector3(1, 1, 1)
@@ -22,10 +25,13 @@ export class Node3D {
     /** @type {Set<Node3D>} */
     nodes = new Set()
 
-    /** @type {Set<Object3D>} */
+    /** @type {Set<GlObjectData>} */
     objects = new Set()
 
     boundingBox = new Box3()
+
+    /** @type {Mixer | undefined} */
+    mixer
 
     /** @param {Node3D} node */
     addNode3D(node) {
@@ -62,16 +68,16 @@ export class Node3D {
         }
     }
 
-    updateBoundingBox() {
-        this.boundingBox.makeEmpty()
-        for (const object of this.objects) {
-            this.boundingBox.union(object.geometry.boundingBox)
-        }
-    }
+    // updateBoundingBox() {
+    //     this.boundingBox.makeEmpty()
+    //     for (const object of this.objects) {
+    //         this.boundingBox.union(object.geometry.boundingBox)
+    //     }
+    // }
 
     dispose() {
         this.traverse((child) => { child.dispose() })
         if (this.parent)
-            this.parent.removeNode3D(this)     
+            this.parent.removeNode3D(this)
     }
 }

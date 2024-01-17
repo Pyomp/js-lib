@@ -4,10 +4,10 @@ import { Animation } from "./animation/Animation.js"
 
 export class SkinnedNode extends Node3D {
     /**
-    * 
     * @param {Animation} animation
     */
     constructor(animation) {
+        {GltfSkin} gltfSkin
         super()
         this.mixer = new Mixer(animation)
     }

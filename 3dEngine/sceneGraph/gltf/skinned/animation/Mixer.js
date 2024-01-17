@@ -107,7 +107,7 @@ export class Mixer {
     updateBuffer() {
         this.rootBone.traverse((bone) => { this.#applyTransformationToBone(bone) })
         this.rootBone.updateMatrix()
-        this.jointsTexture.needsUpdate = true
+        this.jointsTexture.dataVersion++
     }
 
     play(animationName, timeUpdate = 0) {

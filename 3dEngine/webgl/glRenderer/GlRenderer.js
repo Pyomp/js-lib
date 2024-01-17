@@ -1,34 +1,21 @@
-import { Box3 } from "../../math/Box3.js"
-import { GlCapabilities } from "../webgl/glContext/GlCapabilities.js"
-import { GlProgram } from "../webgl/glContext/GlProgram.js"
-import { GlTexture } from "../webgl/glContext/GlTexture.js"
-import { Camera } from "../sceneGraph/Camera.js"
-import { Node3D } from "../sceneGraph/Node3D.js"
-import { Object3D } from "../sceneGraph/Object3D.js"
-import { Scene } from "../sceneGraph/Scene.js"
-import { PointLightsRenderer } from "./modules/PointLightsRenderer.js"
-import { PointLight } from "../sceneGraph/light/PointLight.js"
-import { GlUbo } from "../webgl/glContext/GlUbo.js"
-import { WindowInfoRenderer } from "./modules/WindowInfoRenderer.js"
-import { ParticleRenderer } from "./modules/ParticlesRendererModules/ParticleRenderer.js"
-import { DepthTexture } from "../textures/DepthTexture.js"
-import { blit, typedArrayToType } from "../webgl/glContext/utils.js"
-import { SkinnedNode } from "../sceneGraph/gltf/skinned/SkinnedNode.js"
-import { GlVao } from "../webgl/glContext/GlVao.js"
-import { SkyBoxRenderer } from "./modules/SkyBoxRenderer.js"
+import { Box3 } from "../../../math/Box3.js"
+import { GLSL_CAMERA } from "../../programs/chunks/glslCamera.js"
+import { Camera } from "../../sceneGraph/Camera.js"
+import { Node3D } from "../../sceneGraph/Node3D.js"
+import { Scene } from "../../sceneGraph/Scene.js"
+import { GlContext } from "../glContext/GlContext.js"
+import { GlObjectData } from "../glDescriptors/GlObjectData.js"
+import { GlCameraUbo } from "./GlCameraUbo.js"
 
 const _box3 = new Box3()
 
-export class Renderer {
+export class GlRenderer {
     htmlElement = document.createElement('div')
 
     scene = new Scene()
 
     camera = new Camera({})
-
-    /** @type {Set<PointLight>} */ pointLights = new Set()
-
-    /** @type {SkyBoxRenderer} */ skyBoxRenderer
+    #cameraUbo = new GlCameraUbo(this.camera)
 
     constructor() {
         this.htmlElement.style.top = '0'
@@ -41,18 +28,8 @@ export class Renderer {
     }
 
     onContextLost() {
-        this.#programMap.clear()
-        this.#vaoMap.clear()
-        this.#textureMap.clear()
-
         this.initGl()
-
-        this.particles.onContextLost()
     }
-
-
-    /** @type {GlUbo} */ #cameraUbo
-    /** @type {Float32Array} */ #cameraUboF32a
 
     initGl() {
         const canvas = document.createElement('canvas')
@@ -63,119 +40,40 @@ export class Renderer {
         this.htmlElement.innerHTML = ''
         this.htmlElement.appendChild(canvas)
 
-        this.glContext = new GlCapabilities(canvas)
 
+        this.glContext = new GlContext(canvas, undefined, {
+            [GLSL_CAMERA.uboName]: this.#cameraUbo.glUboData
+        })
         this.glContext.resizeListeners.add(this.onResize.bind(this))
-
-        this.#cameraUbo = new GlUbo(this.glContext.gl, (16 + 16 + 16 + 16 + 4 + 4) * 4)
-        this.#cameraUboF32a = new Float32Array(this.#cameraUbo.data)
-
-        this.pointLightsRenderer = new PointLightsRenderer(this.glContext.gl)
-        this.pointLightsRenderer.updateUbo(this.pointLights)
-
-        this.windowInfoRenderer = new WindowInfoRenderer(this.glContext.gl)
-
-        this.uboIndex = {
-            cameraUbo: this.#cameraUbo.index,
-            pointLightsUBO: this.pointLightsRenderer.uboIndex,
-            windowUbo: this.windowInfoRenderer.uboIndex
-        }
-
-        if (!this.particles) this.particles = new ParticleRenderer()
-        this.particles.initGl(this.glContext.gl, this.uboIndex, this.getGlTexture(this.depthTexture), this)
-
-        if (!this.skyBoxRenderer) this.skyBoxRenderer = new SkyBoxRenderer()
-        this.skyBoxRenderer.initGl(this.glContext.gl, this.uboIndex)
     }
 
     onResize(width, height) {
         this.camera.aspect = width / height
-        this.windowInfoRenderer.setSize(width, height)
-        this.getGlTexture(this.depthTexture).updateSize(width, height)
     }
 
-    /** @type {Map<Material, GlProgram>} */
-    #programMap = new Map()
-    #disposeGlPrograms() {
-        for (const program of Object.values(this.#programMap)) program.dispose()
-        this.#programMap.clear()
-    }
-
-    /** @type {Map<Geometry, GlVao>} */
-    #vaoMap = new Map()
-    #disposeGlVaos() {
-        for (const vao of Object.values(this.#vaoMap)) vao.dispose()
-        this.#vaoMap.clear()
-    }
-
-    /** @type {Map<GlTextureData, GlTexture>} */
-    #textureMap = new Map()
-
-    #deleteToBeDeleted() {
-        for (const [material, program] of this.#programMap) {
-            if (material.needsDelete) {
-                program.dispose()
-                this.#programMap.delete(material)
-            }
-        }
-        for (const [geometry, vao] of this.#vaoMap) {
-            if (geometry.needsDelete) {
-                vao.dispose()
-                this.#vaoMap.delete(geometry)
-            }
-        }
-        for (const [texture, glTexture] of this.#textureMap) {
-            if (texture.needsDelete) {
-                glTexture.dispose()
-                this.#textureMap.delete(texture)
-            }
-        }
-    }
-
-    depthTexture = new DepthTexture()
+    // #deleteToBeDeleted() {
+    //     for (const [material, program] of this.#programMap) {
+    //         if (material.needsDelete) {
+    //             program.dispose()
+    //             this.#programMap.delete(material)
+    //         }
+    //     }
+    //     for (const [geometry, vao] of this.#vaoMap) {
+    //         if (geometry.needsDelete) {
+    //             vao.dispose()
+    //             this.#vaoMap.delete(geometry)
+    //         }
+    //     }
+    //     for (const [texture, glTexture] of this.#textureMap) {
+    //         if (texture.needsDelete) {
+    //             glTexture.dispose()
+    //             this.#textureMap.delete(texture)
+    //         }
+    //     }
+    // }
 
     resetGlStates() {
-        this.#disposeGlPrograms()
-        this.#disposeGlVaos()
-        this.particles.disposeGl()
-        this.particles.initGl(this.glContext.gl, this.uboIndex, this.getGlTexture(this.depthTexture), this)
-        this.skyBoxRenderer.dispose()
-        this.skyBoxRenderer.initGl(this.glContext.gl, this.uboIndex)
-    }
-
-    updateUbos() {
-        this.scene.updateWorldMatrix()
-        const cameraHasBeenUpdated = this.camera.update()
-        if (cameraHasBeenUpdated) {
-            let cursor = 0
-            this.camera.viewMatrix.toArray(this.#cameraUboF32a, cursor)
-            cursor += 16
-            this.camera.projectionMatrix.toArray(this.#cameraUboF32a, cursor)
-            cursor += 16
-            this.camera.projectionViewMatrix.toArray(this.#cameraUboF32a, cursor)
-            cursor += 16
-            this.camera.projectionViewMatrixInverse.toArray(this.#cameraUboF32a, cursor)
-            cursor += 16
-            this.camera.position.toArray(this.#cameraUboF32a, cursor)
-            cursor += 3
-            this.#cameraUboF32a[cursor] = this.camera.near
-            cursor += 1
-            this.#cameraUboF32a[cursor] = this.camera.far
-
-            this.#cameraUbo.update()
-        }
-
-        const lightUboHasChanged = this.pointLightsRenderer.updateUbo(this.pointLights)
-        if (lightUboHasChanged) {
-            this.uboIndex = {
-                cameraUbo: this.#cameraUbo.index,
-                pointLightsUBO: this.pointLightsRenderer.uboIndex,
-                windowUbo: this.windowInfoRenderer.uboIndex
-            }
-            this.resetGlStates()
-        }
-
-        this.windowInfoRenderer.update()
+        this.glContext.freeAllGlProgram()
     }
 
     /** @param {Node3D[]} nodesToDraw  */
@@ -183,9 +81,9 @@ export class Renderer {
         const objectsToDraw = getObjectsInFrustum(nodesToDraw, this.camera.frustum)
 
         for (const object of this.scene.objects) {
-            if (object.geometry.boundingBox.isEmpty() || this.camera.frustum.intersectsBox(_box3.copy(object.geometry.boundingBox))) {
-                objectsToDraw.push(object)
-            }
+            // if (object.geometry.boundingBox.isEmpty() || this.camera.frustum.intersectsBox(_box3.copy(object.geometry.boundingBox))) {
+            objectsToDraw.push(object)
+            // }
         }
 
         const [opaque, transparent] = sortTransparencyObjects(objectsToDraw)
@@ -201,160 +99,32 @@ export class Renderer {
      * @param {number} deltatimeSecond 
      */
     render(deltatimeSecond) {
-        this.#deleteToBeDeleted()
-
         const gl = this.glContext.gl
-        this.updateUbos()
+        this.scene.updateWorldMatrix()
 
-        this.scene.traverse((node) => { if (node instanceof SkinnedNode) node.mixer.updateTime(deltatimeSecond) })
+        this.camera.update()
+        this.#cameraUbo.update()
+
+        this.glContext.updateGlobalUbos()
+
+        this.scene.traverse((node) => { if (node.mixer) node.mixer.updateTime(deltatimeSecond) })
 
         const nodesToDraw = getNodesInFrustum(this.scene, this.camera.frustum)
-
-        for (const node of nodesToDraw) {
-            if (node instanceof SkinnedNode) {
-                node.mixer.updateBuffer()
-            }
-        }
+        for (const node of nodesToDraw) if (node.mixer) node.mixer.updateBuffer()
 
         const [opaqueObjects, transparentObjects] = this.getObjectsToDraw(nodesToDraw)
 
         gl.clear(WebGL2RenderingContext.COLOR_BUFFER_BIT | WebGL2RenderingContext.DEPTH_BUFFER_BIT)
 
-        this.glContext.blending = false
-        this.skyBoxRenderer.render()
-        this.drawObjects(opaqueObjects)
-
-        blit(gl, null, this.particles.depthFrameBuffer, this.windowInfoRenderer.width, this.windowInfoRenderer.height)
-        gl.bindFramebuffer(WebGL2RenderingContext.FRAMEBUFFER, null)
-
-        this.glContext.blending = true
-        this.drawObjects(transparentObjects)
-
-        this.glContext.setAdditiveBlending()
-        this.glContext.depthTest = false
-
-        this.particles.draw(deltatimeSecond)
-    }
-
-    /**
-     * 
-     * @param {Object3D[]} objects 
-     */
-    drawObjects(objects) {
-        const gl = this.glContext.gl
-
-        let currentMaterial, program
-        let currentGeometry
-
-        for (const object of objects) {
-            if (currentMaterial !== object.material) {
-                if (object.material.needsDelete) {
-                    console.warn('Material deleted, object not draw. You should remove 3D objects when dispose its elements.')
-                    continue
-                }
-
-                currentMaterial = object.material
-
-                if (!this.#programMap.has(currentMaterial)) {
-                    this.#programMap.set(currentMaterial, new GlProgram(
-                        gl,
-                        currentMaterial.vertexShader({ pointLightCount: this.pointLightsRenderer.count }),
-                        currentMaterial.fragmentShader({ pointLightCount: this.pointLightsRenderer.count }),
-                        {
-                            uboIndex: this.uboIndex
-                        }
-                    ))
-                }
-
-                program = this.#programMap.get(currentMaterial)
-                program.useProgram()
-            }
-
-            if (currentGeometry !== object.geometry) {
-                if (object.geometry.needsDelete) {
-                    console.warn('Geometry deleted, object not draw. You should remove 3D objects when dispose its elements.')
-                    continue
-                }
-
-                currentGeometry = object.geometry
-
-                if (currentGeometry.attributes) {
-                    if (!this.#vaoMap.has(currentGeometry)) {
-                        this.#vaoMap.set(currentGeometry, program.createVao(currentGeometry.attributes, currentGeometry.indices))
-                    }
-
-                    const vao = this.#vaoMap.get(currentGeometry)
-                    vao.bind()
-                }
-            }
-
-            this.glContext.cullFace = object.cullFace
-            this.glContext.depthTest = object.depthTest
-
-            if (object.normalBlending) {
-                this.glContext.setNormalBlending()
-                this.glContext.depthWrite = false
-            } else if (object.additiveBlending) {
-                this.glContext.setAdditiveBlending()
-                this.glContext.depthWrite = false
-            } else {
-                this.glContext.depthWrite = object.depthWrite
-            }
-
-            this.#bindUniforms(program, object.uniforms)
-
-            this.#bindTextures(program, object.textures)
-
-            if (currentGeometry.indices) {
-                gl.drawElements(object.drawMode, currentGeometry.count, typedArrayToType.get(currentGeometry.indices.constructor), currentGeometry.offset)
-            } else {
-                gl.drawArrays(object.drawMode, currentGeometry.offset, currentGeometry.count)
-            }
+        for (const object of opaqueObjects) {
+            this.glContext.drawObject(object)
         }
-    }
 
-    /**
-     * 
-     * @param {GlProgram} program 
-     * @param {{ [name: string]: WebGl.UniformData }} uniforms 
-     */
-    #bindUniforms(program, uniforms) {
-        for (const key in uniforms) {
-            program.uniformUpdate[key]?.(uniforms[key])
-        }
-    }
+        // blit(gl, null, this.particles.depthFrameBuffer, this.windowInfoRenderer.width, this.windowInfoRenderer.height)
+        // gl.bindFramebuffer(WebGL2RenderingContext.FRAMEBUFFER, null)
 
-    getGlTexture(texture) {
-        if (!this.#textureMap.has(texture))
-            this.#textureMap.set(texture, new GlTexture(this.glContext.gl, texture))
-        return this.#textureMap.get(texture)
-    }
-
-    freeTexture(texture) {
-        this.#textureMap.get(texture)?.dispose()
-        this.#textureMap.delete(texture)
-    }
-
-    /**
-     * 
-     * @param {GlProgram} program 
-     * @param {{[name: string]: GlTextureData}} textures 
-     */
-    #bindTextures(program, textures) {
-        for (const key in textures) {
-            const texture = textures[key]
-
-            if (texture.needsDelete) {
-                console.warn('Texture deleted,  unknown texture is bound. You should remove 3D objects when dispose its elements.')
-            }
-
-            const glTexture = this.getGlTexture(texture)
-
-            if (texture.version !== glTexture.version) {
-                glTexture.updateData(texture.data, program.textureUnit[key])
-            } else {
-                glTexture.bindToUnit(program.textureUnit[key])
-            }
+        for (const object of transparentObjects) {
+            this.glContext.drawObject(object)
         }
     }
 
@@ -365,17 +135,23 @@ export class Renderer {
     #objectState = new WeakMap()
 
     compareObjectDrawOptimizationBound = this.compareObjectDrawOptimization.bind(this)
+    /**
+     * 
+     * @param {GlObjectData} a 
+     * @param {GlObjectData} b 
+     * @returns 
+     */
     compareObjectDrawOptimization(a, b) {
-        if (!this.#programCache.has(a.material)) this.#programCache.set(a.material, this.#lastProgramId++)
-        if (!this.#programCache.has(b.material)) this.#programCache.set(b.material, this.#lastProgramId++)
-        const materialIdA = this.#programCache.get(a.material)
-        const materialIdB = this.#programCache.get(b.material)
+        if (!this.#programCache.has(a.glProgramData)) this.#programCache.set(a.glProgramData, this.#lastProgramId++)
+        if (!this.#programCache.has(b.glProgramData)) this.#programCache.set(b.glProgramData, this.#lastProgramId++)
+        const materialIdA = this.#programCache.get(a.glProgramData)
+        const materialIdB = this.#programCache.get(b.glProgramData)
         if (materialIdA !== materialIdB) return materialIdA - materialIdB
 
-        if (!this.#vaoCache.has(a.geometry)) this.#vaoCache.set(a.geometry, this.#lastVaoId++)
-        if (!this.#vaoCache.has(b.geometry)) this.#vaoCache.set(b.geometry, this.#lastVaoId++)
-        const geometryIdA = this.#vaoCache.get(a.geometry)
-        const geometryIdB = this.#vaoCache.get(b.geometry)
+        if (!this.#vaoCache.has(a.glVaoData)) this.#vaoCache.set(a.glVaoData, this.#lastVaoId++)
+        if (!this.#vaoCache.has(b.glVaoData)) this.#vaoCache.set(b.glVaoData, this.#lastVaoId++)
+        const geometryIdA = this.#vaoCache.get(a.glVaoData)
+        const geometryIdB = this.#vaoCache.get(b.glVaoData)
         if (geometryIdA !== geometryIdB) return geometryIdA - geometryIdB
 
         if (!this.#objectState.has(a)) this.#objectState.set(a, getObjectStateId(a))
@@ -392,7 +168,7 @@ export class Renderer {
     }
 }
 
-function getObjectStateId(/** @type {Object3D} */ object) {
+function getObjectStateId(/** @type {GlObjectData} */ object) {
     let id = 0
 
     if (object.additiveBlending) id |= 0x0000_0001
@@ -403,7 +179,7 @@ function getObjectStateId(/** @type {Object3D} */ object) {
     return id
 }
 
-function sortTransparencyObjects(/** @type {Object3D[]} */ objects) {
+function sortTransparencyObjects(/** @type {GlObjectData[]} */ objects) {
     const opaque = []
     const transparent = []
 
@@ -437,19 +213,19 @@ function getNodesInFrustum(scene, frustum) {
 }
 
 function getObjectsInFrustum(/** @type {Node3D[]} */ nodes, frustum) {
-    /** @type {Object3D[]} */
+    /** @type {GlObjectData[]} */
     const result = []
 
     for (const node of nodes) {
         for (const object of node.objects) {
-            const boundingBox = object.geometry.boundingBox
+            // const boundingBox = object.geometry.boundingBox
 
-            if (boundingBox.isEmpty()
-                || frustum.intersectsBox(
-                    _box3.copy(boundingBox).translate(node.position))
-            ) {
-                result.push(object)
-            }
+            // if (boundingBox.isEmpty()
+            //     || frustum.intersectsBox(
+            //         _box3.copy(boundingBox).translate(node.position))
+            // ) {
+            result.push(object)
+            // }
         }
     }
 

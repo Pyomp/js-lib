@@ -59,7 +59,7 @@ void main() {
 }`,
                 { uboIndex: this.#uboIndex }
             )
-            this.#glVao = new GlVao(this.#gl, this.#glProgram.program, {
+            this.#glVao = new GlVao(this.#gl, this.#glProgram.glProgram, {
                 position: new Attribute(new Float32Array([
                     -1, -1,
                     1, -1,

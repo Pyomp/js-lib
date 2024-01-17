@@ -105,8 +105,8 @@ export class ParticleRenderer {
 
         this.#depthTexture = glDepthTexture
 
-        gl.bindTexture(gl.TEXTURE_2D, this.#depthTexture.glTexture)
-        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, this.#depthTexture.glTexture, 0)
+        gl.bindTexture(gl.TEXTURE_2D, this.#depthTexture.#glTexture)
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, this.#depthTexture.#glTexture, 0)
     }
 
     disposeGl() {

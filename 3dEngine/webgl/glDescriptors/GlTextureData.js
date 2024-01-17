@@ -1,12 +1,14 @@
 export class GlTextureData {
     static getCubeTexture = getCubeTexture
 
-    version = 0
+    paramsVersion = 0
+    dataVersion = 0
 
     needsDelete = false
 
     /**
     * @param {{
+    *  name?: string
     *  wrapS?: WebGl.Texture.Wrap | number
     *  wrapT?: WebGl.Texture.Wrap | number
     *  minFilter?: WebGl.Texture.MinFilter | number
@@ -22,6 +24,7 @@ export class GlTextureData {
     * }} param0 
     */
     constructor({
+        name = '',
         wrapS = 'CLAMP_TO_EDGE',
         wrapT = 'CLAMP_TO_EDGE',
         minFilter = 'LINEAR_MIPMAP_LINEAR',
@@ -35,6 +38,7 @@ export class GlTextureData {
         data = new Image(),
         needsMipmap = true
     }) {
+        this.name = name
         this.wrapS = WebGL2RenderingContext[wrapS] ?? wrapS
         this.wrapT = WebGL2RenderingContext[wrapT] ?? wrapT
         this.minFilter = WebGL2RenderingContext[minFilter] ?? minFilter
@@ -49,13 +53,13 @@ export class GlTextureData {
         this.data = data
 
         if (this.data instanceof Image) {
-            this.data.onload = () => { this.version++ }
+            this.data.onload = () => { this.dataVersion++ }
             this.width = this.data.width
             this.height = this.data.height
         } else if (this.data instanceof Array) {
             for (const element of this.data) {
                 if (element instanceof Image) {
-                    element.onload = () => { this.version++ }
+                    element.onload = () => { this.dataVersion++ }
                     this.width = element.width
                     this.height = element.height
                 }

@@ -5,6 +5,8 @@ import { Vector3, _up } from "../../math/Vector3.js"
 
 const _vec3 = new Vector3()
 export class Camera {
+    version = 0
+
     projectionMatrix = new Matrix4()
     worldCameraMatrix = new Matrix4()
     viewMatrix = new Matrix4()
@@ -43,8 +45,6 @@ export class Camera {
     }
 
     update() {
-        let hasChanged = false
-
         if (this.#cameraHasMoved) {
             this.#updateWorldCameraMatrixPosition()
             this.#lookAt(this.target)
@@ -58,13 +58,11 @@ export class Camera {
         if (this.#projectionNeedsUpdate || this.#cameraHasMoved) {
             this.#updateProjectionViewMatrix()
             this.#updateFrustum()
-            hasChanged = true
+            this.version++
         }
 
         this.#cameraHasMoved = false
         this.#projectionNeedsUpdate = false
-
-        return hasChanged
     }
 
     #updateWorldCameraMatrixPosition() {

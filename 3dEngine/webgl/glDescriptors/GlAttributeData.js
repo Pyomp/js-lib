@@ -7,10 +7,10 @@ export class GlAttributeData {
      *  glArrayBufferData: GlArrayBufferData
      *  name: string
      *  size: number
-     *  type: number
-     *  normalized: boolean
-     *  stride: number
-     *  offset: number
+     *  type: WebGl.Vao.Type | number
+     *  normalized?: boolean
+     *  stride?: number
+     *  offset?: number
      * }} param0 
      */
     constructor({
@@ -25,7 +25,7 @@ export class GlAttributeData {
         this.glArrayBufferData = glArrayBufferData
         this.name = name
         this.size = size
-        this.type = type
+        this.type = WebGL2RenderingContext[type] ?? type
         this.normalized = normalized
         this.stride = stride
         this.offset = offset

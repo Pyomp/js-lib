@@ -1,8 +1,8 @@
 import { Matrix4 } from "../../math/Matrix4.js"
 import { Quaternion } from "../../math/Quaternion.js"
 import { Vector3 } from "../../math/Vector3.js"
+import { GlObjectData } from "../webgl/glDescriptors/GlObjectData.js"
 import { Node3D } from "./Node3D.js"
-import { Object3D } from "./Object3D.js"
 
 export class Scene {
     position = new Vector3()
@@ -15,7 +15,7 @@ export class Scene {
     /** @type {Set<Node3D>} */
     nodes = new Set()
 
-    /** @type {Set<Object3D>} */
+    /** @type {Set<GlObjectData>} */
     objects = new Set()
 
     /** @param {Node3D} node */
@@ -41,6 +41,10 @@ export class Scene {
         }
     }
 
+    /**
+     * 
+     * @param {(node: Node3D) => void} callback 
+     */
     traverse(callback) {
         for (const child of this.nodes) {
             callback(child)

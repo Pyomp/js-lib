@@ -110,13 +110,14 @@ layout(std140) uniform cameraUbo {
 };
 
 uniform mat4 modelMatrix;
-uniform sampler2D jointsTexture;
+
 
 out vec3 v_normal;
 out vec2 v_uv;
 out vec3 v_surfaceToView;
 out vec3 v_worldPosition;
 
+uniform sampler2D jointsTexture;
 mat4 getBoneMatrix(uint jointNdx) {
     return mat4(
         texelFetch(jointsTexture, ivec2(0, jointNdx), 0),

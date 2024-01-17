@@ -1,6 +1,6 @@
 import { Quaternion } from '../../../../../math/Quaternion.js'
 import { Vector3 } from '../../../../../math/Vector3.js'
-import { Texture } from '../../../../webgl/glDescriptors/GlTextureData.js'
+import { GlTextureData } from '../../../../webgl/glDescriptors/GlTextureData.js'
 import { Bone } from './Bone.js'
 import { KeyFrame } from './KeyFrame.js'
 import { Track } from './Track.js'
@@ -51,6 +51,7 @@ export class Animation {
      * @param {{[gltfAnimationName: string]: string | number}} animationDictionary
      */
     constructor(gltfSkin, animationDictionary = {}) {
+        this.name = gltfSkin.name
         this.#bonesCount = gltfSkin.bonesCount
         this.#gltfSkinRootBone = gltfSkin.root
         this.#inverseBindMatrices = gltfSkin.inverseBindMatrices.buffer
@@ -61,7 +62,8 @@ export class Animation {
 
     createArmature() {
         const buffer = new Float32Array(16 * this.#bonesCount)
-        const jointsTexture = new Texture({
+        const jointsTexture = new GlTextureData({
+            name: `joints for skin ${this.name}`,
             data: buffer,
 
             wrapS: 'CLAMP_TO_EDGE',

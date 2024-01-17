@@ -350,7 +350,7 @@ export class Renderer {
 
             const glTexture = this.getGlTexture(texture)
 
-            if (texture.version !== glTexture.version) {
+            if (texture.version !== glTexture.#version) {
                 glTexture.updateData(texture.data, program.textureUnit[key])
             } else {
                 glTexture.bindToUnit(program.textureUnit[key])

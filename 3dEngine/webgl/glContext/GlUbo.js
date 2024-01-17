@@ -1,53 +1,48 @@
-const glIndexUsed = new WeakMap()
-
-function getIndex(gl) {
-    if (!glIndexUsed.has(gl)) glIndexUsed.set(gl, new Set())
-    const indexUsed = glIndexUsed.get(gl)
-    let index = 0
-    while (indexUsed.has(index)) {
-        index++
-    }
-    return index
-}
+import { GlUboData } from "../glDescriptors/GlUboData.js"
+import { GlContext } from "./GlContext.js"
 
 export class GlUbo {
+    #version = -1
+
     #gl
 
-    static getIndex(gl) {
-        const index = getIndex(gl)
-        glIndexUsed.get(gl).add(index)
-        return index
-    }
+    #glUboData
 
-    static freeIndex(gl, index) {
-        glIndexUsed.get(gl).delete(index)
-    }
+    #glUboBuffer
+
+    #arrayBuffer
 
     /**
      * 
-     * @param {WebGL2RenderingContext} gl
-     * @param {number} byteLength
+     * @param {GlContext} glContext
+     * @param {GlUboData} glUboData
      */
-    constructor(gl, byteLength) {
-        this.#gl = gl
-
-        this.index = GlUbo.getIndex(this.#gl)
-
-        this.data = new ArrayBuffer(byteLength)
-
-        this.uboBuffer = gl.createBuffer()
-        this.#gl.bindBuffer(WebGL2RenderingContext.UNIFORM_BUFFER, this.uboBuffer)
-        this.#gl.bufferData(WebGL2RenderingContext.UNIFORM_BUFFER, this.data, WebGL2RenderingContext.DYNAMIC_DRAW)
-        this.#gl.bindBufferBase(WebGL2RenderingContext.UNIFORM_BUFFER, this.index, this.uboBuffer)
+    constructor(glContext, glUboData) {
+        this.#gl = glContext.gl
+        this.#glUboData = glUboData
+        this.#glUboBuffer = this.#gl.createBuffer()
     }
 
     update() {
-        this.#gl.bindBuffer(WebGL2RenderingContext.UNIFORM_BUFFER, this.uboBuffer)
-        this.#gl.bufferSubData(WebGL2RenderingContext.UNIFORM_BUFFER, 0, this.data)
+        if (this.#version !== this.#glUboData.version) {
+            this.#version = this.#glUboData.version
+            this.#gl.bindBuffer(WebGL2RenderingContext.UNIFORM_BUFFER, this.#glUboBuffer)
+            if (this.#arrayBuffer !== this.#glUboData.arrayBuffer) {
+                this.#arrayBuffer = this.#glUboData.arrayBuffer
+                this.#gl.bufferData(WebGL2RenderingContext.UNIFORM_BUFFER, this.#arrayBuffer, this.#glUboData.usage)
+            } else {
+                this.#gl.bufferSubData(WebGL2RenderingContext.UNIFORM_BUFFER, 0, this.#arrayBuffer)
+            }
+        }
+    }
+
+    bindToIndex(index) {
+        this.update()
+        // question: should I bind buffer before ?
+        this.#gl.bindBufferBase(WebGL2RenderingContext.UNIFORM_BUFFER, index, this.#glUboBuffer)
     }
 
     dispose() {
-        GlUbo.freeIndex(this.#gl, this.index)
-        this.#gl.deleteBuffer(this.uboBuffer)
+        this.#gl.deleteBuffer(this.#glUboBuffer)
     }
 }

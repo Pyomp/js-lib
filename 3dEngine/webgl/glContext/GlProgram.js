@@ -1,129 +1,145 @@
-import { Attribute } from "../../sceneGraph/Attribute.js"
-import { GlTransformFeedback } from "./GlTransformFeedback.js"
-import { GlUbo } from "./GlUbo.js"
-import { GlVao } from "./GlVao.js"
-import { GlVaoData } from "../glDescriptors/GlVaoData.js"
 import { GlContext } from "./GlContext.js"
 import { GlProgramData } from "../glDescriptors/GlProgramData.js"
+import { GlVaoData } from "../glDescriptors/GlVaoData.js"
+import { GlVao } from "./GlVao.js"
 
 export class GlProgram {
+    #version = -1
+
     /** @type {{[uniformName: string]: ((data: number | Vector2 | Vector3 | Vector4 | Matrix3 | Matrix4 | Color) => void)}} */
     uniformUpdate = {}
     /** @type {{[textureName: string]: number}} */
     textureUnit = {}
+    /** @type {{[uboName: string]: number}} */
+    uboIndex = {}
+
+    #glProgramData
 
     /** @type {WebGL2RenderingContext} */
     #gl
-    /** @type {WebGLProgram} */
-    program
+    #glContext
+    #glProgram
+    #globalUboIndex
 
     /**
      * 
      * @param {GlContext} glContext
      * @param {GlProgramData} glProgramData 
+     * @param {{[uboUniformName: string]: number }} globalUboIndex
      */
-    constructor(glContext, glProgramData) {
+    constructor(glContext, glProgramData, globalUboIndex) {
+        this.#glContext = glContext
         this.#gl = glContext.gl
+        this.#glProgramData = glProgramData
+        this.#glProgram = this.#gl.createProgram()
+        this.#globalUboIndex = globalUboIndex
+    }
 
-        const glVertexShader = createShader(this.#gl, WebGL2RenderingContext.VERTEX_SHADER, glProgramData.vertexShader())
-        const glFragmentShader = createShader(this.#gl, WebGL2RenderingContext.FRAGMENT_SHADER, glProgramData.fragmentShader())
+    #linkProgram() {
+        const glVertexShader = createShader(this.#gl, WebGL2RenderingContext.VERTEX_SHADER, this.#glProgramData.vertexShader())
+        const glFragmentShader = createShader(this.#gl, WebGL2RenderingContext.FRAGMENT_SHADER, this.#glProgramData.fragmentShader())
 
-        const program = createProgram(this.#gl, glVertexShader, glFragmentShader, glProgramData.outVaryings)
+        this.#gl.attachShader(this.#glProgram, glVertexShader)
+        this.#gl.attachShader(this.#glProgram, glFragmentShader)
 
-        this.program = program
-        this.#gl.detachShader(program, glVertexShader)
+        if (this.#glProgramData.outVaryings.length > 0) {
+            this.#gl.transformFeedbackVaryings(this.#glProgram, this.#glProgramData.outVaryings, WebGL2RenderingContext.SEPARATE_ATTRIBS)
+        }
+
+        this.#gl.linkProgram(this.#glProgram)
+
+        if (!this.#gl.getProgramParameter(this.#glProgram, WebGL2RenderingContext.LINK_STATUS)) {
+            console.warn(this.#gl.getProgramInfoLog(this.#glProgram))
+            this.#gl.deleteProgram(this.#glProgram)
+        }
+
+        this.#gl.detachShader(this.#glProgram, glVertexShader)
         this.#gl.deleteShader(glVertexShader)
-        this.#gl.detachShader(program, glFragmentShader)
+        this.#gl.detachShader(this.#glProgram, glFragmentShader)
         this.#gl.deleteShader(glFragmentShader)
+    }
 
-        { // uniforms setup
-            this.#gl.useProgram(program)
+    #setupUniform() {
+        this.#gl.useProgram(this.#glProgram)
 
-            const activeUboCount = this.#gl.getProgramParameter(program, WebGL2RenderingContext.ACTIVE_UNIFORM_BLOCKS)
+        const activeUboCount = this.#gl.getProgramParameter(this.#glProgram, WebGL2RenderingContext.ACTIVE_UNIFORM_BLOCKS)
 
-            const uniformIndexFromUbo = []
+        const uniformIndexFromGlobalUbos = []
 
-            const uboIndex = glProgramData.uboIndex
-            for (let i = 0; i < activeUboCount; i++) {
-                const name = this.#gl.getActiveUniformBlockName(program, i)
-                if (uboIndex[name] !== undefined) {
-                    this.#gl.uniformBlockBinding(program, i, uboIndex[name])
-                    uniformIndexFromUbo.push(...this.#gl.getActiveUniformBlockParameter(program, i, WebGL2RenderingContext.UNIFORM_BLOCK_ACTIVE_UNIFORM_INDICES))
-                }
+        let uboIndex = Object.keys(this.#globalUboIndex).length
+
+        for (let i = 0; i < activeUboCount; i++) {
+            const name = this.#gl.getActiveUniformBlockName(this.#glProgram, i)
+            if (name in this.#globalUboIndex) {
+                this.#gl.uniformBlockBinding(this.#glProgram, i, this.#globalUboIndex[name])
+                uniformIndexFromGlobalUbos.push(...this.#gl.getActiveUniformBlockParameter(this.#glProgram, i, WebGL2RenderingContext.UNIFORM_BLOCK_ACTIVE_UNIFORM_INDICES))
+            } else {
+                this.#gl.uniformBlockBinding(this.#glProgram, i, uboIndex)
+                this.uboIndex[name] = uboIndex
+                uboIndex++
             }
+        }
 
-            const activeUniformCount = this.#gl.getProgramParameter(program, WebGL2RenderingContext.ACTIVE_UNIFORMS)
+        const activeUniformCount = this.#gl.getProgramParameter(this.#glProgram, WebGL2RenderingContext.ACTIVE_UNIFORMS)
 
-            let unit = 0
+        let unit = 0
 
-            for (let i = 0; i < activeUniformCount; i++) {
-                if (uniformIndexFromUbo.includes(i)) continue
+        for (let i = 0; i < activeUniformCount; i++) {
+            if (uniformIndexFromGlobalUbos.includes(i)) continue
 
-                const { type, name } = this.#gl.getActiveUniform(program, i)
+            const { type, name } = this.#gl.getActiveUniform(this.#glProgram, i)
 
-                if (type === WebGL2RenderingContext.SAMPLER_2D || type === WebGL2RenderingContext.SAMPLER_CUBE || type === WebGL2RenderingContext.UNSIGNED_INT_SAMPLER_2D) {
-                    this.#gl.uniform1i(this.#gl.getUniformLocation(program, name), unit)
-                    this.textureUnit[name] = WebGL2RenderingContext[`TEXTURE${unit}`]
-                    unit++
-                } else {
-                    this.uniformUpdate[name] = createUniformUpdateFunction[type](this.#gl, this.#gl.getUniformLocation(program, name))
-                }
+            if (type === WebGL2RenderingContext.SAMPLER_2D || type === WebGL2RenderingContext.SAMPLER_CUBE || type === WebGL2RenderingContext.UNSIGNED_INT_SAMPLER_2D) {
+                this.#gl.uniform1i(this.#gl.getUniformLocation(this.#glProgram, name), unit)
+                this.textureUnit[name] = WebGL2RenderingContext[`TEXTURE${unit}`]
+                unit++
+            } else {
+                this.uniformUpdate[name] = createUniformUpdateFunction[type](this.#gl, this.#gl.getUniformLocation(this.#glProgram, name))
             }
         }
     }
 
-    /**
-     * 
-     * @param {GlVaoData} glVaoData
-     * @returns 
-     */
-    createVao(glVaoData) {
-        return new GlVao(this.#gl, this.program, glVaoData)
+    getActiveAttributes() {
+        return this.#gl.getProgramParameter(this.#glProgram, WebGL2RenderingContext.ACTIVE_ATTRIBUTES)
     }
 
-    /**
-     * 
-     * @param {number} count 
-     * @param {{[name: string]: WebGLBuffer}} buffers 
-     * @returns 
-     */
-    createTransformFeedback(count, buffers) {
-        return new GlTransformFeedback(this.#gl, this.program, count, buffers)
+    getAttribLocation(attributeName) {
+        return this.#gl.getAttribLocation(this.#glProgram, attributeName)
+    }
+    
+    updateProgram() {
+        this.#linkProgram()
+        this.#setupUniform()
     }
 
     useProgram() {
-        this.#gl.useProgram(this.program)
+        if (this.#version !== this.#glProgramData.version) {
+            this.#version = this.#glProgramData.version
+            this.updateProgram()
+        } else {
+            this.#gl.useProgram(this.#glProgram)
+        }
+    }
+
+    /** @type {Map<GlVaoData, GlVao>} */ #vaos = new Map()
+    getGlVao(/** @type {GlVaoData} */ glVaoData) {
+        if (!this.#vaos.has(glVaoData)) {
+            this.#vaos.set(glVaoData, new GlVao(this.#glContext, this, glVaoData))
+        }
+        return this.#vaos.get(glVaoData)
+    }
+    freeGlVao(/** @type {GlVaoData} */ glVaoData) {
+        this.#vaos.get(glVaoData)?.dispose()
+        this.#vaos.delete(glVaoData)
+    }
+    freeAllGlVao() {
+        for (const vao of this.#vaos.values()) vao.dispose()
+        this.#vaos.clear()
     }
 
     dispose() {
-        this.#gl.deleteProgram(this.program)
-    }
-}
-
-/////////////////////// Program /////////////////////////////
-
-/**
- * @param {WebGL2RenderingContext} gl 
- * @param {WebGLShader} vertexShader 
- * @param {WebGLShader} fragmentShader 
- * @param {string[]} outVaryings 
- */
-function createProgram(gl, vertexShader, fragmentShader, outVaryings = []) {
-    const program = gl.createProgram()
-    gl.attachShader(program, vertexShader)
-    gl.attachShader(program, fragmentShader)
-
-    if (outVaryings.length > 0) {
-        gl.transformFeedbackVaryings(program, outVaryings, WebGL2RenderingContext.SEPARATE_ATTRIBS)
-    }
-
-    gl.linkProgram(program)
-
-    if (gl.getProgramParameter(program, WebGL2RenderingContext.LINK_STATUS)) {
-        return program
-    } else {
-        console.warn(gl.getProgramInfoLog(program))
-        gl.deleteProgram(program)
+        this.#gl.deleteProgram(this.#glProgram)
+        this.freeAllGlVao()
     }
 }
 

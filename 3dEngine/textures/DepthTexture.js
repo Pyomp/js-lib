@@ -1,9 +1,8 @@
-import { Texture } from "../webgl/glDescriptors/GlTextureData.js"
+import { GlTextureData } from "../webgl/glDescriptors/GlTextureData.js"
 
-export class DepthTexture extends Texture {
+export class DepthTexture extends GlTextureData {
     constructor() {
         super({
-            target: 'TEXTURE_2D',
             wrapS: 'CLAMP_TO_EDGE',
             wrapT: 'CLAMP_TO_EDGE',
             minFilter: 'NEAREST',
