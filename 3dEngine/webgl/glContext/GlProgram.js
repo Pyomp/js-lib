@@ -2,6 +2,7 @@ import { GlContext } from "./GlContext.js"
 import { GlProgramData } from "../glDescriptors/GlProgramData.js"
 import { GlVaoData } from "../glDescriptors/GlVaoData.js"
 import { GlVao } from "./GlVao.js"
+import { GlTransformFeedback } from "./GlTransformFeedback.js"
 
 export class GlProgram {
     #version = -1
@@ -20,6 +21,8 @@ export class GlProgram {
     #glContext
     #glProgram
     #globalUboIndex
+    /** @type {GlTransformFeedback} */
+    #glTransformFeedback
 
     /**
      * 
@@ -36,14 +39,22 @@ export class GlProgram {
     }
 
     #linkProgram() {
+        // console.log(this.#glProgramData.vertexShader())
+        // console.log(this.#glProgramData.fragmentShader())
         const glVertexShader = createShader(this.#gl, WebGL2RenderingContext.VERTEX_SHADER, this.#glProgramData.vertexShader())
         const glFragmentShader = createShader(this.#gl, WebGL2RenderingContext.FRAGMENT_SHADER, this.#glProgramData.fragmentShader())
 
         this.#gl.attachShader(this.#glProgram, glVertexShader)
         this.#gl.attachShader(this.#glProgram, glFragmentShader)
 
-        if (this.#glProgramData.outVaryings.length > 0) {
-            this.#gl.transformFeedbackVaryings(this.#glProgram, this.#glProgramData.outVaryings, WebGL2RenderingContext.SEPARATE_ATTRIBS)
+        if (this.#glProgramData.glTransformFeedbackData) {
+            this.#gl.transformFeedbackVaryings(
+                this.#glProgram,
+                this.#glProgramData.glTransformFeedbackData.outVaryings,
+                this.#glProgramData.glTransformFeedbackData.bufferMode
+            )
+
+            this.#glTransformFeedback = new GlTransformFeedback(this.#glContext, this.#glProgram, this.#glProgramData.glTransformFeedbackData)
         }
 
         this.#gl.linkProgram(this.#glProgram)
@@ -57,6 +68,10 @@ export class GlProgram {
         this.#gl.deleteShader(glVertexShader)
         this.#gl.detachShader(this.#glProgram, glFragmentShader)
         this.#gl.deleteShader(glFragmentShader)
+    }
+
+    bindTransformFeedback() {
+        this.#glTransformFeedback.bind()
     }
 
     #setupUniform() {
@@ -106,7 +121,7 @@ export class GlProgram {
     getAttribLocation(attributeName) {
         return this.#gl.getAttribLocation(this.#glProgram, attributeName)
     }
-    
+
     updateProgram() {
         this.#linkProgram()
         this.#setupUniform()
@@ -135,6 +150,15 @@ export class GlProgram {
     freeAllGlVao() {
         for (const vao of this.#vaos.values()) vao.dispose()
         this.#vaos.clear()
+    }
+
+    updateVaoCache() {
+        for (const [vao, glVao] of this.#vaos) {
+            if (vao.needsDelete) {
+                glVao.dispose()
+                this.#vaos.delete(vao)
+            }
+        }
     }
 
     dispose() {

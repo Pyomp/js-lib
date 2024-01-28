@@ -1,13 +1,17 @@
 import { GlArrayBufferData } from "./GlArrayBufferData.js"
-import { GlProgramData } from "./GlProgramData.js"
 
 export class GlTransformFeedbackData {
     /**
-     * @param {GlProgramData} glProgramData
-     * @param {{[name: string]: GlArrayBufferData}} glArrayBufferDatas
+     * @param {{[name: string]: GlArrayBufferData} | GlArrayBufferData} glArrayBufferData
+     * @param {string[]} outVaryings
      */
-    constructor(glProgramData, glArrayBufferDatas) {
-        this.glProgramData = glProgramData
-        this.glArrayBufferDatas = glArrayBufferDatas
+    constructor(glArrayBufferData, outVaryings) {
+        this.outVaryings = outVaryings
+        this.glArrayBufferData = glArrayBufferData
+        if (glArrayBufferData instanceof Array) {
+            this.bufferMode = WebGL2RenderingContext.SEPARATE_ATTRIBS
+        } else {
+            this.bufferMode = WebGL2RenderingContext.INTERLEAVED_ATTRIBS
+        }
     }
 }

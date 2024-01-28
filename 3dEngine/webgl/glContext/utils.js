@@ -8,15 +8,16 @@
  * @param {number} writeOffset 
  */
 export function copyBuffer(gl, readTarget, writeTarget, size, readOffset = 0, writeOffset = 0) {
-    gl.bindBuffer(WebGL2RenderingContext.COPY_READ_BUFFER, readTarget)
-    gl.bindBuffer(WebGL2RenderingContext.ARRAY_BUFFER, writeTarget)
-    gl.copyBufferSubData(WebGL2RenderingContext.COPY_READ_BUFFER, WebGL2RenderingContext.ARRAY_BUFFER, readOffset, writeOffset, size)
+    gl.bindBuffer(WebGL2RenderingContext.TRANSFORM_FEEDBACK_BUFFER, readTarget)
+    gl.bindBuffer(WebGL2RenderingContext.COPY_WRITE_BUFFER, writeTarget)
+    gl.copyBufferSubData(WebGL2RenderingContext.TRANSFORM_FEEDBACK_BUFFER, WebGL2RenderingContext.COPY_WRITE_BUFFER, readOffset, writeOffset, size)
 }
 
-export function printBuffer(gl, buffer, count = 4) {
+export function printBuffer(gl, buffer, target = WebGL2RenderingContext.ARRAY_BUFFER, count = 4) {
     const f = new Float32Array(count)
-    gl.bindBuffer(WebGL2RenderingContext.ARRAY_BUFFER, buffer)
-    gl.getBufferSubData(WebGL2RenderingContext.ARRAY_BUFFER, 0, f)
+    gl.bindBuffer(target, buffer)
+    gl.getBufferSubData(target, 0, f)
+    gl.bindBuffer(target, null)
     console.log(...f)
 }
 

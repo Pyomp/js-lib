@@ -1,4 +1,8 @@
 export class GlArrayBufferData {
+    version = -1
+
+    needsDelete = false
+
     /**
      * 
      * @param {WebGl.Attribute.data} arrayBuffer

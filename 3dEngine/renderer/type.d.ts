@@ -1,2 +1,2 @@
 declare type Renderer = import('./Renderer.js').Renderer
-declare type SkyBoxRenderer = import('./modules/SkyBoxRenderer.js').SkyBoxRenderer
+declare type SkyBoxRenderer = import('../sceneGraph/objects/SkyBoxGlObject.js').SkyBoxRenderer

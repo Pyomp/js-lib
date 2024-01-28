@@ -10,7 +10,7 @@ ${GLSL_COMMON.vertexDeclaration}
 out vec2 v_uv;
 
 void main() {
-    vec4 worldPosition = ${GLSL_COMMON.worldMatrix} * vec4(${GLSL_COMMON.position}, 1.0);
+    vec4 worldPosition = ${GLSL_COMMON.worldMatrix} * vec4(${GLSL_COMMON.positionAttribute}, 1.0);
     gl_Position = ${GLSL_CAMERA.projectionViewMatrix} * worldPosition;
     v_uv = uv;
 }`

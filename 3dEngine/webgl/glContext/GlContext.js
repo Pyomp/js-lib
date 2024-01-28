@@ -9,6 +9,8 @@ import { GlTextureData } from "../glDescriptors/GlTextureData.js"
 import { GlUbo } from "./GlUbo.js"
 import { GlUboData } from "../glDescriptors/GlUboData.js"
 import { GlObjectData } from "../glDescriptors/GlObjectData.js"
+import { GlFrameBufferData } from "../glDescriptors/GlFrameBufferData.js"
+import { GlFrameBuffer } from "./GlFrameBuffer.js"
 
 export class GlContext {
     #globalUbos
@@ -33,7 +35,7 @@ export class GlContext {
             preserveDrawingBuffer: false,
             stencil: false
         },
-        globalUbos = {}
+        globalUbos = {},
     ) {
         this.canvas = canvas
         this.gl = canvas.getContext("webgl2", options)
@@ -124,6 +126,22 @@ export class GlContext {
         for (const ubo of this.#ubos.values()) ubo.dispose()
         this.#ubos.clear()
     }
+    
+    /** @type {Map<GlFrameBufferData, GlFrameBuffer>} */ #frameBuffers = new Map()
+    getGlFrameBuffer(/** @type {GlFrameBufferData} */ glFrameBufferData) {
+        if (!this.#frameBuffers.has(glFrameBufferData)) {
+            this.#frameBuffers.set(glFrameBufferData, new GlFrameBuffer(this, glFrameBufferData))
+        }
+        return this.#frameBuffers.get(glFrameBufferData)
+    }
+    freeGlFrameBuffer(/** @type {GlFrameBufferData} */ glFrameBufferData) {
+        this.#frameBuffers.get(glFrameBufferData)?.dispose()
+        this.#frameBuffers.delete(glFrameBufferData)
+    }
+    freeAllGlFrameBuffer() {
+        for (const frameBuffer of this.#frameBuffers.values()) frameBuffer.dispose()
+        this.#frameBuffers.clear()
+    }
 
     /** @type {Set<(width: number, height: number) => void>} */
     resizeListeners = new Set()
@@ -142,7 +160,40 @@ export class GlContext {
 
     updateGlobalUbos() {
         for (const glUboData of Object.values(this.#globalUbos)) {
-            this.getGlUbo(glUboData).update()
+            if (this.getGlUbo(glUboData).update()) {
+                this.freeAllGlProgram()
+            }
+        }
+    }
+
+    updateCache() {
+        for (const [arrayBuffer, glArrayBuffer] of this.#arrayBuffers) {
+            if (arrayBuffer.needsDelete) {
+                glArrayBuffer.dispose()
+                this.#arrayBuffers.delete(arrayBuffer)
+            }
+        }
+
+        for (const [program, glProgram] of this.#programs) {
+            glProgram.updateVaoCache()
+            if (program.needsDelete) {
+                glProgram.dispose()
+                this.#programs.delete(program)
+            }
+        }
+
+        for (const [texture, glTexture] of this.#textures) {
+            if (texture.needsDelete) {
+                glTexture.dispose()
+                this.#textures.delete(texture)
+            }
+        }
+
+        for (const [ubo, glUbo] of this.#ubos) {
+            if (ubo.needsDelete) {
+                glUbo.dispose()
+                this.#ubos.delete(ubo)
+            }
         }
     }
 
@@ -156,6 +207,7 @@ export class GlContext {
         this.glCapabilities.depthTest = glObjectData.depthTest
         this.glCapabilities.depthWrite = glObjectData.depthWrite
         this.glCapabilities.cullFace = glObjectData.cullFace
+        this.glCapabilities.depthFunc = glObjectData.depthFunc
 
         const glProgram = this.getGlProgram(glObjectData.glProgramData)
 
@@ -185,12 +237,47 @@ export class GlContext {
         const glVao = glObjectData.glVaoData && glProgram.getGlVao(glObjectData.glVaoData)
 
         if (glVao) {
+            glVao.updateBufferSubData()
             if (this.#currentVao !== glVao) {
                 this.#currentVao = glVao
                 glVao.bind()
             }
-            if (glVao.indicesType !== -1) this.gl.drawElements(glObjectData.drawMode, glObjectData.count, glVao.indicesType, glObjectData.offset)
-            else this.gl.drawArrays(glObjectData.drawMode, glObjectData.offset, glObjectData.count)
-        } else this.gl.drawArrays(glObjectData.drawMode, glObjectData.offset, glObjectData.count)
+        }
+
+        if (glObjectData.glProgramData.glTransformFeedbackData) {
+            glProgram.bindTransformFeedback()
+            this.gl.beginTransformFeedback(WebGL2RenderingContext.POINTS)
+            this.gl.drawArrays(WebGL2RenderingContext.POINTS, glObjectData.offset, glObjectData.count)
+            this.gl.endTransformFeedback()
+        } else if (glVao && glVao.indicesType !== -1) {
+            this.gl.drawElements(glObjectData.drawMode, glObjectData.count, glVao.indicesType, glObjectData.offset)
+        } else {
+            this.gl.drawArrays(glObjectData.drawMode, glObjectData.offset, glObjectData.count)
+        }
+    }
+
+    discardRasterizer() {
+        this.gl.enable(WebGL2RenderingContext.RASTERIZER_DISCARD)
+        this.gl.bindBuffer(WebGL2RenderingContext.ARRAY_BUFFER, null)
+        this.gl.bindBuffer(WebGL2RenderingContext.COPY_READ_BUFFER, null)
+    }
+
+    enableRasterizer() {
+        this.gl.disable(WebGL2RenderingContext.RASTERIZER_DISCARD)
+        this.gl.bindTransformFeedback(WebGL2RenderingContext.TRANSFORM_FEEDBACK, null)
+    }
+
+    /**
+     * 
+     * @param {GlArrayBufferData} glArrayBufferDataSource 
+     * @param {GlArrayBufferData} glArrayBufferDataSourceTarget 
+     * @param {number?} offsetSource 
+     * @param {number?} offsetTarget 
+     * @param {number?} size 
+     */
+    copyBufferSubData(glArrayBufferDataSource, glArrayBufferDataSourceTarget, offsetSource = undefined, offsetTarget = undefined, size = undefined) {
+        const source = this.getGlArrayBuffer(glArrayBufferDataSource)
+        const target = this.getGlArrayBuffer(glArrayBufferDataSourceTarget)
+        source.copyTo(target, offsetSource, offsetTarget, size)
     }
 }

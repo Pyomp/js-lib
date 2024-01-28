@@ -11,6 +11,8 @@ const CUBE_MAP_TARGETS = [
 ]
 
 export class GlTexture {
+    #glContext
+
     /** @type {WebGL2RenderingContext} */ #gl
 
     /** @type {WebGLTexture} */ #glTexture
@@ -31,6 +33,7 @@ export class GlTexture {
      * @param {GlTextureData} glTextureData 
      */
     constructor(glContext, glTextureData) {
+        this.#glContext = glContext
         this.#gl = glContext.gl
         this.#glTextureData = glTextureData
         this.#glTexture = this.#gl.createTexture()
@@ -106,13 +109,7 @@ export class GlTexture {
         if (this.#glTextureData.needsMipmap) this.#gl.generateMipmap(this.#target)
     }
 
-    /**
-     * @param {number} unit 
-     */
-    bindToUnit(unit) {
-        this.#gl.activeTexture(unit)
-        this.#gl.bindTexture(this.#target, this.#glTexture)
-
+    #update() {
         if (this.#glTextureData.paramsVersion !== this.#paramsVersion) {
             this.#glTextureData.dataVersion = this.#dataVersion
             this.#glTextureData.paramsVersion = this.#paramsVersion
@@ -121,6 +118,21 @@ export class GlTexture {
             this.#glTextureData.dataVersion = this.#dataVersion
             this.#updateData()
         }
+    }
+
+    /**
+     * @param {number} unit 
+     */
+    bindToUnit(unit) {
+        this.#gl.activeTexture(unit)
+        this.#gl.bindTexture(this.#target, this.#glTexture)
+        this.#update()
+    }
+
+    attachToBoundFrameBuffer(attachment) {
+        this.#gl.bindTexture(this.#target, this.#glTexture)
+        this.#update()
+        this.#gl.framebufferTexture2D(WebGL2RenderingContext.FRAMEBUFFER, attachment, this.#target, this.#glTexture, 0)
     }
 
     dispose() {

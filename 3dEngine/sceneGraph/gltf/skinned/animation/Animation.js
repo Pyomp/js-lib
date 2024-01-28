@@ -62,6 +62,7 @@ export class Animation {
 
     createArmature() {
         const buffer = new Float32Array(16 * this.#bonesCount)
+        
         const jointsTexture = new GlTextureData({
             name: `joints for skin ${this.name}`,
             data: buffer,
@@ -80,6 +81,7 @@ export class Animation {
 
             needsMipmap: false,
         })
+
         return {
             rootBone: new Bone(this.#gltfSkinRootBone, buffer, this.#inverseBindMatrices),
             jointsTexture

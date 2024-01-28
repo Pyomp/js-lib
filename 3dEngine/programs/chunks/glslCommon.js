@@ -5,6 +5,7 @@ const tangentAttribute = 'tangent'
 const worldMatrix = 'worldMatrix'
 const baseColor = 'baseColor'
 const baseTexture = 'baseTexture'
+const normalMatrix = 'normalMatrix'
 
 const vertexDeclaration = `
 in vec3 ${positionAttribute};
@@ -19,6 +20,38 @@ uniform vec3 ${baseColor};
 uniform sampler2D ${baseTexture};
 `
 
+/**
+ * @param {string[]} matrixes 
+ */
+function getWorldPosition(...matrixes) {
+    let matrixesString = ''
+    for (const matrix of matrixes) {
+        if (matrix) matrixesString += `${matrix} * `
+    }
+
+    return `${worldMatrix} * ${matrixesString} vec4(${positionAttribute}, 1.0)`
+}
+
+/**
+ * @param {string[]} matrixes 
+ */
+function getWorldNormal(...matrixes) {
+    let matrixesString = ''
+    for (const matrix of matrixes) {
+        if (matrix) matrixesString += `mat3(${matrix}) * `
+    }
+
+    return `mat3(${worldMatrix}) * ${matrixesString} ${normalAttribute}`
+}
+
+function getTangent(worldMatrix, viewMatrix, tangent) {
+    return `normalize( ( ${worldMatrix} * ${viewMatrix} * vec4( ${tangent}.xyz, 0.0 ) ).xyz )`
+}
+
+function getBiTangent(viewNormal, viewTangent, tangent) {
+    return `normalize( cross( ${viewNormal}, ${viewTangent} ) * ${tangent}.w )`
+}
+
 export const GLSL_COMMON = Object.freeze({
     baseColor,
     baseTexture,
@@ -27,6 +60,11 @@ export const GLSL_COMMON = Object.freeze({
     normalAttribute,
     tangentAttribute,
     worldMatrix,
+    normalMatrix,
     vertexDeclaration,
-    fragmentDeclaration
+    fragmentDeclaration,
+    getWorldPosition,
+    getWorldNormal,
+    getTangent,
+    getBiTangent
 })

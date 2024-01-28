@@ -3,7 +3,7 @@ import { GlUboData } from "../glDescriptors/GlUboData.js"
 import { GLSL_CAMERA } from '../../programs/chunks/glslCamera.js'
 
 export class GlCameraUbo {
-    #version = -1
+    #version = 0
 
     #camera
     glUboData = new GlUboData(GLSL_CAMERA.uboByteLength)

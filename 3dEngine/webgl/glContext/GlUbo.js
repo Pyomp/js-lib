@@ -30,8 +30,10 @@ export class GlUbo {
             if (this.#arrayBuffer !== this.#glUboData.arrayBuffer) {
                 this.#arrayBuffer = this.#glUboData.arrayBuffer
                 this.#gl.bufferData(WebGL2RenderingContext.UNIFORM_BUFFER, this.#arrayBuffer, this.#glUboData.usage)
+                return true
             } else {
                 this.#gl.bufferSubData(WebGL2RenderingContext.UNIFORM_BUFFER, 0, this.#arrayBuffer)
+                return false
             }
         }
     }
@@ -39,6 +41,7 @@ export class GlUbo {
     bindToIndex(index) {
         this.update()
         // question: should I bind buffer before ?
+        // this.#gl.bindBuffer(WebGL2RenderingContext.UNIFORM_BUFFER, this.#glUboBuffer)
         this.#gl.bindBufferBase(WebGL2RenderingContext.UNIFORM_BUFFER, index, this.#glUboBuffer)
     }
 

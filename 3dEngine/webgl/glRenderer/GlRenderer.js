@@ -1,21 +1,43 @@
 import { Box3 } from "../../../math/Box3.js"
+import { GLSL_AMBIENT_LIGHT } from "../../programs/chunks/glslAmbient.js"
 import { GLSL_CAMERA } from "../../programs/chunks/glslCamera.js"
+import { GLSL_POINT_LIGHT } from "../../programs/chunks/glslPointLight.js"
+import { GLSL_WINDOW } from "../../programs/chunks/glslWindow.js"
+import { AmbientLight } from "../../sceneGraph/AmbientLight.js"
 import { Camera } from "../../sceneGraph/Camera.js"
 import { Node3D } from "../../sceneGraph/Node3D.js"
-import { Scene } from "../../sceneGraph/Scene.js"
+import { PointLight } from "../../sceneGraph/PointLight.js"
+import { Particle } from "../../sceneGraph/particle/Particle.js"
+import { GlDepthTextureData } from "../../textures/DepthTexture.js"
 import { GlContext } from "../glContext/GlContext.js"
+import { GlFrameBufferData } from "../glDescriptors/GlFrameBufferData.js"
 import { GlObjectData } from "../glDescriptors/GlObjectData.js"
+import { GlTextureData } from "../glDescriptors/GlTextureData.js"
+import { GlAmbientLightRenderer } from "./GlAmbientLightRenderer.js"
 import { GlCameraUbo } from "./GlCameraUbo.js"
+import { GlPointLightRenderer } from "./GlPointLightRenderer.js"
+import { GlWindowInfo } from "./GlWindowInfo.js"
+import { GlParticleRenderer } from "./ParticlesRenderer/GlParticleRenderer.js"
 
 const _box3 = new Box3()
 
 export class GlRenderer {
     htmlElement = document.createElement('div')
 
-    scene = new Scene()
+    scene = new Node3D()
 
     camera = new Camera({})
     #cameraUbo = new GlCameraUbo(this.camera)
+
+    windowInfo = new GlWindowInfo()
+    depthTexture = new GlDepthTextureData()
+    depthFrameBuffer = new GlFrameBufferData({ [WebGL2RenderingContext.DEPTH_ATTACHMENT]: this.depthTexture })
+
+    pointLightRenderer = new GlPointLightRenderer()
+    get pointLightCount() { return this.pointLightRenderer.uboPointLightCount }
+
+    ambientLightRenderer = new GlAmbientLightRenderer()
+
 
     constructor() {
         this.htmlElement.style.top = '0'
@@ -41,36 +63,29 @@ export class GlRenderer {
         this.htmlElement.appendChild(canvas)
 
 
-        this.glContext = new GlContext(canvas, undefined, {
-            [GLSL_CAMERA.uboName]: this.#cameraUbo.glUboData
-        })
+        this.glContext = new GlContext(
+            canvas,
+            undefined,
+            {
+                [GLSL_CAMERA.uboName]: this.#cameraUbo.glUboData,
+                [GLSL_AMBIENT_LIGHT.uboName]: this.ambientLightRenderer.glUboData,
+                [GLSL_POINT_LIGHT.uboName]: this.pointLightRenderer.glUboData,
+                [GLSL_WINDOW.uboName]: this.windowInfo.glUboData
+            },
+        )
+        // TODO dispose previous windowInfo 
+        this.windowInfo.initGl(this.glContext)
+
+        this.particleRenderer = new GlParticleRenderer({ glContext: this.glContext, glDepthTextureData: this.depthTexture, maxKeyframes: 1 })
         this.glContext.resizeListeners.add(this.onResize.bind(this))
     }
 
     onResize(width, height) {
         this.camera.aspect = width / height
+        this.depthTexture.width = width
+        this.depthTexture.height = height
+        this.depthTexture.paramsVersion++
     }
-
-    // #deleteToBeDeleted() {
-    //     for (const [material, program] of this.#programMap) {
-    //         if (material.needsDelete) {
-    //             program.dispose()
-    //             this.#programMap.delete(material)
-    //         }
-    //     }
-    //     for (const [geometry, vao] of this.#vaoMap) {
-    //         if (geometry.needsDelete) {
-    //             vao.dispose()
-    //             this.#vaoMap.delete(geometry)
-    //         }
-    //     }
-    //     for (const [texture, glTexture] of this.#textureMap) {
-    //         if (texture.needsDelete) {
-    //             glTexture.dispose()
-    //             this.#textureMap.delete(texture)
-    //         }
-    //     }
-    // }
 
     resetGlStates() {
         this.glContext.freeAllGlProgram()
@@ -79,12 +94,6 @@ export class GlRenderer {
     /** @param {Node3D[]} nodesToDraw  */
     getObjectsToDraw(nodesToDraw) {
         const objectsToDraw = getObjectsInFrustum(nodesToDraw, this.camera.frustum)
-
-        for (const object of this.scene.objects) {
-            // if (object.geometry.boundingBox.isEmpty() || this.camera.frustum.intersectsBox(_box3.copy(object.geometry.boundingBox))) {
-            objectsToDraw.push(object)
-            // }
-        }
 
         const [opaque, transparent] = sortTransparencyObjects(objectsToDraw)
 
@@ -99,20 +108,68 @@ export class GlRenderer {
      * @param {number} deltatimeSecond 
      */
     render(deltatimeSecond) {
+        this.glContext.updateCache()
         const gl = this.glContext.gl
         this.scene.updateWorldMatrix()
 
         this.camera.update()
         this.#cameraUbo.update()
 
+        /** @type {PointLight[]} */
+        const pointLights = []
+        /** @type {AmbientLight[]} */
+        const ambientLights = []
+        /** @type {Particle[]} */
+        const particlesToAdd = []
+        /** @type {GlObjectData[]} */
+        const gpgpuObjects = []
+        /** @type {Set<Node3D>} */
+        const node3Ds = new Set()
+
+        this.scene.traverse((node) => {
+            if (node.mixer) node.mixer.updateTime(deltatimeSecond)
+            for (const object of node.objects) {
+                if (object instanceof PointLight) {
+                    object.updateWorldPosition(node.worldMatrix)
+                    pointLights.push(object)
+                } else if (object instanceof AmbientLight) {
+                    ambientLights.push(object)
+                } else if (object instanceof Particle) {
+                    particlesToAdd.push(object)
+                    node.objects.delete(object)
+                } else if (object instanceof GlObjectData) {
+                    if (object.glProgramData.glTransformFeedbackData) {
+                        gpgpuObjects.push(object)
+                    } else {
+                        node3Ds.add(node)
+                    }
+                }
+            }
+        })
+
+        this.ambientLightRenderer.updateUbo(ambientLights)
+        this.pointLightRenderer.updateUbo(pointLights)
+
         this.glContext.updateGlobalUbos()
 
-        this.scene.traverse((node) => { if (node.mixer) node.mixer.updateTime(deltatimeSecond) })
+        for (const particle of particlesToAdd) {
+            this.particleRenderer.addParticle(particle)
+        }
 
-        const nodesToDraw = getNodesInFrustum(this.scene, this.camera.frustum)
-        for (const node of nodesToDraw) if (node.mixer) node.mixer.updateBuffer()
+        this.glContext.discardRasterizer()
 
-        const [opaqueObjects, transparentObjects] = this.getObjectsToDraw(nodesToDraw)
+        this.particleRenderer.update(deltatimeSecond)
+        this.glContext.drawObject(this.particleRenderer.particlePhysicsGlObject)
+        for (const object of gpgpuObjects) {
+            this.glContext.drawObject(object)
+        }
+        this.glContext.enableRasterizer()
+
+        const nodesInFrustum = getNodesInFrustum(node3Ds, this.camera.frustum)
+        for (const node of nodesInFrustum) if (node.mixer) node.mixer.updateJointsTexture()
+
+        const [opaqueObjects, transparentObjects] = this.getObjectsToDraw(nodesInFrustum)
+
 
         gl.clear(WebGL2RenderingContext.COLOR_BUFFER_BIT | WebGL2RenderingContext.DEPTH_BUFFER_BIT)
 
@@ -120,12 +177,13 @@ export class GlRenderer {
             this.glContext.drawObject(object)
         }
 
-        // blit(gl, null, this.particles.depthFrameBuffer, this.windowInfoRenderer.width, this.windowInfoRenderer.height)
-        // gl.bindFramebuffer(WebGL2RenderingContext.FRAMEBUFFER, null)
+        this.glContext.getGlFrameBuffer(this.depthFrameBuffer).blit(null, this.windowInfo.width, this.windowInfo.height)
+        gl.bindFramebuffer(WebGL2RenderingContext.FRAMEBUFFER, null)
 
         for (const object of transparentObjects) {
             this.glContext.drawObject(object)
         }
+        this.glContext.drawObject(this.particleRenderer.particleRenderObject)
     }
 
     #lastProgramId = 0
@@ -135,6 +193,7 @@ export class GlRenderer {
     #objectState = new WeakMap()
 
     compareObjectDrawOptimizationBound = this.compareObjectDrawOptimization.bind(this)
+
     /**
      * 
      * @param {GlObjectData} a 
@@ -194,11 +253,11 @@ function sortTransparencyObjects(/** @type {GlObjectData[]} */ objects) {
     return [opaque, transparent]
 }
 
-function getNodesInFrustum(scene, frustum) {
+function getNodesInFrustum(node3Ds, frustum) {
     /** @type {Node3D[]} */
     const nodes = []
 
-    scene.traverse((node) => {
+    for (const node of node3Ds) {
         const boundingBox = node.boundingBox
 
         if (boundingBox.isEmpty()
@@ -207,7 +266,7 @@ function getNodesInFrustum(scene, frustum) {
         ) {
             nodes.push(node)
         }
-    })
+    }
 
     return nodes
 }
@@ -218,14 +277,16 @@ function getObjectsInFrustum(/** @type {Node3D[]} */ nodes, frustum) {
 
     for (const node of nodes) {
         for (const object of node.objects) {
-            // const boundingBox = object.geometry.boundingBox
+            if (object instanceof GlObjectData && !object.glProgramData.glTransformFeedbackData) {
+                const boundingBox = object.glVaoData.boundingBox
 
-            // if (boundingBox.isEmpty()
-            //     || frustum.intersectsBox(
-            //         _box3.copy(boundingBox).translate(node.position))
-            // ) {
-            result.push(object)
-            // }
+                if (boundingBox.isEmpty()
+                    || frustum.intersectsBox(
+                        _box3.copy(boundingBox).translate(node.position))
+                ) {
+                    result.push(object)
+                }
+            }
         }
     }
 

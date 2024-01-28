@@ -1,58 +1,53 @@
+import { GlArrayBufferData } from "../glDescriptors/GlArrayBufferData.js"
 import { GlTransformFeedbackData } from "../glDescriptors/GlTransformFeedbackData.js"
 import { GlContext } from "./GlContext.js"
 
 export class GlTransformFeedback {
+    #glContext
     /** @type {WebGL2RenderingContext} */ #gl
+    #glArrayBuffersData = new Set()
 
-    /** @type {WebGLVertexArrayObject} */ transformFeedback
-
-    /** @type {{[name: string]: WebGLBuffer}} */
-    buffers = {}
+    /** @type {WebGLVertexArrayObject} */ #glTransformFeedback
 
     /**
-     * 
      * @param {GlContext} glContext
+     * @param {WebGLProgram} glProgram
      * @param {GlTransformFeedbackData} glTransformFeedbackData
      */
-    constructor(glContext, glTransformFeedbackData) {
+    constructor(glContext, glProgram, glTransformFeedbackData) {
+        this.#glContext = glContext
         this.#gl = glContext.gl
 
-        const program = glContext.getGlProgram(glTransformFeedbackData.glProgramData)
-
-        const transformFeedbackVaryingCount = this.#gl.getProgramParameter(program, WebGL2RenderingContext.TRANSFORM_FEEDBACK_VARYINGS)
+        const transformFeedbackVaryingCount = this.#gl.getProgramParameter(glProgram, WebGL2RenderingContext.TRANSFORM_FEEDBACK_VARYINGS)
 
         this.transformFeedback = this.#gl.createTransformFeedback()
-        this.#gl.bindTransformFeedback(WebGL2RenderingContext.TRANSFORM_FEEDBACK, this.transformFeedback)
+        this.#gl.bindTransformFeedback(WebGL2RenderingContext.TRANSFORM_FEEDBACK, this.#glTransformFeedback)
 
-        for (let i = 0; i < transformFeedbackVaryingCount; i++) {
-            const { name } = this.#gl.getTransformFeedbackVarying(program, i)
-            const buffer = glContext.getGlArrayBuffer(glTransformFeedbackData.glArrayBufferDatas[name])
-            this.#gl.bindBufferBase(this.#gl.TRANSFORM_FEEDBACK_BUFFER, i, buffer)
+        if (glTransformFeedbackData.glArrayBufferData instanceof GlArrayBufferData) {
+            const glArrayBuffer = glContext.getGlArrayBuffer(glTransformFeedbackData.glArrayBufferData)
+            glArrayBuffer.bind()
+            this.#glArrayBuffersData.add(glArrayBuffer)
+            this.#gl.bindBufferBase(WebGL2RenderingContext.TRANSFORM_FEEDBACK_BUFFER, 0, glArrayBuffer.glBuffer)
+        } else {
+            for (let i = 0; i < transformFeedbackVaryingCount; i++) {
+                const { name } = this.#gl.getTransformFeedbackVarying(glProgram, i)
+                const glArrayBuffer = glContext.getGlArrayBuffer(glTransformFeedbackData.glArrayBufferData[name])
+                glArrayBuffer.bind()
+                this.#glArrayBuffersData.add(glArrayBuffer)
+                this.#gl.bindBufferBase(WebGL2RenderingContext.TRANSFORM_FEEDBACK_BUFFER, i, glArrayBuffer.glBuffer)
+            }
         }
     }
 
     bind() {
-        this.#gl.bindTransformFeedback(WebGL2RenderingContext.TRANSFORM_FEEDBACK, this.transformFeedback)
+        this.#gl.bindTransformFeedback(WebGL2RenderingContext.TRANSFORM_FEEDBACK, this.#glTransformFeedback)
     }
 
     dispose() {
-        this.#gl.deleteTransformFeedback(this.transformFeedback)
-        for (const buffer of Object.values(this.buffers)) {
-            this.#gl.deleteBuffer(buffer)
+        this.#gl.deleteTransformFeedback(this.#glTransformFeedback)
+
+        for (const glArrayBufferData of this.#glArrayBuffersData) {
+            this.#glContext.freeGlArrayBuffer(glArrayBufferData)
         }
     }
-}
-
-function getSize(type) {
-    if (type === WebGL2RenderingContext.FLOAT) return 1 * 4
-    else if (type === WebGL2RenderingContext.FLOAT_VEC2) return 2 * 4
-    else if (type === WebGL2RenderingContext.FLOAT_VEC3) return 3 * 4
-    else if (type === WebGL2RenderingContext.FLOAT_VEC4) return 4 * 4
-    else if (type === WebGL2RenderingContext.INT) return 1 * 4
-    else if (type === WebGL2RenderingContext.INT_VEC2) return 2 * 4
-    else if (type === WebGL2RenderingContext.INT_VEC3) return 3 * 4
-    else if (type === WebGL2RenderingContext.INT_VEC4) return 4 * 4
-    else if (type === WebGL2RenderingContext.FLOAT_MAT2) return 2 * 2 * 4
-    else if (type === WebGL2RenderingContext.FLOAT_MAT3) return 3 * 3 * 4
-    else if (type === WebGL2RenderingContext.FLOAT_MAT4) return 4 * 4 * 4
 }

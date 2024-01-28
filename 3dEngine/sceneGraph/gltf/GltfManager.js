@@ -59,7 +59,6 @@ export class GltfManager {
 
             if (node3D.mixer) glTexturesData[GLSL_SKINNED.jointsTexture] = node3D.mixer.jointsTexture
 
-
             if (primitive.material?.pbrMetallicRoughness) {
                 const pbrMetallicRoughness = primitive.material.pbrMetallicRoughness
                 if (pbrMetallicRoughness.baseColorFactor) uniforms[GLSL_COMMON.baseColor] = new Color(pbrMetallicRoughness.baseColorFactor)
@@ -85,8 +84,12 @@ export class GltfManager {
         return node3D
     }
 
+
+    getSplattingNode(gltfNode, glProgramData){
+        
+    }
+
     /**
-     * 
      * @param {GltfAttributes} attributes
      * @returns 
      */

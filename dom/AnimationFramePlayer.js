@@ -29,12 +29,13 @@ export class AnimationFramePlayer {
         this.dateNowSecond = this.dateNowMs / 1000
         this.performanceNowMs = now
         this.performanceNowSecond = now / 1000
-        this.deltatimeMs = Math.min(this.performanceNowMs - this.#last, AnimationFramePlayer.MAX_DELTA_TIME_MS)
-        this.deltatimeSecond = this.deltatimeMs / 1000
 
-        this.#last = this.performanceNowMs
 
         if (this.#nextCallbackCallLimitSecond <= this.performanceNowSecond) {
+            this.deltatimeMs = Math.min(this.performanceNowMs - this.#last, AnimationFramePlayer.MAX_DELTA_TIME_MS)
+            this.deltatimeSecond = this.deltatimeMs / 1000
+            this.#last = this.performanceNowMs
+
             this.#nextCallbackCallLimitSecond = this.performanceNowSecond + this.#deltaTimeLimitSecond
             this.#animationFrameCallback()
         }

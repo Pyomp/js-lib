@@ -4,8 +4,10 @@ import { Matrix4 } from "../../math/Matrix4.js"
 import { Quaternion } from "../../math/Quaternion.js"
 import { Vector3 } from "../../math/Vector3.js"
 import { GlObjectData } from "../webgl/glDescriptors/GlObjectData.js"
-import { Scene } from "./Scene.js"
+import { AmbientLight } from "./AmbientLight.js"
+import { PointLight } from "./PointLight.js"
 import { Mixer } from "./gltf/skinned/animation/Mixer.js"
+import { Particle } from "./particle/Particle.js"
 
 export class Node3D {
     name = 'no_name'
@@ -19,13 +21,13 @@ export class Node3D {
     worldMatrix = new Matrix4()
     normalMatrix = new Matrix3()
 
-    /** @type {Node3D | Scene | undefined} */
+    /** @type {Node3D | undefined} */
     parent
 
     /** @type {Set<Node3D>} */
     nodes = new Set()
 
-    /** @type {Set<GlObjectData>} */
+    /** @type {Set<GlObjectData | PointLight | AmbientLight | Particle>} */
     objects = new Set()
 
     boundingBox = new Box3()
@@ -52,7 +54,7 @@ export class Node3D {
         }
 
         if (force || this.localMatrixNeedsUpdate) {
-            this.worldMatrix.multiplyMatrices(this.localMatrix, this.parent.worldMatrix)
+            if (this.parent) this.worldMatrix.multiplyMatrices(this.localMatrix, this.parent.worldMatrix)
             this.normalMatrix.setFromMatrix4(this.worldMatrix).invert().transpose()
         }
 
@@ -62,8 +64,8 @@ export class Node3D {
     }
 
     traverse(/** @type {(node: Node3D) => void} */ callback) {
+        callback(this)
         for (const node of this.nodes) {
-            callback(node)
             node.traverse(callback)
         }
     }

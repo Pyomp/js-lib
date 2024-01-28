@@ -92,4 +92,14 @@ export class GlCapabilities {
             this.#gl.depthMask(value)
         }
     }
+
+    
+    #depthFunc
+    get depthFunc() { return this.#depthFunc }
+    set depthFunc(value) {
+        if (this.#depthFunc !== value) {
+            this.#depthFunc = value
+            this.#gl.depthFunc(value)
+        }
+    }
 }

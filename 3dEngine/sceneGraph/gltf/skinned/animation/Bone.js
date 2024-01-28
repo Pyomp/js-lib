@@ -32,7 +32,7 @@ export class Bone {
             }
         }
     }
-
+    
     updateMatrix(parentUpdate = true, childUpdate = true) {
         if (this.#parent && parentUpdate) this.#parent.update(true, false)
 

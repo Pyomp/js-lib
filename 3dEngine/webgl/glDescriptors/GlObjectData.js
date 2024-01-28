@@ -21,6 +21,7 @@ export class GlObjectData {
      *      depthTest?: boolean
      *      depthWrite?: boolean
      *      cullFace?: boolean
+     *      depthFunc?: Webgl.DepthFunc
      * }} param0 
      */
     constructor({
@@ -37,6 +38,7 @@ export class GlObjectData {
         depthTest = true,
         depthWrite = true,
         cullFace = true,
+        depthFunc = WebGL2RenderingContext.LESS,
     }) {
         this.glProgramData = glProgramData
         this.glVaoData = glVaoData
@@ -51,6 +53,7 @@ export class GlObjectData {
         this.depthTest = depthTest
         this.depthWrite = depthWrite
         this.cullFace = cullFace
+        this.depthFunc = depthFunc
     }
 }
 

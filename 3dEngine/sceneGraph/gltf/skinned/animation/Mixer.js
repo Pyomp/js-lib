@@ -104,7 +104,7 @@ export class Mixer {
         this.#applyLoopToTime()
     }
 
-    updateBuffer() {
+    updateJointsTexture() {
         this.rootBone.traverse((bone) => { this.#applyTransformationToBone(bone) })
         this.rootBone.updateMatrix()
         this.jointsTexture.dataVersion++

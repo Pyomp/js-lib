@@ -1,6 +1,6 @@
 import { GlTextureData } from "../webgl/glDescriptors/GlTextureData.js"
 
-export class DepthTexture extends GlTextureData {
+export class GlDepthTextureData extends GlTextureData {
     constructor() {
         super({
             wrapS: 'CLAMP_TO_EDGE',

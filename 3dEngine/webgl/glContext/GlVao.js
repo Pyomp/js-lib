@@ -52,6 +52,12 @@ export class GlVao {
         }
     }
 
+    updateBufferSubData() {
+        for (const glArrayBufferData of this.#glArrayBuffersData) {
+            this.#glContext.getGlArrayBuffer(glArrayBufferData).updateBufferSubData()
+        }
+    }
+
     bind() {
         this.#gl.bindVertexArray(this.glVao)
     }

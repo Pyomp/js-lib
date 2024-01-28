@@ -9,13 +9,13 @@ import { Scene } from "../sceneGraph/Scene.js"
 import { PointLightsRenderer } from "./modules/PointLightsRenderer.js"
 import { PointLight } from "../sceneGraph/light/PointLight.js"
 import { GlUbo } from "../webgl/glContext/GlUbo.js"
-import { WindowInfoRenderer } from "./modules/WindowInfoRenderer.js"
+import { WindowInfoRenderer } from "../webgl/glRenderer/GlWindowInfo.js"
 import { ParticleRenderer } from "./modules/ParticlesRendererModules/ParticleRenderer.js"
-import { DepthTexture } from "../textures/DepthTexture.js"
+import { GlDepthTextureData } from "../textures/DepthTexture.js"
 import { blit, typedArrayToType } from "../webgl/glContext/utils.js"
 import { SkinnedNode } from "../sceneGraph/gltf/skinned/SkinnedNode.js"
 import { GlVao } from "../webgl/glContext/GlVao.js"
-import { SkyBoxRenderer } from "./modules/SkyBoxRenderer.js"
+import { SkyBoxRenderer } from "../sceneGraph/objects/SkyBoxGlObject.js"
 
 const _box3 = new Box3()
 
@@ -132,7 +132,7 @@ export class Renderer {
         }
     }
 
-    depthTexture = new DepthTexture()
+    depthTexture = new GlDepthTextureData()
 
     resetGlStates() {
         this.#disposeGlPrograms()
@@ -212,7 +212,7 @@ export class Renderer {
 
         for (const node of nodesToDraw) {
             if (node instanceof SkinnedNode) {
-                node.mixer.updateBuffer()
+                node.mixer.updateJointsTexture()
             }
         }
 
