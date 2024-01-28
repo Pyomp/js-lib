@@ -36,9 +36,8 @@ export class GltfManager {
 
     /**
      * @param {GltfNode} gltfNode
-     * @param {GlProgramData} glProgramData
      */
-    getNode3D(gltfNode, glProgramData) {
+    getNode3D(gltfNode) {
         const node3D = new Node3D()
         if (gltfNode.name) node3D.name = gltfNode.name
         if (gltfNode.translation) node3D.position.fromArray(gltfNode.translation)
@@ -51,20 +50,17 @@ export class GltfManager {
 
         for (const primitive of gltfNode.mesh.primitives) {
 
-            /** @type {{[name: string]: WebGl.UniformData}} */
+            /** @type {{[name: string]: WebGl.UniformData | GlTextureData}} */
             const uniforms = { [GLSL_COMMON.worldMatrix]: node3D.worldMatrix }
 
-            /** @type {{[name: string]: GlTextureData}} */
-            const glTexturesData = {}
-
-            if (node3D.mixer) glTexturesData[GLSL_SKINNED.jointsTexture] = node3D.mixer.jointsTexture
+            if (node3D.mixer) uniforms[GLSL_SKINNED.jointsTexture] = node3D.mixer.jointsTexture
 
             if (primitive.material?.pbrMetallicRoughness) {
                 const pbrMetallicRoughness = primitive.material.pbrMetallicRoughness
                 if (pbrMetallicRoughness.baseColorFactor) uniforms[GLSL_COMMON.baseColor] = new Color(pbrMetallicRoughness.baseColorFactor)
-                if (pbrMetallicRoughness.baseColorTexture) glTexturesData[GLSL_COMMON.baseTexture] = this.getGlTextureData(pbrMetallicRoughness.baseColorTexture)
+                if (pbrMetallicRoughness.baseColorTexture) uniforms[GLSL_COMMON.baseTexture] = this.getGlTextureData(pbrMetallicRoughness.baseColorTexture)
                 if (pbrMetallicRoughness.metallicFactor) uniforms[GLSL_PBR.metallic] = pbrMetallicRoughness.metallicFactor
-                if (pbrMetallicRoughness.metallicRoughnessTexture) glTexturesData[GLSL_PBR.metallicRoughnessTexture] = this.getGlTextureData(pbrMetallicRoughness.metallicRoughnessTexture)
+                if (pbrMetallicRoughness.metallicRoughnessTexture) uniforms[GLSL_PBR.metallicRoughnessTexture] = this.getGlTextureData(pbrMetallicRoughness.metallicRoughnessTexture)
                 if (pbrMetallicRoughness.roughnessFactor) uniforms[GLSL_PBR.roughness] = pbrMetallicRoughness.roughnessFactor
             }
 
@@ -72,10 +68,8 @@ export class GltfManager {
             const glVaoData = new GlVaoData(attributesData, primitive.indices.buffer)
 
             const glObject = new GlObjectData({
-                glProgramData,
                 glVaoData,
                 uniforms,
-                glTexturesData,
             })
 
             node3D.objects.add(glObject)
@@ -85,8 +79,8 @@ export class GltfManager {
     }
 
 
-    getSplattingNode(gltfNode, glProgramData){
-        
+    getSplattingNode(gltfNode, glProgramData) {
+
     }
 
     /**

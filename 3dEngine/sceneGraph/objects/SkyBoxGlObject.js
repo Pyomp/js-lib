@@ -51,7 +51,7 @@ void main() {
             })
         ])
 
-        const glTexturesData = {
+        const uniforms = {
             skyBox: new GlTextureData({
                 data: images
             })
@@ -60,7 +60,7 @@ void main() {
         super({
             glProgramData,
             glVaoData,
-            glTexturesData,
+            uniforms,
             count: 6,
             drawMode: WebGL2RenderingContext.TRIANGLES,
             depthFunc: WebGL2RenderingContext.LEQUAL

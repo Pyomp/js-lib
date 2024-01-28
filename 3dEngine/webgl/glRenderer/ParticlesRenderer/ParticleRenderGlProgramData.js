@@ -90,8 +90,7 @@ export class ParticleRenderGlObject extends GlObjectData {
         super({
             glProgramData: new ParticleRenderGlProgram(),
             glVaoData,
-            uniforms: {},
-            glTexturesData: {
+            uniforms: {
                 keyframesTexture,
                 bumpTexture: new GlTextureData({
                     data: createSparkleCanvas()

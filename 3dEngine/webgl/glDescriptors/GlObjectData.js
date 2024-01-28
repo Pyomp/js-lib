@@ -8,10 +8,9 @@ export class GlObjectData {
     /**
      * 
      * @param {{
-     *      glProgramData: GlProgramData
+     *      glProgramData?: GlProgramData
      *      glVaoData?: GlVaoData | undefined
-     *      uniforms?: {[name: string]: WebGl.UniformData}
-     *      glTexturesData?: { [uniformName: string]: GlTextureData }
+     *      uniforms?: {[name: string]: WebGl.UniformData | GlTextureData}
      *      glUbosData?: GlUboData
      *      drawMode?: WebGl.Render.DrawMode | number
      *      count?: number
@@ -21,14 +20,13 @@ export class GlObjectData {
      *      depthTest?: boolean
      *      depthWrite?: boolean
      *      cullFace?: boolean
-     *      depthFunc?: Webgl.DepthFunc
+     *      depthFunc?: WebGl.DepthFunc
      * }} param0 
      */
     constructor({
         glProgramData,
         glVaoData,
         uniforms,
-        glTexturesData,
         glUbosData,
         drawMode = WebGL2RenderingContext.TRIANGLES,
         count,
@@ -43,7 +41,6 @@ export class GlObjectData {
         this.glProgramData = glProgramData
         this.glVaoData = glVaoData
         this.uniforms = uniforms
-        this.glTexturesData = glTexturesData
         this.glUbosData = glUbosData
         this.drawMode = WebGL2RenderingContext[drawMode] ?? drawMode
         this.count = count ?? countFromGlVaoData(glVaoData)

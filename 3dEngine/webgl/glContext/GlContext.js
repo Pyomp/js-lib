@@ -126,7 +126,7 @@ export class GlContext {
         for (const ubo of this.#ubos.values()) ubo.dispose()
         this.#ubos.clear()
     }
-    
+
     /** @type {Map<GlFrameBufferData, GlFrameBuffer>} */ #frameBuffers = new Map()
     getGlFrameBuffer(/** @type {GlFrameBufferData} */ glFrameBufferData) {
         if (!this.#frameBuffers.has(glFrameBufferData)) {
@@ -217,13 +217,13 @@ export class GlContext {
         }
 
         for (const name in glObjectData.uniforms) {
-            glProgram.uniformUpdate[name]?.(glObjectData.uniforms[name])
-        }
-
-        for (const name in glObjectData.glTexturesData) {
-            if (glProgram.textureUnit[name] !== undefined) {
-                const glTextureData = glObjectData.glTexturesData[name]
-                this.getGlTexture(glTextureData).bindToUnit(glProgram.textureUnit[name])
+            const uniform = glObjectData.uniforms[name]
+            if (uniform instanceof GlTextureData) {
+                if (glProgram.textureUnit[name] !== undefined) {
+                    this.getGlTexture(uniform).bindToUnit(glProgram.textureUnit[name])
+                }
+            } else {
+                glProgram.uniformUpdate[name]?.(uniform)
             }
         }
 
