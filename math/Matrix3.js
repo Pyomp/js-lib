@@ -328,7 +328,7 @@ class Matrix3 {
 
 	clone() {
 
-		return new this.constructor().fromArray( this.elements );
+		return new Matrix3().fromArray( this.elements );
 
 	}
 

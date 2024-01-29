@@ -119,7 +119,7 @@ class Vector4 {
 
 	clone() {
 
-		return new this.constructor( this.x, this.y, this.z, this.w );
+		return new Vector4( this.x, this.y, this.z, this.w );
 
 	}
 

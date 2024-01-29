@@ -77,6 +77,30 @@ export class Node3D {
     //     }
     // }
 
+    clone() {
+        const node3d = new Node3D()
+        node3d.name = this.name
+        node3d.mixer = this.mixer?.clone()
+
+        node3d.position.copy(this.position)
+        node3d.quaternion.copy(this.quaternion)
+        node3d.scale.copy(this.scale)
+
+        node3d.boundingBox.copy(node3d.boundingBox)
+
+        for (const object of this.objects) {
+            //@ts-expect-error ts so bad
+            node3d.objects.add(object.clone())
+        }
+
+        for (const node of this.nodes) {
+            node3d.addNode3D(node.clone())
+        }
+
+
+        return node3d
+    }
+
     dispose() {
         this.traverse((child) => { child.dispose() })
         if (this.parent)

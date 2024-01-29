@@ -8,7 +8,7 @@ export class GlObjectData {
     /**
      * 
      * @param {{
-     *      glProgramData?: GlProgramData
+     *      glProgramData: GlProgramData
      *      glVaoData?: GlVaoData | undefined
      *      uniforms?: {[name: string]: WebGl.UniformData | GlTextureData}
      *      glUbosData?: GlUboData
@@ -20,7 +20,7 @@ export class GlObjectData {
      *      depthTest?: boolean
      *      depthWrite?: boolean
      *      cullFace?: boolean
-     *      depthFunc?: WebGl.DepthFunc
+     *      depthFunc?: WebGl.Render.DepthFunc | number
      * }} param0 
      */
     constructor({
@@ -51,6 +51,24 @@ export class GlObjectData {
         this.depthWrite = depthWrite
         this.cullFace = cullFace
         this.depthFunc = depthFunc
+    }
+
+    clone() {
+        return new GlObjectData({
+            glProgramData: this.glProgramData,
+            glVaoData: this.glVaoData,
+            uniforms: { ...this.uniforms },
+            // glUbosData: this.glUbosData.clone(), // TODO
+            drawMode: this.drawMode,
+            count: this.count,
+            offset: this.offset,
+            additiveBlending: this.additiveBlending,
+            normalBlending: this.normalBlending,
+            depthTest: this.depthTest,
+            depthWrite: this.depthWrite,
+            cullFace: this.cullFace,
+            depthFunc: this.depthFunc,
+        })
     }
 }
 

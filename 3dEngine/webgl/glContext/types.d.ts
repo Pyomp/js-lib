@@ -40,5 +40,6 @@ declare namespace WebGl {
 
   namespace Render {
     type DrawMode = 'POINTS' | 'LINE_STRIP' | 'LINE_LOOP' | 'LINES' | 'TRIANGLE_STRIP' | 'TRIANGLE_FAN' | 'TRIANGLES'
+    type DepthFunc = 'NEVER' | 'LESS' | 'EQUAL' | 'LEQUAL' | 'GREATER' | 'NOTEQUAL' | 'GEQUAL' | 'ALWAYS'
   }
 }

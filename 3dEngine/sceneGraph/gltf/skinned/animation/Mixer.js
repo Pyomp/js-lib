@@ -36,7 +36,7 @@ export class Mixer {
         this.rootBone.updateMatrix()
     }
 
-    dispose(){
+    dispose() {
         this.jointsTexture.needsDelete = true
     }
 
@@ -126,5 +126,9 @@ export class Mixer {
         if (this.#currentTrack.loop === LoopOnce) {
             this.#time = timeUpdate
         }
+    }
+
+    clone() {
+        return new Mixer(this.#animation)
     }
 }
