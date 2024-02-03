@@ -9,11 +9,13 @@ export class PointLight {
     constructor({
         intensity = 0,
         color = new Color(1, 1, 1),
-        localPosition = new Vector3()
+        localPosition = new Vector3(),
+        incidence = 100,
     }) {
         this.intensity = intensity
         this.color = color
         this.localPosition = localPosition
+        this.incidence = incidence
     }
 
     /**

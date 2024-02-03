@@ -278,12 +278,17 @@ function getObjectsInFrustum(/** @type {Node3D[]} */ nodes, frustum) {
     for (const node of nodes) {
         for (const object of node.objects) {
             if (object instanceof GlObjectData && !object.glProgramData.glTransformFeedbackData) {
-                const boundingBox = object.glVaoData.boundingBox
+                if (object.glVaoData) {
+                    const boundingBox = object.glVaoData.boundingBox
 
-                if (boundingBox.isEmpty()
-                    || frustum.intersectsBox(
-                        _box3.copy(boundingBox).translate(node.position))
-                ) {
+                    if (
+                        boundingBox.isEmpty()
+                        || frustum.intersectsBox(
+                            _box3.copy(boundingBox).translate(node.position))
+                    ) {
+                        result.push(object)
+                    }
+                } else {
                     result.push(object)
                 }
             }

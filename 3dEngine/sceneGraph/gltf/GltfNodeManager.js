@@ -24,8 +24,6 @@ export class GltfNodeManager {
         })
     }
 
-
-
     /**
      * @param {GltfNode} gltfNode
      * @param {GlProgramData} glProgramData

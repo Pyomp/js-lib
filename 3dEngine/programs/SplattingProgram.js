@@ -6,6 +6,7 @@ import { GLSL_POINT_LIGHT } from "./chunks/glslPointLight.js"
 import { GLSL_SPLATTING } from "./chunks/glslSplatting.js"
 
 function vertexShader(pointLightCount) {
+    console.log(pointLightCount)
     return `#version 300 es
 in vec3 ${GLSL_COMMON.positionAttribute};
 in vec2 ${GLSL_COMMON.uvAttribute};
@@ -31,9 +32,9 @@ void main() {
     
     gl_Position = ${GLSL_CAMERA.projectionViewMatrix} * worldPosition;
 
-    v_uv = uv;
+    v_uv = ${GLSL_COMMON.uvAttribute};
 
-    v_normal = normalize( ${GLSL_COMMON.normalMatrix} * normal );
+    v_normal = ${GLSL_COMMON.getWorldNormal()};
     v_tangent = ${GLSL_COMMON.getTangent(GLSL_COMMON.worldMatrix, GLSL_CAMERA.viewMatrix, GLSL_COMMON.tangentAttribute)};
     v_bitangent = ${GLSL_COMMON.getBiTangent('v_normal', 'v_tangent', GLSL_COMMON.tangentAttribute)};
 
@@ -47,8 +48,6 @@ precision highp float;
 precision highp sampler2D;
 
 in vec2 v_uv;
-in vec3 v_surfaceToView;
-in vec3 v_worldPosition;
 in vec3 v_normal;
 in vec3 v_tangent;
 in vec3 v_bitangent;
@@ -64,18 +63,20 @@ ${GLSL_SPLATTING.declaration}
 out vec4 outColor;
 
 void main() {
-    outColor = ${GLSL_SPLATTING.getSplattingColor('v_uv')};
-    vec3 normal = ${GLSL_SPLATTING.getSplattingNormal('v_normal', 'v_tangent', 'v_bitangent', 'v_uv')};
-
+    vec4 splatting = ${GLSL_SPLATTING.getSplatting('v_uv')};
+    outColor = ${GLSL_SPLATTING.getColor('v_uv', 'splatting')};
+    vec3 normal = ${GLSL_SPLATTING.getNormal('v_normal', 'v_tangent', 'v_bitangent', 'v_uv', 'splatting')};
+    normal = normalize(v_normal);
     vec3 pointLightColor;
     float pointLightSpecular;
 
-    ${GLSL_POINT_LIGHT.computePointLight('normal', 'pointLightColor', 'pointLightSpecular;')};
+    ${GLSL_POINT_LIGHT.computePointLight('normal', 'pointLightColor')};
 
     vec3 lightColor = ${GLSL_AMBIENT_LIGHT.color} + pointLightColor;
     float lightSpecular = pointLightSpecular;
 
-    outColor = vec4(outColor.xyz * lightColor + lightSpecular * specular, outColor.a);
+    outColor = vec4(outColor.xyz * lightColor, outColor.a);
+    // outColor = vec4(normalize(v_normal), 1.);
 }`
 }
 

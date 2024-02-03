@@ -45,6 +45,7 @@ export class GlPointLightRenderer {
             light.position.toArray(this.#uboF32a, offset + GLSL_POINT_LIGHT.uboOffset.position)
             light.color.toArray(this.#uboF32a, offset + GLSL_POINT_LIGHT.uboOffset.color)
             this.#uboF32a[offset + GLSL_POINT_LIGHT.uboOffset.intensity] = light.intensity
+            this.#uboF32a[offset + GLSL_POINT_LIGHT.uboOffset.incidence] = light.incidence
         } else {
             this.#uboF32a[offset + GLSL_POINT_LIGHT.uboOffset.intensity] = 0
         }

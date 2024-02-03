@@ -31,19 +31,22 @@ uniform sampler2D ${textureColor4};
 uniform sampler2D ${textureNormal4};
 uniform vec2 ${textureScale4};
 
-vec4 getSplattingColor(vec2 uv){
+vec4 getSplatting(vec2 uv){
     vec4 splatting = texture(${splattingTexture}, uv);
     splatting.a = 1. - splatting.a;
-    splatting = normalize(splatting);
+    return normalize(splatting);
+    
+}
 
+vec4 getSplattingColor(vec2 uv, vec4 splatting){
     return texture(${textureColor1}, uv * ${textureScale1}) * splatting.r + 
             texture(${textureColor2}, uv * ${textureScale2}) * splatting.g + 
             texture(${textureColor3}, uv * ${textureScale3}) * splatting.b + 
             texture(${textureColor4}, uv * ${textureScale4}) * splatting.a;
 }
 
-vec3 getSplattingNormal(vec3 v_normal, vec3 viewTangent, vec3 viewBitangent, vec2 uv){
-    vec3 normal = normalize(v_normal);
+vec3 getSplattingNormal(vec3 inNormal, vec3 viewTangent, vec3 viewBitangent, vec2 uv, vec4 splatting){
+    vec3 normal = normalize(inNormal);
 
     mat3 tbn = mat3( normalize( viewTangent ), normalize( viewBitangent ), normal );
 
@@ -56,18 +59,24 @@ vec3 getSplattingNormal(vec3 v_normal, vec3 viewTangent, vec3 viewBitangent, vec
     return normalize( tbn * normalMap );
 }
 `
-function getSplattingColor(uv) {
-    return `getSplattingColor(${uv})`
+
+function getSplatting(uv) {
+    return `getSplatting(${uv})`
 }
 
-function getSplattingNormal(normal, viewTangent, viewBitangent, uv) {
-    return `getSplattingNormal(${normal}, ${viewTangent}, ${viewBitangent}, ${uv})`
+function getColor(uv, splatting) {
+    return `getSplattingColor(${uv}, ${splatting})`
+}
+
+function getNormal(normal, viewTangent, viewBitangent, uv, splatting) {
+    return `getSplattingNormal(${normal}, ${viewTangent}, ${viewBitangent}, ${uv}, ${splatting})`
 }
 
 export const GLSL_SPLATTING = Object.freeze({
     declaration,
-    getSplattingColor,
-    getSplattingNormal,
+    getSplatting,
+    getColor,
+    getNormal,
     splattingTexture,
     textureColor1,
     textureNormal1,
