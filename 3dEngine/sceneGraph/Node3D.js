@@ -3,6 +3,8 @@ import { Matrix3 } from "../../math/Matrix3.js"
 import { Matrix4 } from "../../math/Matrix4.js"
 import { Quaternion } from "../../math/Quaternion.js"
 import { Vector3 } from "../../math/Vector3.js"
+import { GLSL_COMMON } from "../programs/chunks/glslCommon.js"
+import { GLSL_SKINNED } from "../programs/chunks/glslSkinnedChunk.js"
 import { GlObjectData } from "../webgl/glDescriptors/GlObjectData.js"
 import { AmbientLight } from "./AmbientLight.js"
 import { PointLight } from "./PointLight.js"
@@ -89,14 +91,17 @@ export class Node3D {
         node3d.boundingBox.copy(node3d.boundingBox)
 
         for (const object of this.objects) {
-            //@ts-expect-error ts so bad
-            node3d.objects.add(object.clone())
+            if (object instanceof GlObjectData) {
+                const clone = object.clone()
+                clone.uniforms[GLSL_COMMON.worldMatrix] = node3d.worldMatrix
+                if (node3d.mixer) clone.uniforms[GLSL_SKINNED.jointsTexture] = node3d.mixer.jointsTexture
+                node3d.objects.add(clone)
+            }
         }
 
         for (const node of this.nodes) {
             node3d.addNode3D(node.clone())
         }
-
 
         return node3d
     }
