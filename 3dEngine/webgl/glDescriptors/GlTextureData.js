@@ -19,7 +19,7 @@ export class GlTextureData {
     *  border?: GLint
     *  format?: WebGl.Texture.Format | number
     *  type?: WebGl.Texture.Type | number
-    *  data?: WebGl.Texture.Pixels | null | WebGl.Texture.Pixels[]
+    *  data?: WebGl.Texture.Pixels | null | WebGl.Texture.Pixels[] | URL | Image
     *  needsMipmap?: boolean
     * }} param0 
     */
@@ -52,16 +52,22 @@ export class GlTextureData {
         this.type = WebGL2RenderingContext[type] ?? type
         this.data = data
 
-        if (this.data instanceof Image) {
-            this.data.onload = () => { this.dataVersion++ }
-            this.width = this.data.width
-            this.height = this.data.height
-        } else if (this.data instanceof Array) {
-            for (const element of this.data) {
+        if (data instanceof Image || data instanceof HTMLImageElement) {
+            data.addEventListener('load', () => {
+                this.width = data.width
+                this.height = data.height
+                this.dataVersion++
+                this.paramsVersion++
+            })
+        } else if (data instanceof Array) {
+            for (const element of data) {
                 if (element instanceof Image) {
-                    element.onload = () => { this.dataVersion++ }
-                    this.width = element.width
-                    this.height = element.height
+                    element.addEventListener('load', () => {
+                        this.width = element.width
+                        this.height = element.height
+                        this.dataVersion++
+                        this.paramsVersion++
+                    })
                 }
             }
         }

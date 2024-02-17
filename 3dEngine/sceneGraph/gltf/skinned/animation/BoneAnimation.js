@@ -41,8 +41,8 @@ export class BoneAnimation {
      * @param {GltfKeyFrame} translation
      */
     #initPosition(translation) {
-        const key = translation.key
-        const frame = this.#getVector3Frame(translation.frame)
+        const key = translation.key.buffer
+        const frame = this.#getVector3Frame(translation.frame.buffer)
         const isLinear = translation.interpolation === GltfInterpolationLinear
             || translation.interpolation === GltfInterpolationStep
         this.position = new KeyFrame(key, frame, isLinear)
@@ -52,8 +52,8 @@ export class BoneAnimation {
      * @param {GltfKeyFrame} scale
      */
     #initScale(scale) {
-        const key = scale.key
-        const frame = this.#getVector3Frame(scale.frame)
+        const key = scale.key.buffer
+        const frame = this.#getVector3Frame(scale.frame.buffer)
         const isLinear = scale.interpolation === GltfInterpolationLinear
             || scale.interpolation === GltfInterpolationStep
         this.scale = new KeyFrame(key, frame, isLinear)
@@ -78,9 +78,9 @@ export class BoneAnimation {
      * @param {GltfKeyFrame} rotation
      */
     #initQuaternion(rotation) {
-        const key = rotation.key
-        const isEuler = rotation.frameType === GltfFrameTypeVec3
-        const frame = this.#getQuaternionFrame(rotation.frame, isEuler)
+        const key = rotation.key.buffer
+        const isEuler = rotation.frame.type === GltfFrameTypeVec3
+        const frame = this.#getQuaternionFrame(rotation.frame.buffer, isEuler)
         const isLinear = rotation.interpolation === GltfInterpolationLinear
             || rotation.interpolation === GltfInterpolationStep
         this.quaternion = new KeyFrame(key, frame, isLinear)

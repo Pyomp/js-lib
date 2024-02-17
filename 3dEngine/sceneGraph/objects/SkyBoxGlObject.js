@@ -6,10 +6,8 @@ import { GlProgramData } from "../../webgl/glDescriptors/GlProgramData.js"
 import { GlTextureData } from "../../webgl/glDescriptors/GlTextureData.js"
 import { GlVaoData } from "../../webgl/glDescriptors/GlVaoData.js"
 
-export class SkyBoxGlObject extends GlObjectData {
-    constructor(images) {
-        const glProgramData = new GlProgramData(
-            () => `#version 300 es
+const glProgramData = new GlProgramData(
+    () => `#version 300 es
 in vec2 position;
 out vec4 v_position;
 void main() {
@@ -17,7 +15,7 @@ void main() {
     gl_Position = v_position;
 }`,
 
-            () => `#version 300 es
+    () => `#version 300 es
 precision highp float;
 
 uniform samplerCube skyBox;
@@ -33,24 +31,26 @@ void main() {
     outColor = texture(skyBox, normalize(t.xyz / t.w));
 }`)
 
-        const glVaoData = new GlVaoData([
-            new GlAttributeData({
-                name: 'position',
-                size: 2,
-                type: 'FLOAT',
-                glArrayBufferData: new GlArrayBufferData(new Float32Array(
-                    [
-                        -1, -1,
-                        1, -1,
-                        -1, 1,
-                        -1, 1,
-                        1, -1,
-                        1, 1
-                    ]
-                ))
-            })
-        ])
+const glVaoData = new GlVaoData([
+    new GlAttributeData({
+        name: 'position',
+        size: 2,
+        type: 'FLOAT',
+        glArrayBufferData: new GlArrayBufferData(new Float32Array(
+            [
+                -1, -1,
+                1, -1,
+                -1, 1,
+                -1, 1,
+                1, -1,
+                1, 1
+            ]
+        ))
+    })
+])
 
+export class SkyBoxGlObject extends GlObjectData {
+    constructor(images) {
         const uniforms = {
             skyBox: new GlTextureData({
                 data: images

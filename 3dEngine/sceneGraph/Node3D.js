@@ -102,8 +102,10 @@ export class Node3D {
     }
 
     dispose() {
-        this.traverse((child) => { child.dispose() })
-        if (this.parent)
-            this.parent.removeNode3D(this)
+        this.traverse((child) => {
+            if (child.mixer) child.mixer.jointsTexture.needsDelete = true
+            if (child.parent)
+                child.parent.removeNode3D(this)
+        })
     }
 }

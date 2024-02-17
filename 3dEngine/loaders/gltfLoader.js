@@ -39,10 +39,15 @@ export async function parseGltf(gltf) {
     const bufferViews = content.bufferViews
     for (const accessor of accessors) {
         const bufferView = bufferViews[accessor.bufferView]
-        accessor.buffer = new TYPE_CLASS[accessor.componentType](
-            body.slice(bufferView.byteOffset, bufferView.byteOffset + bufferView.byteLength)
-        )
-        delete accessor.componentType
+        let cache
+        Object.defineProperty(accessor, 'buffer', {
+            get() {
+                if (!cache) cache = new TYPE_CLASS[accessor.componentType](
+                    body.slice(bufferView.byteOffset, bufferView.byteOffset + bufferView.byteLength)
+                )
+                return cache
+            }
+        })
         delete accessor.bufferView
     }
 
@@ -60,9 +65,8 @@ export async function parseGltf(gltf) {
                 const name = nodes[channel.target.node].name
                 if (bones[name] === undefined) bones[name] = {}
                 bones[name][channel.target.path] = {
-                    key: accessors[sampler.input].buffer,
-                    frame: accessors[sampler.output].buffer,
-                    frameType: accessors[sampler.output].type,
+                    key: accessors[sampler.input],
+                    frame: accessors[sampler.output],
                     interpolation: sampler.interpolation,
                 }
             }
@@ -78,22 +82,38 @@ export async function parseGltf(gltf) {
     if (content.images) {
         for (let i = 0; i < content.images.length; i++) {
             const image = content.images[i]
+
             const bufferView = bufferViews[image.bufferView]
-            const buffer = body.slice(bufferView.byteOffset, bufferView.byteOffset + bufferView.byteLength)
+            let bufferCache
+            Object.defineProperty(image, 'buffer', {
+                get() {
+                    if (!bufferCache) bufferCache =
+                        body.slice(bufferView.byteOffset, bufferView.byteOffset + bufferView.byteLength)
+                    return bufferCache
+                }
+            })
 
-            const blob = new Blob([buffer], { type: image.mimeType })
-            const url = URL.createObjectURL(blob)
-            const data = new Image()
-            data.alt = image.name
+            let imageCache
+            Object.defineProperty(image, 'htmlImageElement', {
+                get() {
+                    if (!imageCache) {
+                        imageCache = new Image()
+                        imageCache.alt = image.name
+                        const blob = new Blob([image.buffer], { type: image.mimeType })
+                        const url = URL.createObjectURL(blob)
+                        imageCache.src = url
+                        const revoke = () => {
+                            URL.revokeObjectURL(url)
+                            imageCache.removeEventListener('error', revoke)
+                            imageCache.removeEventListener('load', revoke)
+                        }
+                        imageCache.addEventListener('error', revoke)
+                        imageCache.addEventListener('load', revoke)
+                    }
 
-            imagePromises.push(new Promise((resolve) => data.onload = () => {
-                URL.revokeObjectURL(url)
-                resolve()
-            }))
-
-            data.src = url
-
-            content.images[i] = data
+                    return imageCache
+                }
+            })
         }
     }
 
@@ -199,19 +219,19 @@ function getGltf(arrayBuffer) {
 
     const headerView = new DataView(arrayBuffer, 0, BINARY_EXTENSION_HEADER_LENGTH)
 
-    const header = {
-        magic: textDecoder.decode(new Uint8Array(arrayBuffer.slice(0, 4))),
-        version: headerView.getUint32(4, true),
-        length: headerView.getUint32(8, true)
-    }
+    // const header = {
+    // magic: textDecoder.decode(new Uint8Array(arrayBuffer.slice(0, 4))),
+    // version: headerView.getUint32(4, true),
+    // length: headerView.getUint32(8, true)
+    // }
 
-    if (header.magic !== BINARY_EXTENSION_HEADER_MAGIC) {
-        throw new Error('THREE.GLTFLoader: Unsupported glTF-Binary header.')
-    } else if (header.version < 2.0) {
-        throw new Error('THREE.GLTFLoader: Legacy binary file detected.')
-    }
+    // if (header.magic !== BINARY_EXTENSION_HEADER_MAGIC) {
+    //     throw new Error('THREE.GLTFLoader: Unsupported glTF-Binary header.')
+    // } else if (header.version < 2.0) {
+    //     throw new Error('THREE.GLTFLoader: Legacy binary file detected.')
+    // }
 
-    const chunkContentsLength = header.length - BINARY_EXTENSION_HEADER_LENGTH
+    const chunkContentsLength = headerView.getUint32(8, true) - BINARY_EXTENSION_HEADER_LENGTH
 
     const chunkView = new DataView(arrayBuffer, BINARY_EXTENSION_HEADER_LENGTH)
     let chunkIndex = 0

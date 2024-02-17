@@ -68,7 +68,7 @@ declare type GltfMaterialExtensions = {
 declare type GltfImage = {
   uri?: string;
   mimeType?: string;
-  image?: HTMLImageElement | Image | ImageBitmap // not standard to GLTF
+  htmlImageElement?: HTMLImageElement // not standard to GLTF
   buffer?: GltfBuffer;
   name?: string;
   type?: "PNG" | "JPG" | "SVG";
@@ -84,7 +84,7 @@ declare type GltfSampler = {
 
 declare type GltfTexture = {
   sampler: GltfSampler;
-  source: Image;
+  source: GltfImage;
   name?: string;
   texCoord?: number; // The set index of texture’s TEXCOORD attribute used for texture coordinate mapping.
 };
@@ -113,8 +113,7 @@ declare type GltfBone = {
 };
 
 declare type GltfKeyFrame = {
-  key: Float32Array;
-  frame: Float32Array;
-  frameType: string;
+  key: GltfBuffer<Float32Array>;
+  frame: GltfBuffer<Float32Array>;
   interpolation: "LINEAR" | "STEP" | "CUBICSPLINE";
 };

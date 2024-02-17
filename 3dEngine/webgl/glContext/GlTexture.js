@@ -22,7 +22,6 @@ export class GlTexture {
     #target
 
     #paramsVersion = -1
-
     #dataVersion = -1
 
     #isCubeMap = false
@@ -62,6 +61,7 @@ export class GlTexture {
             this.#glTextureData.type,
             data
         )
+        if (this.#glTextureData.needsMipmap) this.#gl.generateMipmap(this.#target)
     }
 
     #updateData() {
@@ -93,29 +93,50 @@ export class GlTexture {
         )
     }
 
+    #texImage2DUrl(target, url) {
+        const image = new Image()
+
+        if (image.width > 0) {
+            this.#texImage2D(target, image)
+        } else {
+            image.addEventListener('load', () => {
+                this.#glTextureData.width = image.width
+                this.#glTextureData.height = image.height
+                this.#gl.bindTexture(this.#target, this.#glTexture)
+                this.#texImage2D(target, image)
+            }, { once: true })
+
+            image.src = url.href
+        }
+    }
+
     #updateParams() {
         const data = this.#glTextureData.data
 
         this.#updateWrapAndFilter()
-
+        
         if (this.#isCubeMap) {
             for (let i = 0; i < 6; i++) {
-                this.#texImage2D(CUBE_MAP_TARGETS[i], data[i])
+                if (data[i] instanceof URL) {
+                    this.#texImage2DUrl(CUBE_MAP_TARGETS[i], data[i])
+                } else {
+                    this.#texImage2D(CUBE_MAP_TARGETS[i], data[i])
+                }
             }
+        } else if (data instanceof URL) {
+            this.#texImage2DUrl(WebGL2RenderingContext.TEXTURE_2D, data)
         } else {
             this.#texImage2D(WebGL2RenderingContext.TEXTURE_2D, data)
         }
-
-        if (this.#glTextureData.needsMipmap) this.#gl.generateMipmap(this.#target)
     }
 
     #update() {
         if (this.#glTextureData.paramsVersion !== this.#paramsVersion) {
-            this.#glTextureData.dataVersion = this.#dataVersion
-            this.#glTextureData.paramsVersion = this.#paramsVersion
+            this.#dataVersion = this.#glTextureData.dataVersion
+            this.#paramsVersion = this.#glTextureData.paramsVersion
             this.#updateParams()
         } else if (this.#glTextureData.dataVersion !== this.#dataVersion) {
-            this.#glTextureData.dataVersion = this.#dataVersion
+            this.#dataVersion = this.#glTextureData.dataVersion
             this.#updateData()
         }
     }

@@ -13,29 +13,29 @@ import { Animation } from "./skinned/animation/Animation.js"
 import { Mixer } from "./skinned/animation/Mixer.js"
 
 export class GltfNodeManager {
-    #getGlTextureData(/** @type {GltfTexture} */ gltfTexture) {
-        return new GlTextureData({
-            name: gltfTexture.name,
-            data: gltfTexture.source,
-            minFilter: gltfTexture.sampler.minFilter,
-            magFilter: gltfTexture.sampler.magFilter,
-            wrapS: gltfTexture.sampler.wrapS,
-            wrapT: gltfTexture.sampler.wrapT
-        })
-    }
+    /** @type {Node3D} */ #node3D
 
     /**
-     * @param {GltfNode} gltfNode
-     * @param {GlProgramData} glProgramData
+     * @param {{
+     *      gltfNode: GltfNode
+     *      glProgramData: GlProgramData
+     *      extraUniforms?: {[name: string]: WebGl.UniformData}
+     *      animationDictionary?: {[animationId: number]: string}
+     * }} params
      */
-    constructor(gltfNode, glProgramData) {
+    constructor({
+        gltfNode,
+        glProgramData,
+        extraUniforms = {},
+        animationDictionary = {}
+    }) {
         const node3D = new Node3D()
         if (gltfNode.name) node3D.name = gltfNode.name
         if (gltfNode.translation) node3D.position.fromArray(gltfNode.translation)
         if (gltfNode.rotation) node3D.quaternion.fromArray(gltfNode.rotation)
         if (gltfNode.scale) node3D.scale.fromArray(gltfNode.scale)
         if (gltfNode.skin) {
-            node3D.mixer = new Mixer(new Animation(gltfNode.skin))
+            node3D.mixer = new Mixer(new Animation(gltfNode.skin, animationDictionary))
         }
 
         for (const primitive of gltfNode.mesh.primitives) {
@@ -52,7 +52,11 @@ export class GltfNodeManager {
                 if (pbrMetallicRoughness.roughnessFactor) uniforms[GLSL_PBR.roughness] = pbrMetallicRoughness.roughnessFactor
             }
 
-            const attributesData = this.getAttribute(primitive.attributes)
+            for (const key in extraUniforms) {
+                uniforms[key] = extraUniforms[key]
+            }
+
+            const attributesData = this.#getAttribute(primitive.attributes)
             const glVaoData = new GlVaoData(attributesData, primitive.indices.buffer)
 
             const glObject = new GlObjectData({
@@ -64,11 +68,11 @@ export class GltfNodeManager {
             node3D.objects.add(glObject)
         }
 
-        this.node3D = node3D
+        this.#node3D = node3D
     }
 
     getNode() {
-        const node3D = this.node3D.clone()
+        const node3D = this.#node3D.clone()
 
         for (const object of node3D.objects) {
             const uniforms = object.uniforms
@@ -79,11 +83,34 @@ export class GltfNodeManager {
         return node3D
     }
 
+    dispose() {
+        for (const object of this.#node3D.objects) {
+            if (object instanceof GlObjectData) {
+                object.glVaoData.needsDelete = true
+                if (object.uniforms[GLSL_COMMON.baseTexture]) object.uniforms[GLSL_COMMON.baseTexture].needsDelete = true
+                if (object.uniforms[GLSL_PBR.metallicRoughnessTexture]) object.uniforms[GLSL_PBR.metallicRoughnessTexture].needsDelete = true
+            }
+        }
+
+        this.#node3D.dispose()
+    }
+
+    #getGlTextureData(/** @type {GltfTexture} */ gltfTexture) {
+        return new GlTextureData({
+            name: gltfTexture.name,
+            data: gltfTexture.source.htmlImageElement,
+            minFilter: gltfTexture.sampler.minFilter,
+            magFilter: gltfTexture.sampler.magFilter,
+            wrapS: gltfTexture.sampler.wrapS,
+            wrapT: gltfTexture.sampler.wrapT
+        })
+    }
+
     /**
      * @param {GltfAttributes} attributes
      * @returns 
      */
-    getAttribute(attributes) {
+    #getAttribute(attributes) {
         const glAttributesData = []
         if (attributes.POSITION) {
             const attribute = attributes.POSITION

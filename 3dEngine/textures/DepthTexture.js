@@ -3,6 +3,7 @@ import { GlTextureData } from "../webgl/glDescriptors/GlTextureData.js"
 export class GlDepthTextureData extends GlTextureData {
     constructor() {
         super({
+            name: 'Renderer Depth Texture',
             wrapS: 'CLAMP_TO_EDGE',
             wrapT: 'CLAMP_TO_EDGE',
             minFilter: 'NEAREST',
