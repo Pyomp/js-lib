@@ -1,12 +1,12 @@
 import { GLSL_CAMERA } from "../../programs/chunks/glslCamera.js"
 import { GLSL_POINT_LIGHT } from "../../programs/chunks/glslPointLight.js"
 import { createSparkleCanvas } from "../../textures/sparkle.js"
-import { GlObjectData } from "../../webgl/glDescriptors/GlObjectData.js"
-import { GlProgramData } from "../../webgl/glDescriptors/GlProgramData.js"
-import { GlTextureData } from "../../webgl/glDescriptors/GlTextureData.js"
+import { GlObject } from "../../webgl/glDescriptors/GlObject.js"
+import { GlProgram } from "../../webgl/glDescriptors/GlProgram.js"
+import { GlTexture } from "../../webgl/glDescriptors/GlTexture.js"
 import { GlRenderer } from "../../webgl/glRenderer/GlRenderer.js"
 
-export class LightParticleProgram extends GlProgramData {
+export class LightParticleProgram extends GlProgram {
     /**
      * @param {GlRenderer} renderer 
      */
@@ -46,7 +46,7 @@ void main() {
     }
 }
 
-export class LightParticleObject extends GlObjectData {
+export class LightParticleObject extends GlObject {
     get count() { return this.#renderer.pointLightCount }
     set count(value) { }
 
@@ -59,9 +59,9 @@ export class LightParticleObject extends GlObjectData {
             additiveBlending: true,
             depthWrite: false,
             count: 0,
-            glProgramData: new LightParticleProgram(renderer),
+            glProgram: new LightParticleProgram(renderer),
             uniforms: {
-                map: new GlTextureData({ data: createSparkleCanvas() })
+                map: new GlTexture({ data: createSparkleCanvas() })
             }
         })
         this.#renderer = renderer

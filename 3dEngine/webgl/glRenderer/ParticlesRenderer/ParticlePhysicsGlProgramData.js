@@ -1,10 +1,10 @@
 import { Particle } from "../../../sceneGraph/particle/Particle.js"
-import { GlArrayBufferData } from "../../glDescriptors/GlArrayBufferData.js"
-import { GlAttributeData } from "../../glDescriptors/GlAttributeData.js"
-import { GlObjectData } from "../../glDescriptors/GlObjectData.js"
-import { GlProgramData } from "../../glDescriptors/GlProgramData.js"
-import { GlTransformFeedbackData } from "../../glDescriptors/GlTransformFeedbackData.js"
-import { GlVaoData } from "../../glDescriptors/GlVaoData.js"
+import { GlArrayBuffer } from "../../glDescriptors/GlArrayBuffer.js"
+import { GlAttribute } from "../../glDescriptors/GlAttribute.js"
+import { GlObject } from "../../glDescriptors/GlObject.js"
+import { GlProgram } from "../../glDescriptors/GlProgram.js"
+import { GlTransformFeedback } from "../../glDescriptors/GlTransformFeedback.js"
+import { GlVao } from "../../glDescriptors/GlVao.js"
 
 const FLOAT_32_ELEMENT_COUNT = 7
 
@@ -15,31 +15,31 @@ const SIZE_OFFSET = TIME_OFFSET + Float32Array.BYTES_PER_ELEMENT
 
 const STRIDE = FLOAT_32_ELEMENT_COUNT * Float32Array.BYTES_PER_ELEMENT
 
-export class ParticlePhysicsGlObject extends GlObjectData {
+export class ParticlePhysicsGlObject extends GlObject {
     #inPositionVelocityTime
     #vaoF32a
     constructor(maxParticleCount = 100_000) {
-        const inPositionVelocityTime = new GlArrayBufferData(new Float32Array(maxParticleCount * FLOAT_32_ELEMENT_COUNT).fill(1000), 'DYNAMIC_DRAW')
-        const glVaoData = new GlVaoData(
+        const inPositionVelocityTime = new GlArrayBuffer(new Float32Array(maxParticleCount * FLOAT_32_ELEMENT_COUNT).fill(1000), 'DYNAMIC_DRAW')
+        const glVaoData = new GlVao(
             [
-                new GlAttributeData({
-                    glArrayBufferData: inPositionVelocityTime,
+                new GlAttribute({
+                    glArrayBuffer: inPositionVelocityTime,
                     name: 'position',
                     size: 3,
                     type: WebGL2RenderingContext.FLOAT,
                     stride: STRIDE,
                     offset: POSITION_OFFSET
                 }),
-                new GlAttributeData({
-                    glArrayBufferData: inPositionVelocityTime,
+                new GlAttribute({
+                    glArrayBuffer: inPositionVelocityTime,
                     name: 'velocity',
                     size: 3,
                     type: WebGL2RenderingContext.FLOAT,
                     stride: STRIDE,
                     offset: VELOCITY_OFFSET
                 }),
-                new GlAttributeData({
-                    glArrayBufferData: inPositionVelocityTime,
+                new GlAttribute({
+                    glArrayBuffer: inPositionVelocityTime,
                     name: 'time',
                     size: 1,
                     type: WebGL2RenderingContext.FLOAT,
@@ -52,8 +52,8 @@ export class ParticlePhysicsGlObject extends GlObjectData {
         const glProgramData = new ParticlePhysicsGlProgram(maxParticleCount)
 
         super({
-            glProgramData,
-            glVaoData,
+            glProgram: glProgramData,
+            glVao: glVaoData,
             uniforms: {
                 deltaTime: 0
             },
@@ -81,9 +81,9 @@ export class ParticlePhysicsGlObject extends GlObjectData {
     }
 }
 
-class ParticlePhysicsGlProgram extends GlProgramData {
+class ParticlePhysicsGlProgram extends GlProgram {
     constructor(maxParticleCount) {
-        const arrayBufferData = new GlArrayBufferData(new Float32Array(maxParticleCount * FLOAT_32_ELEMENT_COUNT), 'DYNAMIC_COPY')
+        const arrayBufferData = new GlArrayBuffer(new Float32Array(maxParticleCount * FLOAT_32_ELEMENT_COUNT), 'DYNAMIC_COPY')
 
         super(() => `#version 300 es
 in vec3 velocity;
@@ -107,7 +107,7 @@ void main() {
     discard;
 }
 `,
-            new GlTransformFeedbackData(arrayBufferData, ['outPosition', 'outVelocity', 'outTime'])
+            new GlTransformFeedback(arrayBufferData, ['outPosition', 'outVelocity', 'outTime'])
         )
 
         this.outArrayBufferData = arrayBufferData

@@ -2,18 +2,18 @@ import { Color } from "../../../math/Color.js"
 import { GLSL_COMMON } from "../../programs/chunks/glslCommon.js"
 import { GLSL_PBR } from "../../programs/chunks/glslPbr.js"
 import { GLSL_SKINNED } from "../../programs/chunks/glslSkinnedChunk.js"
-import { GlArrayBufferData } from "../../webgl/glDescriptors/GlArrayBufferData.js"
-import { GlAttributeData } from "../../webgl/glDescriptors/GlAttributeData.js"
-import { GlObjectData } from "../../webgl/glDescriptors/GlObjectData.js"
-import { GlProgramData } from "../../webgl/glDescriptors/GlProgramData.js"
-import { GlTextureData } from "../../webgl/glDescriptors/GlTextureData.js"
-import { GlVaoData } from "../../webgl/glDescriptors/GlVaoData.js"
+import { GlArrayBuffer } from "../../webgl/glDescriptors/GlArrayBuffer.js"
+import { GlAttribute } from "../../webgl/glDescriptors/GlAttribute.js"
+import { GlObject } from "../../webgl/glDescriptors/GlObject.js"
+import { GlProgram } from "../../webgl/glDescriptors/GlProgram.js"
+import { GlTexture } from "../../webgl/glDescriptors/GlTexture.js"
+import { GlVao } from "../../webgl/glDescriptors/GlVao.js"
 import { Node3D } from "../Node3D.js"
 import { Animation } from "./skinned/animation/Animation.js"
 import { Mixer } from "./skinned/animation/Mixer.js"
 
 function getGlTextureData(/** @type {GltfTexture} */ gltfTexture) {
-    return new GlTextureData({
+    return new GlTexture({
         name: gltfTexture.name,
         data: gltfTexture.source.htmlImageElement,
         minFilter: gltfTexture.sampler.minFilter,
@@ -31,57 +31,61 @@ function getAttribute(attributes) {
     const glAttributesData = []
     if (attributes.POSITION) {
         const attribute = attributes.POSITION
-        const glArrayBufferData = new GlArrayBufferData(attribute.buffer)
-        glAttributesData.push(new GlAttributeData({ glArrayBufferData, name: GLSL_COMMON.positionAttribute, size: 3, type: WebGL2RenderingContext.FLOAT }))
+        const glArrayBufferData = new GlArrayBuffer(attribute.buffer)
+        glAttributesData.push(new GlAttribute({ glArrayBuffer: glArrayBufferData, name: GLSL_COMMON.positionAttribute, size: 3, type: WebGL2RenderingContext.FLOAT }))
     }
     if (attributes.TEXCOORD_0) {
         const attribute = attributes.TEXCOORD_0
-        const glArrayBufferData = new GlArrayBufferData(attribute.buffer)
-        glAttributesData.push(new GlAttributeData({ glArrayBufferData, name: GLSL_COMMON.uvAttribute, size: 2, type: WebGL2RenderingContext.FLOAT }))
+        const glArrayBufferData = new GlArrayBuffer(attribute.buffer)
+        glAttributesData.push(new GlAttribute({ glArrayBuffer: glArrayBufferData, name: GLSL_COMMON.uvAttribute, size: 2, type: WebGL2RenderingContext.FLOAT }))
     }
     if (attributes.NORMAL) {
         const attribute = attributes.NORMAL
-        const glArrayBufferData = new GlArrayBufferData(attribute.buffer)
-        glAttributesData.push(new GlAttributeData({ glArrayBufferData, name: GLSL_COMMON.normalAttribute, size: 3, type: WebGL2RenderingContext.FLOAT }))
+        const glArrayBufferData = new GlArrayBuffer(attribute.buffer)
+        glAttributesData.push(new GlAttribute({ glArrayBuffer: glArrayBufferData, name: GLSL_COMMON.normalAttribute, size: 3, type: WebGL2RenderingContext.FLOAT }))
     }
     if (attributes.TANGENT) {
         const attribute = attributes.TANGENT
-        const glArrayBufferData = new GlArrayBufferData(attribute.buffer)
-        glAttributesData.push(new GlAttributeData({ glArrayBufferData, name: GLSL_COMMON.tangentAttribute, size: 3, type: WebGL2RenderingContext.FLOAT }))
+        const glArrayBufferData = new GlArrayBuffer(attribute.buffer)
+        glAttributesData.push(new GlAttribute({ glArrayBuffer: glArrayBufferData, name: GLSL_COMMON.tangentAttribute, size: 3, type: WebGL2RenderingContext.FLOAT }))
     }
     if (attributes.JOINTS_0) {
         const attribute = attributes.JOINTS_0
-        const glArrayBufferData = new GlArrayBufferData(attribute.buffer)
-        glAttributesData.push(new GlAttributeData({ glArrayBufferData, name: GLSL_SKINNED.joints, size: 4, type: WebGL2RenderingContext.UNSIGNED_BYTE }))
+        const glArrayBufferData = new GlArrayBuffer(attribute.buffer)
+        glAttributesData.push(new GlAttribute({ glArrayBuffer: glArrayBufferData, name: GLSL_SKINNED.joints, size: 4, type: WebGL2RenderingContext.UNSIGNED_BYTE }))
     }
     if (attributes.WEIGHTS_0) {
         const attribute = attributes.WEIGHTS_0
-        const glArrayBufferData = new GlArrayBufferData(attribute.buffer)
-        glAttributesData.push(new GlAttributeData({ glArrayBufferData, name: GLSL_SKINNED.weights, size: 4, type: WebGL2RenderingContext.FLOAT }))
+        const glArrayBufferData = new GlArrayBuffer(attribute.buffer)
+        glAttributesData.push(new GlAttribute({ glArrayBuffer: glArrayBufferData, name: GLSL_SKINNED.weights, size: 4, type: WebGL2RenderingContext.FLOAT }))
     }
 
     return glAttributesData
 }
 
 function getGlObjectsData(
-    primitives,
-    extraUniforms,
-    glProgramData
+    /** @type {GltfPrimitive[]} */ primitives,
+    /** @type {GlProgram} */  glProgram,
+    extraUniforms = {},
 ) {
     const objects = []
 
     for (const primitive of primitives) {
 
-        /** @type {{[name: string]: WebGl.UniformData | GlTextureData}} */
+        /** @type {{[name: string]: WebGl.UniformData | GlTexture}} */
         const uniforms = {}
 
-        if (primitive.material?.pbrMetallicRoughness) {
-            const pbrMetallicRoughness = primitive.material.pbrMetallicRoughness
-            if (pbrMetallicRoughness.baseColorFactor) uniforms[GLSL_COMMON.baseColor] = new Color(pbrMetallicRoughness.baseColorFactor)
-            if (pbrMetallicRoughness.baseColorTexture) uniforms[GLSL_COMMON.baseTexture] = getGlTextureData(pbrMetallicRoughness.baseColorTexture)
-            if (pbrMetallicRoughness.metallicFactor) uniforms[GLSL_PBR.metallic] = pbrMetallicRoughness.metallicFactor
-            if (pbrMetallicRoughness.metallicRoughnessTexture) uniforms[GLSL_PBR.metallicRoughnessTexture] = getGlTextureData(pbrMetallicRoughness.metallicRoughnessTexture)
-            if (pbrMetallicRoughness.roughnessFactor) uniforms[GLSL_PBR.roughness] = pbrMetallicRoughness.roughnessFactor
+        if (primitive.material) {
+            const material = primitive.material
+            uniforms[GLSL_COMMON.alphaTest] = material.alphaMode === 'MASK' ? 0.1 : 0
+            if (material.pbrMetallicRoughness) {
+                const pbrMetallicRoughness = primitive.material.pbrMetallicRoughness
+                if (pbrMetallicRoughness.baseColorFactor) uniforms[GLSL_COMMON.baseColor] = new Color(pbrMetallicRoughness.baseColorFactor)
+                if (pbrMetallicRoughness.baseColorTexture) uniforms[GLSL_COMMON.baseTexture] = getGlTextureData(pbrMetallicRoughness.baseColorTexture)
+                if (pbrMetallicRoughness.metallicFactor) uniforms[GLSL_PBR.metallic] = pbrMetallicRoughness.metallicFactor
+                if (pbrMetallicRoughness.metallicRoughnessTexture) uniforms[GLSL_PBR.metallicRoughnessTexture] = getGlTextureData(pbrMetallicRoughness.metallicRoughnessTexture)
+                if (pbrMetallicRoughness.roughnessFactor) uniforms[GLSL_PBR.roughness] = pbrMetallicRoughness.roughnessFactor
+            }
         }
 
         for (const key in extraUniforms) {
@@ -89,11 +93,11 @@ function getGlObjectsData(
         }
 
         const attributesData = getAttribute(primitive.attributes)
-        const glVaoData = new GlVaoData(attributesData, primitive.indices.buffer)
+        const glVaoData = new GlVao(attributesData, primitive.indices.buffer)
 
-        objects.push(new GlObjectData({
-            glProgramData,
-            glVaoData,
+        objects.push(new GlObject({
+            glProgram: glProgram,
+            glVao: glVaoData,
             uniforms
         }))
     }
@@ -119,7 +123,7 @@ function getNode3DWithoutObjects({
 
 function linkObjectsToNode(
     /** @type {Node3D} */ node3D,
-    /** @type {GlObjectData[]} */ objects
+    /** @type {GlObject[]} */ objects
 ) {
     for (const object of objects) {
         node3D.objects.add(object)
@@ -140,7 +144,7 @@ function getNode3D({
         animationDictionary
     })
 
-    const objects = getGlObjectsData(gltfNode.mesh.primitives, extraUniforms, glProgramData)
+    const objects = getGlObjectsData(gltfNode.mesh.primitives, glProgramData, extraUniforms)
 
     linkObjectsToNode(node3D, objects)
 
@@ -160,7 +164,7 @@ export class GltfNodeManager {
     /**
      * @param {{
      *      gltfNode: GltfNode
-     *      glProgramData: GlProgramData
+     *      glProgramData: GlProgram
      *      extraUniforms?: {[name: string]: WebGl.UniformData}
      *      animationDictionary?: {[animationId: number]: string}
      * }} params
@@ -185,8 +189,8 @@ export class GltfNodeManager {
 
     dispose() {
         for (const object of this.#node3D.objects) {
-            if (object instanceof GlObjectData) {
-                object.glVaoData.needsDelete = true
+            if (object instanceof GlObject) {
+                object.glVao.needsDelete = true
                 if (object.uniforms[GLSL_COMMON.baseTexture]) object.uniforms[GLSL_COMMON.baseTexture].needsDelete = true
                 if (object.uniforms[GLSL_PBR.metallicRoughnessTexture]) object.uniforms[GLSL_PBR.metallicRoughnessTexture].needsDelete = true
             }

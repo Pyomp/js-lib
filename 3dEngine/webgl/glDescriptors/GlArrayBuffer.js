@@ -1,4 +1,4 @@
-export class GlArrayBufferData {
+export class GlArrayBuffer {
     version = -1
 
     needsDelete = false

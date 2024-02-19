@@ -1,4 +1,4 @@
-import { Geometry } from "../webgl/glDescriptors/GlVaoData.js"
+import { Geometry } from "../webgl/glDescriptors/GlVao.js"
 import { Material } from "../sceneGraph/MaterialOld.js"
 import { Object3D } from "../sceneGraph/Object3D.js"
 

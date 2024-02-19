@@ -1,12 +1,12 @@
 import { Camera } from "../../sceneGraph/Camera.js"
-import { GlUboData } from "../glDescriptors/GlUboData.js"
+import { GlUbo } from "../glDescriptors/GlUbo.js"
 import { GLSL_CAMERA } from '../../programs/chunks/glslCamera.js'
 
 export class GlCameraUbo {
     #version = 0
 
     #camera
-    glUboData = new GlUboData(GLSL_CAMERA.uboByteLength)
+    glUboData = new GlUbo(GLSL_CAMERA.uboByteLength)
     #uboF32a = new Float32Array(this.glUboData.arrayBuffer)
 
     /**

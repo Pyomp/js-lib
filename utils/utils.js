@@ -52,7 +52,6 @@ export function mergeObjects(o1, o2 = {}) {
 }
 
 //
-
 const microtaskCallbacks = new Set()
 function _doItMicrotask() {
     for (const callback of microtaskCallbacks) callback()
@@ -77,6 +76,19 @@ export function doItOnceNextRaf(callback) {
     rafCallbacks.add(callback)
 }
 
+export function waitForImageComplete(image) {
+    return new Promise((resolve) => {
+        function onComplete() {
+            resolve(image)
+            image.removeEventListener('load', onComplete)
+            image.removeEventListener('error', onComplete)
+        }
+
+        image.addEventListener('load', onComplete)
+        image.addEventListener('error', onComplete)
+    })
+}
+
 /**
  * 
  * @param {string} url 
@@ -84,10 +96,8 @@ export function doItOnceNextRaf(callback) {
  */
 export function getImage(url) {
     const image = new Image()
-    return new Promise((resolve) => {
-        image.onload = () => { resolve(image) }
-        image.src = url
-    })
+    image.src = url
+    return waitForImageComplete(image)
 }
 
 //

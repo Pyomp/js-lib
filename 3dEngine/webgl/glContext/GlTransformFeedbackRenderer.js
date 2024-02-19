@@ -1,20 +1,20 @@
-import { GlArrayBufferData } from "../glDescriptors/GlArrayBufferData.js"
-import { GlTransformFeedbackData } from "../glDescriptors/GlTransformFeedbackData.js"
-import { GlContext } from "./GlContext.js"
+import { GlArrayBuffer } from "../glDescriptors/GlArrayBuffer.js"
+import { GlTransformFeedback } from "../glDescriptors/GlTransformFeedback.js"
+import { GlContextRenderer } from "./GlContextRenderer.js"
 
-export class GlTransformFeedback {
+export class GlTransformFeedbackRenderer {
     #glContext
     /** @type {WebGL2RenderingContext} */ #gl
-    #glArrayBuffersData = new Set()
+    #glArrayBuffers = new Set()
 
     /** @type {WebGLVertexArrayObject} */ #glTransformFeedback
 
     /**
-     * @param {GlContext} glContext
+     * @param {GlContextRenderer} glContext
      * @param {WebGLProgram} glProgram
-     * @param {GlTransformFeedbackData} glTransformFeedbackData
+     * @param {GlTransformFeedback} glTransformFeedback
      */
-    constructor(glContext, glProgram, glTransformFeedbackData) {
+    constructor(glContext, glProgram, glTransformFeedback) {
         this.#glContext = glContext
         this.#gl = glContext.gl
 
@@ -23,17 +23,17 @@ export class GlTransformFeedback {
         this.transformFeedback = this.#gl.createTransformFeedback()
         this.#gl.bindTransformFeedback(WebGL2RenderingContext.TRANSFORM_FEEDBACK, this.#glTransformFeedback)
 
-        if (glTransformFeedbackData.glArrayBufferData instanceof GlArrayBufferData) {
-            const glArrayBuffer = glContext.getGlArrayBuffer(glTransformFeedbackData.glArrayBufferData)
+        if (glTransformFeedback.glArrayBuffer instanceof GlArrayBuffer) {
+            const glArrayBuffer = glContext.getGlArrayBuffer(glTransformFeedback.glArrayBuffer)
             glArrayBuffer.bind()
-            this.#glArrayBuffersData.add(glArrayBuffer)
+            this.#glArrayBuffers.add(glArrayBuffer)
             this.#gl.bindBufferBase(WebGL2RenderingContext.TRANSFORM_FEEDBACK_BUFFER, 0, glArrayBuffer.glBuffer)
         } else {
             for (let i = 0; i < transformFeedbackVaryingCount; i++) {
                 const { name } = this.#gl.getTransformFeedbackVarying(glProgram, i)
-                const glArrayBuffer = glContext.getGlArrayBuffer(glTransformFeedbackData.glArrayBufferData[name])
+                const glArrayBuffer = glContext.getGlArrayBuffer(glTransformFeedback.glArrayBuffer[name])
                 glArrayBuffer.bind()
-                this.#glArrayBuffersData.add(glArrayBuffer)
+                this.#glArrayBuffers.add(glArrayBuffer)
                 this.#gl.bindBufferBase(WebGL2RenderingContext.TRANSFORM_FEEDBACK_BUFFER, i, glArrayBuffer.glBuffer)
             }
         }
@@ -46,8 +46,8 @@ export class GlTransformFeedback {
     dispose() {
         this.#gl.deleteTransformFeedback(this.#glTransformFeedback)
 
-        for (const glArrayBufferData of this.#glArrayBuffersData) {
-            this.#glContext.freeGlArrayBuffer(glArrayBufferData)
+        for (const glArrayBuffer of this.#glArrayBuffers) {
+            this.#glContext.freeGlArrayBuffer(glArrayBuffer)
         }
     }
 }

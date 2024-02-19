@@ -1,22 +1,22 @@
 import { Particle } from "../../../sceneGraph/particle/Particle.js"
-import { GlContext } from "../../glContext/GlContext.js"
+import { GlContextRenderer } from "../../glContext/GlContextRenderer.js"
 import { copyBuffer, printBuffer } from "../../glContext/utils.js"
-import { GlArrayBufferData } from "../../glDescriptors/GlArrayBufferData.js"
-import { GlTextureData } from "../../glDescriptors/GlTextureData.js"
+import { GlArrayBuffer } from "../../glDescriptors/GlArrayBuffer.js"
+import { GlTexture } from "../../glDescriptors/GlTexture.js"
 import { ParticlePhysicsGlObject } from "./ParticlePhysicsGlProgramData.js"
 import { ParticleRenderGlObject } from "./ParticleRenderGlProgramData.js"
 
 export class GlParticleRenderer {
     #glContext
     #maxParticleCount
-    /** @type {GlArrayBufferData} */ #transformFeedbackBufferData
+    /** @type {GlArrayBuffer} */ #transformFeedbackBufferData
     #vaoBufferData
 
     /**
      *  
      * @param {{
-     *  glContext: GlContext
-     *  glDepthTextureData: GlTextureData
+     *  glContext: GlContextRenderer
+     *  glDepthTextureData: GlTexture
      *  maxKeyframes?: number
      *  maxParticleCount?: number
      * }} param0 
@@ -30,7 +30,7 @@ export class GlParticleRenderer {
         this.#glContext = glContext
         this.particlePhysicsGlObject = new ParticlePhysicsGlObject(maxParticleCount)
         this.#transformFeedbackBufferData = this.particlePhysicsGlObject.outArrayBufferData
-        this.#vaoBufferData = this.particlePhysicsGlObject.glVaoData.attributesData[0].glArrayBufferData
+        this.#vaoBufferData = this.particlePhysicsGlObject.glVao.attributes[0].glArrayBuffer
         this.particleRenderObject = new ParticleRenderGlObject(this.#vaoBufferData, glDepthTextureData, maxParticleCount)
     }
 

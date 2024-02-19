@@ -4,12 +4,12 @@ import { GLSL_WINDOW } from "../../../programs/chunks/glslWindow.js"
 import { Particle } from "../../../sceneGraph/particle/Particle.js"
 import { ParticleKeyframe } from "../../../sceneGraph/particle/ParticleKeyframe.js"
 import { createSparkleCanvas } from "../../../textures/sparkle.js"
-import { GlArrayBufferData } from "../../glDescriptors/GlArrayBufferData.js"
-import { GlAttributeData } from "../../glDescriptors/GlAttributeData.js"
-import { GlObjectData } from "../../glDescriptors/GlObjectData.js"
-import { GlProgramData } from "../../glDescriptors/GlProgramData.js"
-import { GlTextureData } from "../../glDescriptors/GlTextureData.js"
-import { GlVaoData } from "../../glDescriptors/GlVaoData.js"
+import { GlArrayBuffer } from "../../glDescriptors/GlArrayBuffer.js"
+import { GlAttribute } from "../../glDescriptors/GlAttribute.js"
+import { GlObject } from "../../glDescriptors/GlObject.js"
+import { GlProgram } from "../../glDescriptors/GlProgram.js"
+import { GlTexture } from "../../glDescriptors/GlTexture.js"
+import { GlVao } from "../../glDescriptors/GlVao.js"
 
 const FLOAT_32_ELEMENT_COUNT = 7
 
@@ -33,33 +33,33 @@ const KEYFRAME_ALPHA_OFFSET = 7
 
 const MAX_ANIMATION = 1024
 
-export class ParticleRenderGlObject extends GlObjectData {
+export class ParticleRenderGlObject extends GlObject {
     #keyframesBuffer
     #keyframesTexture
     #keyframesHeightIndexArrayBuffer
 
     constructor(inPositionTimeVelocitySize, glDepthTextureData, maxParticleCount = 100_000) {
-        const keyframesHeightIndexArrayBuffer = new GlArrayBufferData(new Uint32Array(MAX_ANIMATION))
-        const glVaoData = new GlVaoData(
+        const keyframesHeightIndexArrayBuffer = new GlArrayBuffer(new Uint32Array(MAX_ANIMATION))
+        const glVaoData = new GlVao(
             [
-                new GlAttributeData({
-                    glArrayBufferData: inPositionTimeVelocitySize,
+                new GlAttribute({
+                    glArrayBuffer: inPositionTimeVelocitySize,
                     name: 'position',
                     size: 3,
                     type: WebGL2RenderingContext.FLOAT,
                     stride: STRIDE,
                     offset: POSITION_OFFSET
                 }),
-                new GlAttributeData({
-                    glArrayBufferData: inPositionTimeVelocitySize,
+                new GlAttribute({
+                    glArrayBuffer: inPositionTimeVelocitySize,
                     name: 'time',
                     size: 1,
                     type: WebGL2RenderingContext.FLOAT,
                     stride: STRIDE,
                     offset: TIME_OFFSET
                 }),
-                new GlAttributeData({
-                    glArrayBufferData: keyframesHeightIndexArrayBuffer,
+                new GlAttribute({
+                    glArrayBuffer: keyframesHeightIndexArrayBuffer,
                     name: 'keyframesHeightIndex',
                     size: 1,
                     type: WebGL2RenderingContext.UNSIGNED_INT,
@@ -68,7 +68,7 @@ export class ParticleRenderGlObject extends GlObjectData {
         )
 
         const keyframesBuffer = new Float32Array(KEYFRAMES_F32_LENGTH * MAX_ANIMATION)
-        const keyframesTexture = new GlTextureData({
+        const keyframesTexture = new GlTexture({
             name: `keyframes particle`,
             data: keyframesBuffer,
 
@@ -88,11 +88,11 @@ export class ParticleRenderGlObject extends GlObjectData {
         })
 
         super({
-            glProgramData: new ParticleRenderGlProgram(),
-            glVaoData,
+            glProgram: new ParticleRenderGlProgram(),
+            glVao: glVaoData,
             uniforms: {
                 keyframesTexture,
-                bumpTexture: new GlTextureData({
+                bumpTexture: new GlTexture({
                     data: createSparkleCanvas()
                 }),
                 depthTexture: glDepthTextureData
@@ -151,7 +151,7 @@ export class ParticleRenderGlObject extends GlObjectData {
     }
 }
 
-class ParticleRenderGlProgram extends GlProgramData {
+class ParticleRenderGlProgram extends GlProgram {
     constructor() {
         super(() => `#version 300 es
 in vec3 position;

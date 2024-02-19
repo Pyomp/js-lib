@@ -1,12 +1,12 @@
 import { GLSL_CAMERA } from "../../programs/chunks/glslCamera.js"
-import { GlArrayBufferData } from "../../webgl/glDescriptors/GlArrayBufferData.js"
-import { GlAttributeData } from "../../webgl/glDescriptors/GlAttributeData.js"
-import { GlObjectData } from "../../webgl/glDescriptors/GlObjectData.js"
-import { GlProgramData } from "../../webgl/glDescriptors/GlProgramData.js"
-import { GlTextureData } from "../../webgl/glDescriptors/GlTextureData.js"
-import { GlVaoData } from "../../webgl/glDescriptors/GlVaoData.js"
+import { GlArrayBuffer } from "../../webgl/glDescriptors/GlArrayBuffer.js"
+import { GlAttribute } from "../../webgl/glDescriptors/GlAttribute.js"
+import { GlObject } from "../../webgl/glDescriptors/GlObject.js"
+import { GlProgram } from "../../webgl/glDescriptors/GlProgram.js"
+import { GlTexture } from "../../webgl/glDescriptors/GlTexture.js"
+import { GlVao } from "../../webgl/glDescriptors/GlVao.js"
 
-const glProgramData = new GlProgramData(
+const glProgramData = new GlProgram(
     () => `#version 300 es
 in vec2 position;
 out vec4 v_position;
@@ -31,12 +31,12 @@ void main() {
     outColor = texture(skyBox, normalize(t.xyz / t.w));
 }`)
 
-const glVaoData = new GlVaoData([
-    new GlAttributeData({
+const glVaoData = new GlVao([
+    new GlAttribute({
         name: 'position',
         size: 2,
         type: 'FLOAT',
-        glArrayBufferData: new GlArrayBufferData(new Float32Array(
+        glArrayBuffer: new GlArrayBuffer(new Float32Array(
             [
                 -1, -1,
                 1, -1,
@@ -49,17 +49,31 @@ const glVaoData = new GlVaoData([
     })
 ])
 
-export class SkyBoxGlObject extends GlObjectData {
-    constructor(images) {
+export class SkyBoxGlObject extends GlObject {
+    constructor(
+    /** @type {URL | HTMLImageElement} */ positiveX,
+    /** @type {URL | HTMLImageElement} */ negativeX,
+    /** @type {URL | HTMLImageElement} */ positiveY,
+    /** @type {URL | HTMLImageElement} */ negativeY,
+    /** @type {URL | HTMLImageElement} */ positiveZ,
+    /** @type {URL | HTMLImageElement} */ negativeZ,
+    ) {
         const uniforms = {
-            skyBox: new GlTextureData({
-                data: images
+            skyBox: new GlTexture({
+                data: [
+                    positiveX,
+                    negativeX,
+                    positiveY,
+                    negativeY,
+                    positiveZ,
+                    negativeZ,
+                ]
             })
         }
 
         super({
-            glProgramData,
-            glVaoData,
+            glProgram: glProgramData,
+            glVao: glVaoData,
             uniforms,
             count: 6,
             drawMode: WebGL2RenderingContext.TRIANGLES,

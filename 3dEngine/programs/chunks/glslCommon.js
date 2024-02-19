@@ -6,6 +6,7 @@ const worldMatrix = 'worldMatrix'
 const baseColor = 'baseColor'
 const baseTexture = 'baseTexture'
 const normalMatrix = 'normalMatrix'
+const alphaTest = 'alphaTest'
 
 const vertexDeclaration = `
 in vec3 ${positionAttribute};
@@ -53,6 +54,7 @@ function getBiTangent(viewNormal, viewTangent, tangent) {
 }
 
 export const GLSL_COMMON = Object.freeze({
+    alphaTest,
     baseColor,
     baseTexture,
     positionAttribute,

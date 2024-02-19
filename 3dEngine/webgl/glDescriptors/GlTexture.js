@@ -1,4 +1,4 @@
-export class GlTextureData {
+export class GlTexture {
     static getCubeTexture = getCubeTexture
 
     paramsVersion = 0
@@ -19,7 +19,7 @@ export class GlTextureData {
     *  border?: GLint
     *  format?: WebGl.Texture.Format | number
     *  type?: WebGl.Texture.Type | number
-    *  data?: WebGl.Texture.Pixels | null | WebGl.Texture.Pixels[] | URL | Image
+    *  data?: WebGl.Texture.Pixels | null | (WebGl.Texture.Pixels | URL)[] | URL | Image
     *  needsMipmap?: boolean
     * }} param0 
     */
@@ -67,6 +67,7 @@ export class GlTextureData {
                         this.height = element.height
                         this.dataVersion++
                         this.paramsVersion++
+                        console.log(this.width, this.height)
                     })
                 }
             }
@@ -100,5 +101,5 @@ async function getCubeTexture(
         getImage(urlNegativeZ),
     ])
 
-    return [new GlTextureData({ data: images })]
+    return [new GlTexture({ data: images })]
 }

@@ -1,4 +1,4 @@
-import { GlProgramData } from "../webgl/glDescriptors/GlProgramData.js"
+import { GlProgram } from "../webgl/glDescriptors/GlProgram.js"
 import { basicProgram } from "./basicProgram.js"
 import { GLSL_CAMERA } from "./chunks/glslCamera.js"
 import { GLSL_COMMON } from "./chunks/glslCommon.js"
@@ -21,4 +21,4 @@ void main() {
 }`
 }
 
-export const basicSkinnedProgram = new GlProgramData(vertexShader, basicProgram.fragmentShader)
+export const basicSkinnedProgram = new GlProgram(vertexShader, basicProgram.fragmentShader)

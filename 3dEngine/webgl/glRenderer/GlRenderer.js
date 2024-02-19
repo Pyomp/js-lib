@@ -9,10 +9,10 @@ import { Node3D } from "../../sceneGraph/Node3D.js"
 import { PointLight } from "../../sceneGraph/PointLight.js"
 import { Particle } from "../../sceneGraph/particle/Particle.js"
 import { GlDepthTextureData } from "../../textures/DepthTexture.js"
-import { GlContext } from "../glContext/GlContext.js"
-import { GlFrameBufferData } from "../glDescriptors/GlFrameBufferData.js"
-import { GlObjectData } from "../glDescriptors/GlObjectData.js"
-import { GlTextureData } from "../glDescriptors/GlTextureData.js"
+import { GlContextRenderer } from "../glContext/GlContextRenderer.js"
+import { GlFrameBuffer } from "../glDescriptors/GlFrameBuffer.js"
+import { GlObject } from "../glDescriptors/GlObject.js"
+import { GlTexture } from "../glDescriptors/GlTexture.js"
 import { GlAmbientLightRenderer } from "./GlAmbientLightRenderer.js"
 import { GlCameraUbo } from "./GlCameraUbo.js"
 import { GlPointLightRenderer } from "./GlPointLightRenderer.js"
@@ -31,7 +31,7 @@ export class GlRenderer {
 
     windowInfo = new GlWindowInfo()
     depthTexture = new GlDepthTextureData()
-    depthFrameBuffer = new GlFrameBufferData({ [WebGL2RenderingContext.DEPTH_ATTACHMENT]: this.depthTexture })
+    depthFrameBuffer = new GlFrameBuffer({ [WebGL2RenderingContext.DEPTH_ATTACHMENT]: this.depthTexture })
 
     pointLightRenderer = new GlPointLightRenderer()
     get pointLightCount() { return this.pointLightRenderer.uboPointLightCount }
@@ -63,7 +63,7 @@ export class GlRenderer {
         this.htmlElement.appendChild(canvas)
 
 
-        this.glContext = new GlContext(
+        this.glContext = new GlContextRenderer(
             canvas,
             undefined,
             {
@@ -121,7 +121,7 @@ export class GlRenderer {
         const ambientLights = []
         /** @type {Particle[]} */
         const particlesToAdd = []
-        /** @type {GlObjectData[]} */
+        /** @type {GlObject[]} */
         const gpgpuObjects = []
         /** @type {Set<Node3D>} */
         const node3Ds = new Set()
@@ -137,8 +137,8 @@ export class GlRenderer {
                 } else if (object instanceof Particle) {
                     particlesToAdd.push(object)
                     node.objects.delete(object)
-                } else if (object instanceof GlObjectData) {
-                    if (object.glProgramData.glTransformFeedbackData) {
+                } else if (object instanceof GlObject) {
+                    if (object.glProgram.glTransformFeedback) {
                         gpgpuObjects.push(object)
                     } else {
                         node3Ds.add(node)
@@ -196,21 +196,21 @@ export class GlRenderer {
 
     /**
      * 
-     * @param {GlObjectData} a 
-     * @param {GlObjectData} b 
+     * @param {GlObject} a 
+     * @param {GlObject} b 
      * @returns 
      */
     compareObjectDrawOptimization(a, b) {
-        if (!this.#programCache.has(a.glProgramData)) this.#programCache.set(a.glProgramData, this.#lastProgramId++)
-        if (!this.#programCache.has(b.glProgramData)) this.#programCache.set(b.glProgramData, this.#lastProgramId++)
-        const materialIdA = this.#programCache.get(a.glProgramData)
-        const materialIdB = this.#programCache.get(b.glProgramData)
+        if (!this.#programCache.has(a.glProgram)) this.#programCache.set(a.glProgram, this.#lastProgramId++)
+        if (!this.#programCache.has(b.glProgram)) this.#programCache.set(b.glProgram, this.#lastProgramId++)
+        const materialIdA = this.#programCache.get(a.glProgram)
+        const materialIdB = this.#programCache.get(b.glProgram)
         if (materialIdA !== materialIdB) return materialIdA - materialIdB
 
-        if (!this.#vaoCache.has(a.glVaoData)) this.#vaoCache.set(a.glVaoData, this.#lastVaoId++)
-        if (!this.#vaoCache.has(b.glVaoData)) this.#vaoCache.set(b.glVaoData, this.#lastVaoId++)
-        const geometryIdA = this.#vaoCache.get(a.glVaoData)
-        const geometryIdB = this.#vaoCache.get(b.glVaoData)
+        if (!this.#vaoCache.has(a.glVao)) this.#vaoCache.set(a.glVao, this.#lastVaoId++)
+        if (!this.#vaoCache.has(b.glVao)) this.#vaoCache.set(b.glVao, this.#lastVaoId++)
+        const geometryIdA = this.#vaoCache.get(a.glVao)
+        const geometryIdB = this.#vaoCache.get(b.glVao)
         if (geometryIdA !== geometryIdB) return geometryIdA - geometryIdB
 
         if (!this.#objectState.has(a)) this.#objectState.set(a, getObjectStateId(a))
@@ -227,7 +227,7 @@ export class GlRenderer {
     }
 }
 
-function getObjectStateId(/** @type {GlObjectData} */ object) {
+function getObjectStateId(/** @type {GlObject} */ object) {
     let id = 0
 
     if (object.additiveBlending) id |= 0x0000_0001
@@ -238,7 +238,7 @@ function getObjectStateId(/** @type {GlObjectData} */ object) {
     return id
 }
 
-function sortTransparencyObjects(/** @type {GlObjectData[]} */ objects) {
+function sortTransparencyObjects(/** @type {GlObject[]} */ objects) {
     const opaque = []
     const transparent = []
 
@@ -272,14 +272,14 @@ function getNodesInFrustum(node3Ds, frustum) {
 }
 
 function getObjectsInFrustum(/** @type {Node3D[]} */ nodes, frustum) {
-    /** @type {GlObjectData[]} */
+    /** @type {GlObject[]} */
     const result = []
 
     for (const node of nodes) {
         for (const object of node.objects) {
-            if (object instanceof GlObjectData && !object.glProgramData.glTransformFeedbackData) {
-                if (object.glVaoData) {
-                    const boundingBox = object.glVaoData.boundingBox
+            if (object instanceof GlObject && !object.glProgram.glTransformFeedback) {
+                if (object.glVao) {
+                    const boundingBox = object.glVao.boundingBox
 
                     if (
                         boundingBox.isEmpty()

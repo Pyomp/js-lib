@@ -1,6 +1,6 @@
-import { GlTransformFeedbackData } from "./GlTransformFeedbackData.js"
+import { GlTransformFeedback } from "./GlTransformFeedback.js"
 
-export class GlProgramData {
+export class GlProgram {
     version = 0
 
     needsDelete = false
@@ -8,15 +8,15 @@ export class GlProgramData {
     /**
      * @param {() => string} vertexShader 
      * @param {() => string} fragmentShader 
-     * @param {GlTransformFeedbackData?} glTransformFeedbackData 
+     * @param {GlTransformFeedback?} glTransformFeedback 
      */
     constructor(
         vertexShader,
         fragmentShader,
-        glTransformFeedbackData = undefined
+        glTransformFeedback = undefined
     ) {
         this.vertexShader = vertexShader
         this.fragmentShader = fragmentShader
-        this.glTransformFeedbackData = glTransformFeedbackData
+        this.glTransformFeedback = glTransformFeedback
     }
 }

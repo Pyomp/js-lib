@@ -1,6 +1,6 @@
-import { GlTextureData } from "../webgl/glDescriptors/GlTextureData.js"
+import { GlTexture } from "../webgl/glDescriptors/GlTexture.js"
 
-export class GlDepthTextureData extends GlTextureData {
+export class GlDepthTextureData extends GlTexture {
     constructor() {
         super({
             name: 'Renderer Depth Texture',

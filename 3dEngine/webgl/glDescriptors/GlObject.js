@@ -1,17 +1,17 @@
-import { GlProgramData } from "./GlProgramData.js"
-import { GlVaoData } from "./GlVaoData.js"
-import { GlTextureData } from './GlTextureData.js'
-import { GlUboData } from "./GlUboData.js"
+import { GlProgram } from "./GlProgram.js"
+import { GlVao } from "./GlVao.js"
+import { GlTexture } from './GlTexture.js'
+import { GlUbo } from "./GlUbo.js"
 
-export class GlObjectData {
+export class GlObject {
 
     /**
      * 
      * @param {{
-     *      glProgramData: GlProgramData
-     *      glVaoData?: GlVaoData | undefined
-     *      uniforms?: {[name: string]: WebGl.UniformData | GlTextureData}
-     *      glUbosData?: GlUboData
+     *      glProgram: GlProgram
+     *      glVao?: GlVao | undefined
+     *      uniforms?: {[name: string]: WebGl.UniformData | GlTexture}
+     *      glUbos?: GlUbo
      *      drawMode?: WebGl.Render.DrawMode | number
      *      count?: number
      *      offset?: number
@@ -24,10 +24,10 @@ export class GlObjectData {
      * }} param0 
      */
     constructor({
-        glProgramData,
-        glVaoData,
+        glProgram,
+        glVao,
         uniforms,
-        glUbosData,
+        glUbos,
         drawMode = WebGL2RenderingContext.TRIANGLES,
         count,
         offset = 0,
@@ -38,12 +38,12 @@ export class GlObjectData {
         cullFace = true,
         depthFunc = WebGL2RenderingContext.LESS,
     }) {
-        this.glProgramData = glProgramData
-        this.glVaoData = glVaoData
+        this.glProgram = glProgram
+        this.glVao = glVao
         this.uniforms = uniforms
-        this.glUbosData = glUbosData
+        this.glUbos = glUbos
         this.drawMode = WebGL2RenderingContext[drawMode] ?? drawMode
-        this.count = count ?? countFromGlVaoData(glVaoData)
+        this.count = count ?? countFromGlVaoData(glVao)
         this.offset = offset
         this.additiveBlending = additiveBlending
         this.normalBlending = normalBlending
@@ -54,9 +54,9 @@ export class GlObjectData {
     }
 
     clone() {
-        return new GlObjectData({
-            glProgramData: this.glProgramData,
-            glVaoData: this.glVaoData,
+        return new GlObject({
+            glProgram: this.glProgram,
+            glVao: this.glVao,
             uniforms: { ...this.uniforms },
             // glUbosData: this.glUbosData.clone(), // TODO
             drawMode: this.drawMode,
@@ -74,16 +74,16 @@ export class GlObjectData {
 
 /**
  * 
- * @param {GlVaoData} glVaoData 
+ * @param {GlVao} glVao 
  */
-function countFromGlVaoData(glVaoData) {
-    if (glVaoData) {
-        if (glVaoData.indicesUintArray?.length) {
-            return glVaoData.indicesUintArray?.length
+function countFromGlVaoData(glVao) {
+    if (glVao) {
+        if (glVao.indicesUintArray?.length) {
+            return glVao.indicesUintArray?.length
         } else {
-            for (const attribute of glVaoData.attributesData) {
+            for (const attribute of glVao.attributes) {
                 if (attribute.name.toLocaleLowerCase().includes('position')) {
-                    return attribute.glArrayBufferData.arrayBuffer.byteLength / (3 * 4)
+                    return attribute.glArrayBuffer.arrayBuffer.byteLength / (3 * 4)
                 }
             }
         }

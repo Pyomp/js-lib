@@ -1,11 +1,11 @@
-import { GlUboData } from "../glDescriptors/GlUboData.js"
+import { GlUbo } from "../glDescriptors/GlUbo.js"
 import { GLSL_POINT_LIGHT } from "../../programs/chunks/glslPointLight.js"
 import { PointLight } from "../../sceneGraph/PointLight.js"
 
 const UBO_F32A_LENGTH = GLSL_POINT_LIGHT.uboByteLength / Float32Array.BYTES_PER_ELEMENT
 
 export class GlPointLightRenderer {
-    glUboData = new GlUboData(GLSL_POINT_LIGHT.uboByteLength)
+    glUboData = new GlUbo(GLSL_POINT_LIGHT.uboByteLength)
     #uboF32a = new Float32Array(this.glUboData.arrayBuffer)
 
     uboPointLightCount = 1

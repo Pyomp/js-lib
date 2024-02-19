@@ -1,4 +1,4 @@
-import { GlProgramData } from "../webgl/glDescriptors/GlProgramData.js"
+import { GlProgram } from "../webgl/glDescriptors/GlProgram.js"
 import { GlRenderer } from "../webgl/glRenderer/GlRenderer.js"
 import { GLSL_AMBIENT_LIGHT } from "./chunks/glslAmbient.js"
 import { GLSL_CAMERA } from "./chunks/glslCamera.js"
@@ -47,6 +47,7 @@ function fragmentShader({
     ${GLSL_POINT_LIGHT.fragmentDeclaration(pointLightCount, isShininessEnable)}
     
     uniform vec3 specular;
+    uniform float ${GLSL_COMMON.alphaTest};
 
     out vec4 outColor;
     
@@ -65,12 +66,14 @@ function fragmentShader({
         vec4 color = texture(${GLSL_COMMON.baseTexture}, v_uv);
 
         outColor = vec4(color.xyz * lightColor ${isShininessEnable ? ' + lightSpecular * specular' : ''}, color.a);
+
+        if(outColor.a < ${GLSL_COMMON.alphaTest}) discard;
         // outColor = color;
         // outColor.xyz = normal;
     }`
 }
 
-export class PhongProgram extends GlProgramData {
+export class PhongProgram extends GlProgram {
     isShininessEnable = true
     isSkinned = false
 

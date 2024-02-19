@@ -1,5 +1,5 @@
 import { loadGLTF } from "../../loaders/gltfLoader.js"
-import { GlProgramData } from "../../webgl/glDescriptors/GlProgramData.js"
+import { GlProgram } from "../../webgl/glDescriptors/GlProgram.js"
 import { Node3D } from "../Node3D.js"
 import { GltfNodeManager } from "./GltfNodeManager.js"
 
@@ -17,7 +17,7 @@ export class GltfNodeLoader {
      * @param {{
      *      gltfUrl: URL | string
      *      nodeName: string
-     *      glProgramData: GlProgramData
+     *      glProgramData: GlProgram
      *      uniforms?: {[name: string]: WebGl.UniformData}
      *      animationDictionary?: {[animationId: number]: string}
      * }} params

@@ -1,6 +1,6 @@
 import { Quaternion } from '../../../../../math/Quaternion.js'
 import { Vector3 } from '../../../../../math/Vector3.js'
-import { GlTextureData } from '../../../../webgl/glDescriptors/GlTextureData.js'
+import { GlTexture } from '../../../../webgl/glDescriptors/GlTexture.js'
 import { Bone } from './Bone.js'
 import { KeyFrame } from './KeyFrame.js'
 import { Track } from './Track.js'
@@ -63,7 +63,7 @@ export class Animation {
     createArmature() {
         const buffer = new Float32Array(16 * this.#bonesCount)
         
-        const jointsTexture = new GlTextureData({
+        const jointsTexture = new GlTexture({
             name: `joints for skin ${this.name}`,
             data: buffer,
 

@@ -1,4 +1,4 @@
-export class GlCapabilities {
+export class GlCapabilitiesRenderer {
     #gl
 
     /**

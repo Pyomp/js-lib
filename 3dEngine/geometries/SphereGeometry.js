@@ -1,5 +1,5 @@
 import { Vector3 } from "../../math/Vector3.js"
-import { Geometry } from "../webgl/glDescriptors/GlVaoData.js"
+import { Geometry } from "../webgl/glDescriptors/GlVao.js"
 
 export class SphereGeometry extends Geometry {
     constructor(radius = 1, widthSegments = 32, heightSegments = 16, phiStart = 0, phiLength = Math.PI * 2, thetaStart = 0, thetaLength = Math.PI) {

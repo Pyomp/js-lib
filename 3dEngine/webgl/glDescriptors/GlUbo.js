@@ -1,4 +1,4 @@
-export class GlUboData {
+export class GlUbo {
     needsDelete = false
 
     version = 0

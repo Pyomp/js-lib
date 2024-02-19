@@ -1,9 +1,9 @@
 import { GLSL_WINDOW } from "../../programs/chunks/glslWindow.js"
-import { GlContext } from "../glContext/GlContext.js"
-import { GlUboData } from "../glDescriptors/GlUboData.js"
+import { GlContextRenderer } from "../glContext/GlContextRenderer.js"
+import { GlUbo } from "../glDescriptors/GlUbo.js"
 
 export class GlWindowInfo {
-    glUboData = new GlUboData(GLSL_WINDOW.uboByteLength)
+    glUboData = new GlUbo(GLSL_WINDOW.uboByteLength)
     #uboF32a = new Float32Array(this.glUboData.arrayBuffer)
 
     width = 1
@@ -12,7 +12,7 @@ export class GlWindowInfo {
     pointerY = -1
 
     /**
-    * @param {GlContext} glContext 
+    * @param {GlContextRenderer} glContext 
     */
     initGl(glContext) {
         glContext.resizeListeners.add((width, height) => {

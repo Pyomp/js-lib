@@ -1,4 +1,4 @@
-export class GlInfos {
+export class GlInfosRenderer {
     #gl
 
     constructor(/** @type {WebGL2RenderingContext} */ gl) {

@@ -5,7 +5,7 @@ import { Quaternion } from "../../math/Quaternion.js"
 import { Vector3 } from "../../math/Vector3.js"
 import { GLSL_COMMON } from "../programs/chunks/glslCommon.js"
 import { GLSL_SKINNED } from "../programs/chunks/glslSkinnedChunk.js"
-import { GlObjectData } from "../webgl/glDescriptors/GlObjectData.js"
+import { GlObject } from "../webgl/glDescriptors/GlObject.js"
 import { AmbientLight } from "./AmbientLight.js"
 import { PointLight } from "./PointLight.js"
 import { Mixer } from "./gltf/skinned/animation/Mixer.js"
@@ -29,7 +29,7 @@ export class Node3D {
     /** @type {Set<Node3D>} */
     nodes = new Set()
 
-    /** @type {Set<GlObjectData | PointLight | AmbientLight | Particle>} */
+    /** @type {Set<GlObject | PointLight | AmbientLight | Particle>} */
     objects = new Set()
 
     boundingBox = new Box3()
@@ -91,7 +91,7 @@ export class Node3D {
         node3d.boundingBox.copy(node3d.boundingBox)
 
         for (const object of this.objects) {
-            if (object instanceof GlObjectData) {
+            if (object instanceof GlObject) {
                 const clone = object.clone()
                 clone.uniforms[GLSL_COMMON.worldMatrix] = node3d.worldMatrix
                 if (node3d.mixer) clone.uniforms[GLSL_SKINNED.jointsTexture] = node3d.mixer.jointsTexture

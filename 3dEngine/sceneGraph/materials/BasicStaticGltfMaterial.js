@@ -1,7 +1,7 @@
 import { Color } from "../../../math/Color.js"
-import { Geometry } from "../../webgl/glDescriptors/GlVaoData.js"
+import { Geometry } from "../../webgl/glDescriptors/GlVao.js"
 import { Object3D } from "../Object3D.js"
-import { Texture } from "../../webgl/glDescriptors/GlTextureData.js"
+import { Texture } from "../../webgl/glDescriptors/GlTexture.js"
 
 /**
  * @implements {MaterialGltf}

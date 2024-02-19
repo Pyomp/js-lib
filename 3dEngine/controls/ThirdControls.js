@@ -5,6 +5,7 @@ import { distanceRayMesh } from '../extras/raycasterUtils.js'
 import { Spherical } from '../../math/Spherical.js'
 import { Sphere } from '../../math/Sphere.js'
 import { Ray } from '../../math/Ray.js'
+import { Camera } from '../sceneGraph/Camera.js'
 
 const MinPolarAngle = 0.1
 const MaxPolarAngle = 3.05
@@ -58,7 +59,7 @@ export class ThirdControls {
         this.#boundingSphere.center = camera.position
     }
 
-    /** @type {Geometry[]} */
+    /** @type {{positions: Float32Array, indices: Uint8Array | Uint16Array | Uint32Array}[]} */
     groundGeometries = []
 
     update = this.#update.bind(this)
@@ -93,11 +94,9 @@ export class ThirdControls {
         this.#cameraPosition.addVectors(this.#targetOffset, this.#direction)
 
         for (const geometry of this.groundGeometries) {
-            if (geometry.indices && geometry.attributes.position?.data instanceof Float32Array) {
-                const groundHeight = this.#rayDown.origin.y - distanceRayMesh(this.#rayDown, geometry.indices, geometry.attributes.position.data)
-                if (this.#cameraPosition.y < groundHeight + MinDistCamToGround) {
-                    this.#cameraPosition.y = groundHeight + MinDistCamToGround
-                }
+            const groundHeight = this.#rayDown.origin.y - distanceRayMesh(this.#rayDown, geometry.indices, geometry.positions)
+            if (this.#cameraPosition.y < groundHeight + MinDistCamToGround) {
+                this.#cameraPosition.y = groundHeight + MinDistCamToGround
             }
         }
 

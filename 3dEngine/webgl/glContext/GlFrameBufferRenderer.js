@@ -1,36 +1,36 @@
-import { GlFrameBufferData } from "../glDescriptors/GlFrameBufferData.js"
-import { GlTextureData } from "../glDescriptors/GlTextureData.js"
-import { GlContext } from "./GlContext.js"
+import { GlFrameBuffer } from "../glDescriptors/GlFrameBuffer.js"
+import { GlTexture } from "../glDescriptors/GlTexture.js"
+import { GlContextRenderer } from "./GlContextRenderer.js"
 
-export class GlFrameBuffer {
-    #glFrameBufferData
+export class GlFrameBufferRenderer {
+    #glFrameBuffer
     #glContext
     #gl
     glFrameBuffer
 
     /**
      * 
-     * @param {GlContext} glContext 
-     * @param {GlFrameBufferData} glFrameBufferData 
+     * @param {GlContextRenderer} glContext 
+     * @param {GlFrameBuffer} glFrameBuffer 
      */
-    constructor(glContext, glFrameBufferData) {
-        this.#glFrameBufferData = glFrameBufferData
+    constructor(glContext, glFrameBuffer) {
+        this.#glFrameBuffer = glFrameBuffer
         this.#glContext = glContext
         this.#gl = glContext.gl
         this.glFrameBuffer = this.#gl.createFramebuffer()
         this.#updateAttachments()
     }
 
-    #framebufferTexture2D(attachment, glTextureData) {
+    #framebufferTexture2D(attachment, glTexture) {
         this.#gl.bindFramebuffer(WebGL2RenderingContext.FRAMEBUFFER, this.glFrameBuffer)
-        const glTexture = this.#glContext.getGlTexture(glTextureData)
-        glTexture.attachToBoundFrameBuffer(attachment)
+        const glTextureRenderer = this.#glContext.getGlTexture(glTexture)
+        glTextureRenderer.attachToBoundFrameBuffer(attachment)
     }
 
     #updateAttachments() {
-        for (const attachment in this.#glFrameBufferData.attachments) {
-            const glData = this.#glFrameBufferData.attachments[attachment]
-            if (glData instanceof GlTextureData) {
+        for (const attachment in this.#glFrameBuffer.attachments) {
+            const glData = this.#glFrameBuffer.attachments[attachment]
+            if (glData instanceof GlTexture) {
                 this.#framebufferTexture2D(parseInt(attachment), glData)
             }
         }
@@ -38,21 +38,21 @@ export class GlFrameBuffer {
 
     /**
      * 
-     * @param {GlFrameBufferData | null} sourceGlFrameBufferData 
+     * @param {GlFrameBuffer | null} sourceGlFrameBuffer 
      * @param {GLuint} srcX1
      * @param {GLuint} srcY1
      * @param {GLenum} mask 
      * @param {GLenum} filter 
      */
     blit(
-        sourceGlFrameBufferData,
+        sourceGlFrameBuffer,
         srcX1,
         srcY1,
         mask = WebGL2RenderingContext.DEPTH_BUFFER_BIT,
         filter = WebGL2RenderingContext.NEAREST,
         srcX0 = 0, srcY0 = 0, dstX0 = srcX0, dstY0 = srcY0, dstX1 = srcX1, dstY1 = srcY1
     ) {
-        const source = sourceGlFrameBufferData ? this.#glContext.getGlFrameBuffer(sourceGlFrameBufferData).glFrameBuffer : null
+        const source = sourceGlFrameBuffer ? this.#glContext.getGlFrameBuffer(sourceGlFrameBuffer).glFrameBuffer : null
         this.#gl.bindFramebuffer(WebGL2RenderingContext.READ_FRAMEBUFFER, source)
         this.#gl.bindFramebuffer(WebGL2RenderingContext.DRAW_FRAMEBUFFER, this.glFrameBuffer)
         this.#gl.blitFramebuffer(srcX0, srcY0, srcX1, srcY1, dstX0, dstY0, dstX1, dstY1, mask, filter)

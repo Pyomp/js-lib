@@ -1,10 +1,10 @@
-import { GlArrayBufferData } from "./GlArrayBufferData.js"
+import { GlArrayBuffer } from "./GlArrayBuffer.js"
 
-export class GlAttributeData {
+export class GlAttribute {
     /**
      * 
      * @param {{
-     *  glArrayBufferData: GlArrayBufferData
+     *  glArrayBuffer: GlArrayBuffer
      *  name: string
      *  size: number
      *  type: WebGl.Vao.Type | number
@@ -14,7 +14,7 @@ export class GlAttributeData {
      * }} param0 
      */
     constructor({
-        glArrayBufferData,
+        glArrayBuffer,
         name,
         size,
         type,
@@ -22,7 +22,7 @@ export class GlAttributeData {
         stride = 0,
         offset = 0
     }) {
-        this.glArrayBufferData = glArrayBufferData
+        this.glArrayBuffer = glArrayBuffer
         this.name = name
         this.size = size
         this.type = WebGL2RenderingContext[type] ?? type

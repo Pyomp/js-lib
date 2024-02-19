@@ -1,5 +1,5 @@
-import { GlArrayBufferData } from "../webgl/glDescriptors/GlArrayBufferData.js"
-import { GlAttributeData } from "../webgl/glDescriptors/GlAttributeData.js"
+import { GlArrayBuffer } from "../webgl/glDescriptors/GlArrayBuffer.js"
+import { GlAttribute } from "../webgl/glDescriptors/GlAttribute.js"
 
 export class CubeGeometry {
     buffers = {
@@ -15,21 +15,21 @@ export class CubeGeometry {
     }
 
     attributesData = [
-        new GlAttributeData({
+        new GlAttribute({
             name: 'position',
-            glArrayBufferData: new GlArrayBufferData(this.buffers.position),
+            glArrayBuffer: new GlArrayBuffer(this.buffers.position),
             size: 3,
             type: 'FLOAT'
         }),
-        new GlAttributeData({
+        new GlAttribute({
             name: 'normal',
-            glArrayBufferData: new GlArrayBufferData(this.buffers.normal),
+            glArrayBuffer: new GlArrayBuffer(this.buffers.normal),
             size: 3,
             type: 'FLOAT'
         }),
-        new GlAttributeData({
+        new GlAttribute({
             name: 'uv',
-            glArrayBufferData: new GlArrayBufferData(this.buffers.uv),
+            glArrayBuffer: new GlArrayBuffer(this.buffers.uv),
             size: 2,
             type: 'FLOAT'
         }),

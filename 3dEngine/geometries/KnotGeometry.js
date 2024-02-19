@@ -1,5 +1,5 @@
 import { Vector3 } from "../../math/Vector3.js"
-import { Geometry } from "../webgl/glDescriptors/GlVaoData.js"
+import { Geometry } from "../webgl/glDescriptors/GlVao.js"
 
 export class KnotGeometry extends Geometry {
 
