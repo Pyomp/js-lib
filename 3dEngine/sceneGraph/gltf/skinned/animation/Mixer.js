@@ -65,7 +65,7 @@ export class Mixer {
      */
     #applyTransformationToBone(bone) {
         this.#animation.applyBoneTransformation(this.#time, this.#currentTrack, bone)
-        if (this.#fadeTime < 1) {
+        if (this.#fadeTime > 0) {
             const saved = this.#poseSaved[bone.name]
             bone.position.lerp(saved.position, this.#fadeTime)
             bone.quaternion.slerp(saved.quaternion, this.#fadeTime)
@@ -99,7 +99,7 @@ export class Mixer {
     }
 
     updateTime(deltaTime) {
-        this.#fadeTime += deltaTime * this.fadeSpeed
+        this.#fadeTime -= deltaTime * this.fadeSpeed
         this.#time += deltaTime * this.#timeDirection * this.speed
         this.#applyLoopToTime()
     }
@@ -117,7 +117,7 @@ export class Mixer {
 
         if (this.#currentTrack !== track) {
             this.#time = 0
-            this.#fadeTime = 0
+            this.#fadeTime = 1
             this.#timeDirection = 1
             this.#saveCurrentPose()
             this.#currentTrack = this.#tracks[animationName]

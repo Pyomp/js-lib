@@ -131,9 +131,10 @@ export class Animation {
      */
     applyBoneTransformation(time, track, boneTarget) {
         const boneTransformation = track.bones[boneTarget.name]
-        boneTarget.position.copy(boneTransformation?.position ? getBonePosition(time, boneTransformation.position) : this.initialPose[boneTarget.name].position)
-        boneTarget.quaternion.copy(boneTransformation?.quaternion ? getBoneQuaternion(time, boneTransformation.quaternion) : this.initialPose[boneTarget.name].quaternion)
-        boneTarget.scale.copy(boneTransformation?.scale ? getBoneScale(time, boneTransformation.scale) : this.initialPose[boneTarget.name].scale)
+        const initialBone = this.initialPose[boneTarget.name]
+        boneTarget.position.copy(boneTransformation?.position ? getBonePosition(time, boneTransformation.position) : initialBone.position)
+        boneTarget.quaternion.copy(boneTransformation?.quaternion ? getBoneQuaternion(time, boneTransformation.quaternion) : initialBone.quaternion)
+        boneTarget.scale.copy(boneTransformation?.scale ? getBoneScale(time, boneTransformation.scale) : initialBone.scale)
     }
 }
 
