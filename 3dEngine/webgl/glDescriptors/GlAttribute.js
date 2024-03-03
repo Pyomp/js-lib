@@ -1,3 +1,4 @@
+import { typedArrayToType } from "../glContext/utils.js"
 import { GlArrayBuffer } from "./GlArrayBuffer.js"
 
 export class GlAttribute {
@@ -7,7 +8,7 @@ export class GlAttribute {
      *  glArrayBuffer: GlArrayBuffer
      *  name: string
      *  size: number
-     *  type: WebGl.Vao.Type | number
+     *  type?: WebGl.Vao.Type | number
      *  normalized?: boolean
      *  stride?: number
      *  offset?: number
@@ -17,7 +18,7 @@ export class GlAttribute {
         glArrayBuffer,
         name,
         size,
-        type,
+        type = undefined,
         normalized = false,
         stride = 0,
         offset = 0
@@ -25,7 +26,7 @@ export class GlAttribute {
         this.glArrayBuffer = glArrayBuffer
         this.name = name
         this.size = size
-        this.type = WebGL2RenderingContext[type] ?? type
+        this.type = WebGL2RenderingContext[type] ?? type ?? typedArrayToType.get(this.glArrayBuffer.arrayBuffer.constructor)
         this.normalized = normalized
         this.stride = stride
         this.offset = offset

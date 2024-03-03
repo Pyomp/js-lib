@@ -1,7 +1,10 @@
 import { Vector3 } from "../../math/Vector3.js"
-import { Geometry } from "../webgl/glDescriptors/GlVao.js"
+import { GLSL_COMMON } from "../programs/chunks/glslCommon.js"
+import { GlArrayBuffer } from "../webgl/glDescriptors/GlArrayBuffer.js"
+import { GlAttribute } from "../webgl/glDescriptors/GlAttribute.js"
+import { GlVao } from "../webgl/glDescriptors/GlVao.js"
 
-export class SphereGeometry extends Geometry {
+export class SphereGlVao extends GlVao {
     constructor(radius = 1, widthSegments = 32, heightSegments = 16, phiStart = 0, phiLength = Math.PI * 2, thetaStart = 0, thetaLength = Math.PI) {
         widthSegments = Math.max(3, Math.floor(widthSegments))
         heightSegments = Math.max(2, Math.floor(heightSegments))
@@ -79,13 +82,25 @@ export class SphereGeometry extends Geometry {
             }
         }
 
+
         super(
-            indices.length,
-            {
-                position: new Float32Array(vertices),
-                normal: new Float32Array(normals),
-                uv: new Float32Array(uvs)
-            },
+            [
+                new GlAttribute({
+                    name: GLSL_COMMON.positionAttribute,
+                    size: 3,
+                    glArrayBuffer: new GlArrayBuffer(new Float32Array(vertices))
+                }),
+                new GlAttribute({
+                    name: GLSL_COMMON.normalAttribute,
+                    size: 3,
+                    glArrayBuffer: new GlArrayBuffer(new Float32Array(normals))
+                }),
+                new GlAttribute({
+                    name: GLSL_COMMON.uvAttribute,
+                    size: 2,
+                    glArrayBuffer: new GlArrayBuffer(new Float32Array(uvs))
+                })
+            ],
             new Uint16Array(indices)
         )
     }

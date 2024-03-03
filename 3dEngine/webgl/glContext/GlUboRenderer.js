@@ -29,7 +29,6 @@ export class GlUboRenderer {
             this.#gl.bindBuffer(WebGL2RenderingContext.UNIFORM_BUFFER, this.#webGlUboBuffer)
             if (this.#arrayBuffer !== this.#glUbo.arrayBuffer) {
                 this.#arrayBuffer = this.#glUbo.arrayBuffer
-                console.log(this.#glUbo.arrayBuffer)
                 this.#gl.bufferData(WebGL2RenderingContext.UNIFORM_BUFFER, this.#arrayBuffer, this.#glUbo.usage)
                 return true
             } else {

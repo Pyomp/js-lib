@@ -122,6 +122,10 @@ export class GlTextureRenderer {
             }
         } else if (data instanceof URL) {
             this.#texImage2DUrl(WebGL2RenderingContext.TEXTURE_2D, data)
+        } else if (data instanceof Image) {
+            if (data.width > 0) {
+                this.#texImage2D(WebGL2RenderingContext.TEXTURE_2D, data)
+            }
         } else {
             this.#texImage2D(WebGL2RenderingContext.TEXTURE_2D, data)
         }

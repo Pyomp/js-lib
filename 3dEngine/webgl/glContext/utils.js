@@ -55,6 +55,7 @@ export function blit(gl, src, target, width, height, mask = WebGL2RenderingConte
 }
 
 export const typedArrayToType = new Map()
+typedArrayToType.set(Float32Array, WebGL2RenderingContext.FLOAT)
 typedArrayToType.set(Uint32Array, WebGL2RenderingContext.UNSIGNED_INT)
 typedArrayToType.set(Uint16Array, WebGL2RenderingContext.UNSIGNED_SHORT)
 typedArrayToType.set(Uint8Array, WebGL2RenderingContext.UNSIGNED_BYTE)

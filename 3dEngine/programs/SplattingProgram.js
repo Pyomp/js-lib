@@ -1,4 +1,5 @@
 import { GlProgram } from "../webgl/glDescriptors/GlProgram.js"
+import { GlRenderer } from "../webgl/glRenderer/GlRenderer.js"
 import { GLSL_AMBIENT_LIGHT } from "./chunks/glslAmbient.js"
 import { GLSL_CAMERA } from "./chunks/glslCamera.js"
 import { GLSL_COMMON } from "./chunks/glslCommon.js"
@@ -81,6 +82,11 @@ void main() {
 }
 
 export class GlSplattingProgram extends GlProgram {
+
+    /**
+     * 
+     * @param {GlRenderer} renderer 
+     */
     constructor(renderer) {
         super(
             () => vertexShader(renderer.pointLightCount),

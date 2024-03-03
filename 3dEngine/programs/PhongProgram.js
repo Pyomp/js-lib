@@ -63,13 +63,12 @@ function fragmentShader({
 
         ${isShininessEnable ? 'float lightSpecular = pointLightSpecular;' : ''}
 
-        vec4 color = texture(${GLSL_COMMON.baseTexture}, v_uv);
+        vec4 color = texture(${GLSL_COMMON.baseTexture}, v_uv) + vec4(${GLSL_COMMON.baseColor}, 1.0);
 
         outColor = vec4(color.xyz * lightColor ${isShininessEnable ? ' + lightSpecular * specular' : ''}, color.a);
 
         if(outColor.a < ${GLSL_COMMON.alphaTest}) discard;
         // outColor = color;
-        // outColor.xyz = normal;
     }`
 }
 
@@ -81,8 +80,8 @@ export class PhongProgram extends GlProgram {
      * 
      * @param {{
      *      renderer: GlRenderer
-     *      isShininessEnable: boolean
-     *      isSkinned: boolean
+     *      isShininessEnable?: boolean
+     *      isSkinned?: boolean
      * }} param0 
      */
     constructor({

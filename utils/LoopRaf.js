@@ -9,7 +9,6 @@ export class LoopRaf {
     deltatimeSecond = 0.01
 
     #last = 0
-    listeners = new Set()
 
     #rafUpdate = () => { }
 

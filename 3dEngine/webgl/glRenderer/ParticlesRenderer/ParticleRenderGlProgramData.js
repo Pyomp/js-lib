@@ -174,12 +174,11 @@ void main() {
     int widthIndex = 0;
     vec4 previousKeyframe;
     vec4 keyframe = texelFetch(keyframesTexture, ivec2(widthIndex, keyframesHeightIndex), 0);
-    widthIndex += ${KEYFRAME_PIXEL_LENGTH};
 
     while(keyframe[0] < time && widthIndex < ${KEYFRAMES_PIXEL_LENGTH}) {
+        widthIndex += ${KEYFRAME_PIXEL_LENGTH};
         previousKeyframe = keyframe;
         keyframe = texelFetch(keyframesTexture, ivec2(widthIndex, keyframesHeightIndex), 0);
-        widthIndex += ${KEYFRAME_PIXEL_LENGTH};
     }
 
     if(widthIndex >= ${KEYFRAMES_PIXEL_LENGTH}) {
@@ -229,7 +228,7 @@ void main(){
     float depth = float(texture(depthTexture, uv).x);
     
     float l = abs(${GLSL_UTILS.linearizeDepth.call('depth')} - ${GLSL_UTILS.linearizeDepth.call('gl_FragCoord.z')});
-    color.a *= clamp(l * 70., 0., 1.);
+    color.a *= clamp(l * 5., 0., 1.);
     
     // color = v_color;
     // color = vec4(${GLSL_CAMERA.far}/10000.,0.,0.,1.);
