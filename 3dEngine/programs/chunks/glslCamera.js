@@ -28,7 +28,7 @@ const uboOffset = {
     far: 68,
 }
 
-const uboByteLength = 69 * 4
+const uboByteLength = 72 * 4
 
 export const GLSL_CAMERA = Object.freeze({
     uboOffset,
