@@ -1,5 +1,5 @@
 import { GlProgram } from "../webgl/glDescriptors/GlProgram.js"
-import { basicProgram } from "./basicProgram.js"
+import { basicProgram } from "./BasicProgram.js"
 import { GLSL_CAMERA } from "./chunks/glslCamera.js"
 import { GLSL_COMMON } from "./chunks/glslCommon.js"
 import { GLSL_SKINNED } from "./chunks/glslSkinnedChunk.js"

@@ -1,5 +1,6 @@
 export const PI = Math.PI
 export const PI2 = Math.PI * 2
+export const PI033 = Math.PI / 3
 export const PI05 = Math.PI / 2
 export const PI025 = Math.PI / 4
 export const PI075 = 3 * Math.PI / 4

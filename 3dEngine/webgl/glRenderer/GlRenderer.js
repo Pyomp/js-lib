@@ -38,7 +38,6 @@ export class GlRenderer {
 
     ambientLightRenderer = new GlAmbientLightRenderer()
 
-
     constructor() {
         this.htmlElement.style.top = '0'
         this.htmlElement.style.left = '0'
@@ -76,7 +75,7 @@ export class GlRenderer {
         // TODO dispose previous windowInfo 
         this.windowInfo.initGl(this.glContext)
 
-        this.particleRenderer = new GlParticleRenderer({ glContext: this.glContext, glDepthTextureData: this.depthTexture, maxKeyframes: 1 })
+        this.particleRenderer = new GlParticleRenderer({ glContext: this.glContext, glDepthTextureData: this.depthTexture, maxParticleCount: 100_000 })
         this.glContext.resizeListeners.add(this.onResize.bind(this))
     }
 
@@ -103,11 +102,7 @@ export class GlRenderer {
         return [opaque, transparent]
     }
 
-    /**
-     * 
-     * @param {number} deltatimeSecond 
-     */
-    render(deltatimeSecond) {
+    render() {
         this.glContext.updateCache()
         const gl = this.glContext.gl
         this.scene.updateWorldMatrix()
@@ -127,7 +122,7 @@ export class GlRenderer {
         const node3Ds = new Set()
 
         this.scene.traverse((node) => {
-            if (node.mixer) node.mixer.updateTime(deltatimeSecond)
+            if (node.mixer) node.mixer.updateTime()
             for (const object of node.objects) {
                 if (object instanceof PointLight) {
                     object.updateWorldPosition(node.worldMatrix)
@@ -158,7 +153,7 @@ export class GlRenderer {
 
         this.glContext.discardRasterizer()
 
-        this.particleRenderer.update(deltatimeSecond)
+        this.particleRenderer.update()
         this.glContext.drawObject(this.particleRenderer.particlePhysicsGlObject)
         for (const object of gpgpuObjects) {
             this.glContext.drawObject(object)

@@ -1,3 +1,4 @@
+import { loopRaf } from "../../../../utils/loopRaf.js"
 import { Particle } from "../../../sceneGraph/particle/Particle.js"
 import { GlContextRenderer } from "../../glContext/GlContextRenderer.js"
 import { copyBuffer, printBuffer } from "../../glContext/utils.js"
@@ -17,7 +18,6 @@ export class GlParticleRenderer {
      * @param {{
      *  glContext: GlContextRenderer
      *  glDepthTextureData: GlTexture
-     *  maxKeyframes?: number
      *  maxParticleCount?: number
      * }} param0 
      */
@@ -44,8 +44,8 @@ export class GlParticleRenderer {
         this.#particleOffset = (this.#particleOffset + 1) % this.#maxParticleCount
     }
 
-    update(deltatimeSecond) {
-        this.particlePhysicsGlObject.uniforms['deltaTime'] = deltatimeSecond
+    update() {
+        this.particlePhysicsGlObject.uniforms['deltaTime'] = loopRaf.deltatimeSecond
 
         const transformFeedbackBuffer = this.#glContext.getGlArrayBuffer(this.#transformFeedbackBufferData).glBuffer
         const vaoBuffer = this.#glContext.getGlArrayBuffer(this.#vaoBufferData)

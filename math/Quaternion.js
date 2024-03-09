@@ -532,7 +532,7 @@ class Quaternion {
             return this
 
         }
-
+        console.log('yo')
         const sinHalfTheta = Math.sqrt(sqrSinHalfTheta)
         const halfTheta = Math.atan2(sinHalfTheta, cosHalfTheta)
         const ratioA = Math.sin((1 - t) * halfTheta) / sinHalfTheta,

@@ -3,6 +3,7 @@ import { Vector3 } from "../../../../../math/Vector3.js"
 import { Track } from "./Track.js"
 import { Animation, LoopOnce, LoopPingpong } from "./Animation.js"
 import { Bone } from "./Bone.js"
+import { loopRaf } from "../../../../../utils/loopRaf.js" 
 
 export class Mixer {
     rootBone
@@ -98,9 +99,9 @@ export class Mixer {
         })
     }
 
-    updateTime(deltaTime) {
-        this.#fadeTime -= deltaTime * this.fadeSpeed
-        this.#time += deltaTime * this.#timeDirection * this.speed
+    updateTime() {
+        this.#fadeTime -= loopRaf.deltatimeSecond * this.fadeSpeed
+        this.#time += loopRaf.deltatimeSecond * this.#timeDirection * this.speed
         this.#applyLoopToTime()
     }
 

@@ -33,4 +33,8 @@ void main() {
 }`
 }
 
-export const basicProgram = new GlProgram(vertexShader, fragmentShader)
+export class BasicProgram extends GlProgram {
+    constructor() {
+        super(vertexShader, fragmentShader)
+    }
+}

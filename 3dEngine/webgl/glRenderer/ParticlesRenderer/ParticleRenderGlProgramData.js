@@ -167,7 +167,7 @@ float getAlpha(float start, float end, float current){
 }
 
 out vec4 v_color;
-
+#define ATTENUATION 100.0
 void main() {
     gl_Position = ${GLSL_CAMERA.projectionViewMatrix} * vec4(position, 1.);
     
@@ -183,19 +183,18 @@ void main() {
 
     if(widthIndex >= ${KEYFRAMES_PIXEL_LENGTH}) {
         v_color.w = 0.;
-        gl_PointSize = 0.;
+        gl_PointSize = 1.;
+        gl_Position.x = 2.;
     } else if( widthIndex == 0 ) {
         v_color = texelFetch(keyframesTexture, ivec2(1, keyframesHeightIndex), 0);
-        gl_PointSize = keyframe[1];
+        gl_PointSize = keyframe[1] * ATTENUATION / gl_Position.z;        
     } else {
         float alpha = getAlpha(previousKeyframe[0], keyframe[0], time);
         vec4 previousKeyframeColor = texelFetch(keyframesTexture, ivec2(widthIndex - ${KEYFRAME_PIXEL_LENGTH} + ${KEYFRAME_COLOR_PIXEL_OFFSET}, keyframesHeightIndex), 0);
         vec4 keyframeColor = texelFetch(keyframesTexture, ivec2(widthIndex + ${KEYFRAME_COLOR_PIXEL_OFFSET}, keyframesHeightIndex), 0);
         v_color = mix(previousKeyframeColor, keyframeColor, alpha);
-        gl_PointSize = mix(previousKeyframe[1], keyframe[1], alpha);
-    }
-
-    gl_PointSize = gl_PointSize * 100. / gl_Position.z;
+        gl_PointSize = mix(previousKeyframe[1], keyframe[1], alpha) * ATTENUATION / gl_Position.z;
+    }   
 
     // gl_PointSize=10.;
     // v_color = vec4(1., 0., 0., 1.);
