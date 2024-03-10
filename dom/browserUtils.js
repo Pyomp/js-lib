@@ -50,7 +50,7 @@ export const svgToImg = (svgString, width = 64, height = 64, img = new Image()) 
             resolve(img)
         }
         img.onerror = (err) => {
-            console.log(err)
+            console.error(err)
             resolve()
         }
         img.src = "data:image/svg+xml;base64," + btoa(svgString)

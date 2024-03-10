@@ -186,7 +186,7 @@ class Quaternion {
 
     clone() {
 
-        return new this.constructor(this._x, this._y, this._z, this._w)
+        return new Quaternion(this._x, this._y, this._z, this._w)
 
     }
 
@@ -532,7 +532,7 @@ class Quaternion {
             return this
 
         }
-        console.log('yo')
+        
         const sinHalfTheta = Math.sqrt(sqrSinHalfTheta)
         const halfTheta = Math.atan2(sinHalfTheta, cosHalfTheta)
         const ratioA = Math.sin((1 - t) * halfTheta) / sinHalfTheta,

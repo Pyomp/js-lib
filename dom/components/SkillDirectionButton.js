@@ -1,4 +1,5 @@
 import { PI05, PI2 } from "../../math/MathUtils.js"
+import { loopRaf } from "../../utils/loopRaf.js"
 
 const xmlns = "http://www.w3.org/2000/svg"
 
@@ -127,7 +128,7 @@ export class SkillDirectionButton {
 
     #moveNeedsUpdate = false
     update = this.#updatePrototype.bind(this)
-    #updatePrototype(dt_s) {
+    #updatePrototype() {
         this.start = false
         this.end = false
         if (this.#pressed && !this.ongoing) {
@@ -139,7 +140,7 @@ export class SkillDirectionButton {
         }
 
         if (this.cooldown > 0) {
-            this.cooldown -= dt_s
+            this.cooldown -= loopRaf.deltatimeSecond
             const cdNormalized = Math.max(this.cooldown / this.maxCooldown, 0)
             const angleCd = (1 - cdNormalized) * PI2 - PI05
             const s = Math.sin(angleCd)

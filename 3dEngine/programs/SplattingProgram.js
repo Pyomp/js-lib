@@ -7,7 +7,6 @@ import { GLSL_POINT_LIGHT } from "./chunks/glslPointLight.js"
 import { GLSL_SPLATTING } from "./chunks/glslSplatting.js"
 
 function vertexShader(pointLightCount) {
-    console.log(pointLightCount)
     return `#version 300 es
 in vec3 ${GLSL_COMMON.positionAttribute};
 in vec2 ${GLSL_COMMON.uvAttribute};

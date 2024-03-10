@@ -67,7 +67,6 @@ export class GlTexture {
                         this.height = element.height
                         this.dataVersion++
                         this.paramsVersion++
-                        console.log(this.width, this.height)
                     })
                 }
             }

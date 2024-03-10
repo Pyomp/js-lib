@@ -63,7 +63,9 @@ function fragmentShader({
 
         ${isShininessEnable ? 'float lightSpecular = pointLightSpecular;' : ''}
 
-        vec4 color = texture(${GLSL_COMMON.baseTexture}, v_uv) + vec4(${GLSL_COMMON.baseColor}, 1.0);
+        vec4 color = texture(${GLSL_COMMON.baseTexture}, v_uv);
+
+        color.xyz += ${GLSL_COMMON.baseColor};
 
         outColor = vec4(color.xyz * lightColor ${isShininessEnable ? ' + lightSpecular * specular' : ''}, color.a);
 
