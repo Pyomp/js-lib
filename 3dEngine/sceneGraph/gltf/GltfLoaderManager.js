@@ -17,15 +17,15 @@ export class GltfNodeLoader {
      * @param {{
      *      gltfUrl: URL | string
      *      nodeName: string
-     *      glProgramData: GlProgram
+     *      glProgramData?: GlProgram
      *      uniforms?: {[name: string]: WebGl.UniformData}
-     *      animationDictionary?: {[animationId: number]: string}
+     *      animationDictionary?: {[gltfAnimationName: string]: string | number}
      * }} params
      */
     constructor({
         gltfUrl,
         nodeName,
-        glProgramData,
+        glProgramData = undefined,
         uniforms = {},
         animationDictionary = {}
     }) {
@@ -47,9 +47,9 @@ export class GltfNodeLoader {
         if (this.disposed) return
         this.#gltfNodeManager = new GltfNodeManager({
             gltfNode: gltf[this.#nodeName],
-            glProgramData: this.#glProgramData,
             extraUniforms: this.#uniforms,
-            animationDictionary: this.#animationDictionary
+            animationDictionary: this.#animationDictionary,
+            glProgramData: this.#glProgramData,
         })
     }
 

@@ -63,46 +63,60 @@ function getAttribute(attributes) {
     return glAttributesData
 }
 
+function getGlObjectData(
+    /** @type {GltfPrimitive} */ primitive,
+    /** @type {GlProgram} */  glProgram = undefined,
+    extraUniforms = {},
+) {
+    /** @type {{[name: string]: WebGl.UniformData | GlTexture}} */
+    const uniforms = {}
+
+    if (primitive.material) {
+        const material = primitive.material
+        uniforms[GLSL_COMMON.alphaTest] = material.alphaMode === 'MASK' ? 0.1 : 0
+        if (material.pbrMetallicRoughness) {
+            const pbrMetallicRoughness = primitive.material.pbrMetallicRoughness
+            if (pbrMetallicRoughness.baseColorFactor) uniforms[GLSL_COMMON.baseColor] = new Color(pbrMetallicRoughness.baseColorFactor)
+            if (pbrMetallicRoughness.baseColorTexture) uniforms[GLSL_COMMON.baseTexture] = getGlTextureData(pbrMetallicRoughness.baseColorTexture)
+            if (pbrMetallicRoughness.metallicFactor) uniforms[GLSL_PBR.metallic] = pbrMetallicRoughness.metallicFactor
+            if (pbrMetallicRoughness.metallicRoughnessTexture) uniforms[GLSL_PBR.metallicRoughnessTexture] = getGlTextureData(pbrMetallicRoughness.metallicRoughnessTexture)
+            if (pbrMetallicRoughness.roughnessFactor) uniforms[GLSL_PBR.roughness] = pbrMetallicRoughness.roughnessFactor
+        }
+    }
+
+    for (const key in extraUniforms) {
+        uniforms[key] = extraUniforms[key]
+    }
+
+    const attributesData = getAttribute(primitive.attributes)
+    const glVaoData = new GlVao(attributesData, primitive.indices.buffer)
+
+    return new GlObject({
+        glProgram: glProgram,
+        glVao: glVaoData,
+        uniforms
+    })
+}
+
+
 function getGlObjectsData(
     /** @type {GltfPrimitive[]} */ primitives,
-    /** @type {GlProgram} */  glProgram,
+    /** @type {GlProgram} */  glProgram = undefined,
     extraUniforms = {},
 ) {
     const objects = []
 
     for (const primitive of primitives) {
-
-        /** @type {{[name: string]: WebGl.UniformData | GlTexture}} */
-        const uniforms = {}
-
-        if (primitive.material) {
-            const material = primitive.material
-            uniforms[GLSL_COMMON.alphaTest] = material.alphaMode === 'MASK' ? 0.1 : 0
-            if (material.pbrMetallicRoughness) {
-                const pbrMetallicRoughness = primitive.material.pbrMetallicRoughness
-                if (pbrMetallicRoughness.baseColorFactor) uniforms[GLSL_COMMON.baseColor] = new Color(pbrMetallicRoughness.baseColorFactor)
-                if (pbrMetallicRoughness.baseColorTexture) uniforms[GLSL_COMMON.baseTexture] = getGlTextureData(pbrMetallicRoughness.baseColorTexture)
-                if (pbrMetallicRoughness.metallicFactor) uniforms[GLSL_PBR.metallic] = pbrMetallicRoughness.metallicFactor
-                if (pbrMetallicRoughness.metallicRoughnessTexture) uniforms[GLSL_PBR.metallicRoughnessTexture] = getGlTextureData(pbrMetallicRoughness.metallicRoughnessTexture)
-                if (pbrMetallicRoughness.roughnessFactor) uniforms[GLSL_PBR.roughness] = pbrMetallicRoughness.roughnessFactor
-            }
-        }
-
-        for (const key in extraUniforms) {
-            uniforms[key] = extraUniforms[key]
-        }
-
-        const attributesData = getAttribute(primitive.attributes)
-        const glVaoData = new GlVao(attributesData, primitive.indices.buffer)
-
-        objects.push(new GlObject({
-            glProgram: glProgram,
-            glVao: glVaoData,
-            uniforms
-        }))
+        objects.push(getGlObjectData(primitive, glProgram, extraUniforms))
     }
 
     return objects
+}
+
+function disposeDefaultGltfGlObject(glObject) {
+    glObject.glVao.needsDelete = true
+    if (glObject.uniforms[GLSL_COMMON.baseTexture]) glObject.uniforms[GLSL_COMMON.baseTexture].needsDelete = true
+    if (glObject.uniforms[GLSL_PBR.metallicRoughnessTexture]) glObject.uniforms[GLSL_PBR.metallicRoughnessTexture].needsDelete = true
 }
 
 function getNode3DWithoutObjects({
@@ -121,23 +135,31 @@ function getNode3DWithoutObjects({
     return node3D
 }
 
+function linkObjectToNode(
+    /** @type {Node3D} */ node3D,
+    /** @type {GlObject} */ object
+) {
+    node3D.objects.add(object)
+    const uniforms = object.uniforms
+    uniforms[GLSL_COMMON.worldMatrix] = node3D.worldMatrix
+    if (node3D.mixer) uniforms[GLSL_SKINNED.jointsTexture] = node3D.mixer.jointsTexture
+}
+
+
 function linkObjectsToNode(
     /** @type {Node3D} */ node3D,
     /** @type {GlObject[]} */ objects
 ) {
     for (const object of objects) {
-        node3D.objects.add(object)
-        const uniforms = object.uniforms
-        uniforms[GLSL_COMMON.worldMatrix] = node3D.worldMatrix
-        if (node3D.mixer) uniforms[GLSL_SKINNED.jointsTexture] = node3D.mixer.jointsTexture
+        linkObjectToNode(node3D, object)
     }
 }
 
 function getNode3D({
     gltfNode,
-    glProgramData,
     extraUniforms = {},
-    animationDictionary = {}
+    animationDictionary = {},
+    glProgramData = undefined,
 }) {
     const node3D = getNode3DWithoutObjects({
         gltfNode,
@@ -153,25 +175,28 @@ function getNode3D({
 
 export class GltfNodeManager {
     static getNode3DWithoutObjects = getNode3DWithoutObjects
+    static linkObjectToNode = linkObjectToNode
     static linkObjectsToNode = linkObjectsToNode
     static getGlTextureData = getGlTextureData
     static getAttribute = getAttribute
+    static getGlObjectData = getGlObjectData
     static getGlObjectsData = getGlObjectsData
     static getNode3D = getNode3D
+    static disposeDefaultGltfGlObject = disposeDefaultGltfGlObject
 
     /** @type {Node3D} */ #node3D
 
     /**
      * @param {{
      *      gltfNode: GltfNode
-     *      glProgramData: GlProgram
+     *      glProgramData?: GlProgram
      *      extraUniforms?: {[name: string]: WebGl.UniformData}
-     *      animationDictionary?: {[animationId: number]: string}
+     *      animationDictionary?: {[gltfAnimationName: string]: string | number}
      * }} params
      */
     constructor({
         gltfNode,
-        glProgramData,
+        glProgramData = undefined,
         extraUniforms = {},
         animationDictionary = {}
     }) {
@@ -183,16 +208,16 @@ export class GltfNodeManager {
         })
     }
 
-    getNode() {
+    getNode(glProgram) {
+        const node = new Node3D()
+
         return this.#node3D.clone()
     }
 
     dispose() {
         for (const object of this.#node3D.objects) {
             if (object instanceof GlObject) {
-                object.glVao.needsDelete = true
-                if (object.uniforms[GLSL_COMMON.baseTexture]) object.uniforms[GLSL_COMMON.baseTexture].needsDelete = true
-                if (object.uniforms[GLSL_PBR.metallicRoughnessTexture]) object.uniforms[GLSL_PBR.metallicRoughnessTexture].needsDelete = true
+                disposeDefaultGltfGlObject(object)
             }
         }
 

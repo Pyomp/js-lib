@@ -3,6 +3,11 @@ import { GlContextRenderer } from "./GlContextRenderer.js"
 
 export class GlArrayBufferRenderer {
     #version = 0
+    #markUpdated() {
+        this.#version = this.#glArrayBuffer.version
+        this.#glArrayBuffer.startToUpdate = Infinity
+        this.#glArrayBuffer.endToUpdate = 0
+    }
 
     /** @type {WebGLBuffer} */ glBuffer
 
@@ -24,19 +29,18 @@ export class GlArrayBufferRenderer {
     }
 
     updateBufferSubData() {
-        // TODO _optimization_ multiple range updates
         if (this.#glArrayBuffer.version !== this.#version) {
-
-            this.#version = this.#glArrayBuffer.version
             this.#gl.bindBuffer(WebGL2RenderingContext.ARRAY_BUFFER, this.glBuffer)
             this.#gl.bufferSubData(WebGL2RenderingContext.ARRAY_BUFFER, 0, this.#glArrayBuffer.arrayBuffer)
+            this.#markUpdated()
+        } else if (this.#glArrayBuffer.endToUpdate > this.#glArrayBuffer.startToUpdate) {
+            const offset = this.#glArrayBuffer.startToUpdate
+            const length = this.#glArrayBuffer.endToUpdate - offset
+            
+            this.#gl.bindBuffer(WebGL2RenderingContext.ARRAY_BUFFER, this.glBuffer)
+            this.#gl.bufferSubData(WebGL2RenderingContext.ARRAY_BUFFER, offset * this.#glArrayBuffer.arrayBuffer.BYTES_PER_ELEMENT, this.#glArrayBuffer.arrayBuffer, offset, length)
+            this.#markUpdated()
         }
-    }
-
-    updateBufferSubDataRange(offset, length) {
-        this.#gl.bindBuffer(WebGL2RenderingContext.ARRAY_BUFFER, this.glBuffer)
-        // this.#gl.bufferSubData(WebGL2RenderingContext.ARRAY_BUFFER, 0, this.#glArrayBufferData.arrayBuffer)
-        this.#gl.bufferSubData(WebGL2RenderingContext.ARRAY_BUFFER, offset * this.#glArrayBuffer.arrayBuffer.BYTES_PER_ELEMENT, this.#glArrayBuffer.arrayBuffer, offset, length)
     }
 
     updateBufferData() {

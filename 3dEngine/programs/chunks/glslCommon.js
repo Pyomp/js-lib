@@ -37,12 +37,7 @@ function getWorldPosition(...matrixes) {
  * @param {string[]} matrixes 
  */
 function getWorldNormal(...matrixes) {
-    let matrixesString = ''
-    for (const matrix of matrixes) {
-        if (matrix) matrixesString += `mat3(${matrix}) * `
-    }
-
-    return `mat3(${worldMatrix}) * ${matrixesString} ${normalAttribute}`
+    return `mat3(${[worldMatrix, ...matrixes.filter(s => s)].join(' * ')}) * ${normalAttribute}`
 }
 
 function getTangent(worldMatrix, viewMatrix, tangent) {

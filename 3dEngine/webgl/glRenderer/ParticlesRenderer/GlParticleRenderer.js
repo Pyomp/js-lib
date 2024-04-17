@@ -50,7 +50,6 @@ export class GlParticleRenderer {
         const transformFeedbackBuffer = this.#glContext.getGlArrayBuffer(this.#transformFeedbackBufferData).glBuffer
         const vaoBuffer = this.#glContext.getGlArrayBuffer(this.#vaoBufferData)
 
-
         const gl = this.#glContext.gl
 
         gl.bindBuffer(WebGL2RenderingContext.TRANSFORM_FEEDBACK_BUFFER, transformFeedbackBuffer)
@@ -59,12 +58,7 @@ export class GlParticleRenderer {
 
         copyBuffer(this.#glContext.gl, transformFeedbackBuffer, vaoBuffer.glBuffer, this.#maxParticleCount * 4 * 4)
 
-        const physicsRangeToUpdate = this.particlePhysicsGlObject.rangeToUpdate
-        if (physicsRangeToUpdate[1] > 0) {
-            vaoBuffer.updateBufferSubDataRange(physicsRangeToUpdate[0], physicsRangeToUpdate[1])
-            physicsRangeToUpdate[0] = Infinity
-            physicsRangeToUpdate[1] = 0
-        }
+        vaoBuffer.updateBufferSubData()
 
         // printBuffer(gl, transformFeedbackBuffer, WebGL2RenderingContext.TRANSFORM_FEEDBACK_BUFFER, 10)
     }

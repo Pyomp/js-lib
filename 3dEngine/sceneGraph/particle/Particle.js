@@ -7,6 +7,7 @@ export class Particle {
      * @param {{
      *      position?: Vector3
      *      velocity?: Vector3
+     *      size?: Number,
      *      keyframes: ParticleKeyframe[]
      *      texture: GlTexture
      * }} param0 
@@ -14,11 +15,13 @@ export class Particle {
     constructor({
         position = new Vector3(),
         velocity = new Vector3(),
+        size = 1,
         keyframes,
         texture
     }) {
         this.position = position
         this.velocity = velocity
+        this.size = size
         this.keyframes = keyframes
         this.texture = texture
     }

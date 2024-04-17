@@ -64,8 +64,6 @@ export class ParticlePhysicsGlObject extends GlObject {
         this.#vaoF32a = this.#inPositionVelocityTime.arrayBuffer
     }
 
-    rangeToUpdate = [0, 0]
-
     /**
      * 
      * @param {Particle} particle 
@@ -76,8 +74,7 @@ export class ParticlePhysicsGlObject extends GlObject {
         particle.position.toArray(this.#vaoF32a, bufferOffset)
         particle.velocity.toArray(this.#vaoF32a, bufferOffset + 3)
         this.#vaoF32a[bufferOffset + 6] = 0
-        this.rangeToUpdate[0] = Math.min(this.rangeToUpdate[0], bufferOffset)
-        this.rangeToUpdate[1] = Math.max(this.rangeToUpdate[1], bufferOffset + FLOAT_32_ELEMENT_COUNT) - this.rangeToUpdate[0]
+        this.#inPositionVelocityTime.setNeedsUpdate(bufferOffset, bufferOffset + FLOAT_32_ELEMENT_COUNT)
     }
 }
 

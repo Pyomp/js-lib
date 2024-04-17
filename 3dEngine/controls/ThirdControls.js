@@ -10,13 +10,12 @@ import { Camera } from '../sceneGraph/Camera.js'
 const MinPolarAngle = 0.1
 const MaxPolarAngle = 3.05
 const MinDistCam = 1
-const MaxDistCam = 60
+const MaxDistCam = 70
 const MinDistCamToGround = 1
 
 export class ThirdControls {
-    offsetY = 3
+    offsetY = 1
     sensitivity = 8
-
 
     #targetOffset = new Vector3()
     target = new Vector3()
@@ -24,7 +23,7 @@ export class ThirdControls {
 
     #isModeFollow = true
 
-    spherical = new Spherical(10, 0.8, 0.8)
+    spherical = new Spherical(MaxDistCam, 0.8, 0.8)
     #wantedSpherical = new Spherical().copy(this.spherical)
 
     #direction = new Vector3(5, 5, 5)
@@ -80,7 +79,7 @@ export class ThirdControls {
         }
 
         this.#targetOffset.copy(this.target)
-        this.#targetOffset.y += this.offsetY
+        this.#targetOffset.y += this.offsetY + this.#wantedSpherical.radius * 0.2
 
         this.spherical.copy(this.#wantedSpherical)
 

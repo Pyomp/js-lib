@@ -36,10 +36,11 @@ const MAX_ANIMATION = 1024
 export class ParticleRenderGlObject extends GlObject {
     #keyframesBuffer
     #keyframesTexture
-    #keyframesHeightIndexArrayBuffer
+    #keyframesIndexSizeArrayBuffer
+    #keyframesIndexSizeArrayBufferFloatView
 
     constructor(inPositionTimeVelocitySize, glDepthTextureData, maxParticleCount = 100_000) {
-        const keyframesHeightIndexArrayBuffer = new GlArrayBuffer(new Uint32Array(MAX_ANIMATION))
+        const keyframesIndexSizeArrayBuffer = new GlArrayBuffer(new Uint32Array(maxParticleCount * 2))
         const glVaoData = new GlVao(
             [
                 new GlAttribute({
@@ -59,10 +60,20 @@ export class ParticleRenderGlObject extends GlObject {
                     offset: TIME_OFFSET
                 }),
                 new GlAttribute({
-                    glArrayBuffer: keyframesHeightIndexArrayBuffer,
+                    glArrayBuffer: keyframesIndexSizeArrayBuffer,
                     name: 'keyframesHeightIndex',
                     size: 1,
                     type: WebGL2RenderingContext.UNSIGNED_INT,
+                    stride: 2 * Uint32Array.BYTES_PER_ELEMENT,
+                    offset: 0
+                }),
+                new GlAttribute({
+                    glArrayBuffer: keyframesIndexSizeArrayBuffer,
+                    name: 'size',
+                    size: 1,
+                    type: WebGL2RenderingContext.FLOAT,
+                    stride: 2 * Uint32Array.BYTES_PER_ELEMENT,
+                    offset: 1 * Uint32Array.BYTES_PER_ELEMENT
                 })
             ]
         )
@@ -105,7 +116,8 @@ export class ParticleRenderGlObject extends GlObject {
 
         this.#keyframesBuffer = keyframesBuffer
         this.#keyframesTexture = keyframesTexture
-        this.#keyframesHeightIndexArrayBuffer = keyframesHeightIndexArrayBuffer
+        this.#keyframesIndexSizeArrayBuffer = keyframesIndexSizeArrayBuffer
+        this.#keyframesIndexSizeArrayBufferFloatView = new Float32Array(keyframesIndexSizeArrayBuffer.arrayBuffer.buffer)
     }
 
     #keyframesToHeightIndex = new Map()
@@ -137,17 +149,15 @@ export class ParticleRenderGlObject extends GlObject {
         return heightIndex
     }
 
-    rangeToUpdate = [Infinity, -Infinity]
-
     /**
      * @param {Particle} particle 
      * @param {number} offset
      */
     addParticle(particle, offset) {
         const keyframesId = this.#getKeyframesId(particle.keyframes)
-        this.#keyframesHeightIndexArrayBuffer.arrayBuffer[offset + 0] = keyframesId
-        this.rangeToUpdate[0] = Math.min(this.rangeToUpdate[0], offset)
-        this.rangeToUpdate[1] = Math.max(this.rangeToUpdate[1], offset + FLOAT_32_ELEMENT_COUNT)
+        this.#keyframesIndexSizeArrayBuffer.arrayBuffer[offset * 2 + 0] = keyframesId
+        this.#keyframesIndexSizeArrayBufferFloatView[offset * 2 + 1] = 10//particle.size
+        this.#keyframesIndexSizeArrayBuffer.setNeedsUpdate(offset * 2, offset * 2 + 2)
     }
 }
 
@@ -157,6 +167,7 @@ class ParticleRenderGlProgram extends GlProgram {
 in vec3 position;
 in float time;
 in uint keyframesHeightIndex;
+in float size;
 
 ${GLSL_CAMERA.declaration}
 
@@ -185,19 +196,20 @@ void main() {
         v_color.w = 0.;
         gl_PointSize = 1.;
         gl_Position.x = 2.;
+        gl_Position.w = 1.;
     } else if( widthIndex == 0 ) {
         v_color = texelFetch(keyframesTexture, ivec2(1, keyframesHeightIndex), 0);
-        gl_PointSize = keyframe[1] * ATTENUATION / gl_Position.z;        
+        gl_PointSize = keyframe[1] * size * ATTENUATION / gl_Position.z;        
     } else {
         float alpha = getAlpha(previousKeyframe[0], keyframe[0], time);
         vec4 previousKeyframeColor = texelFetch(keyframesTexture, ivec2(widthIndex - ${KEYFRAME_PIXEL_LENGTH} + ${KEYFRAME_COLOR_PIXEL_OFFSET}, keyframesHeightIndex), 0);
         vec4 keyframeColor = texelFetch(keyframesTexture, ivec2(widthIndex + ${KEYFRAME_COLOR_PIXEL_OFFSET}, keyframesHeightIndex), 0);
         v_color = mix(previousKeyframeColor, keyframeColor, alpha);
-        gl_PointSize = mix(previousKeyframe[1], keyframe[1], alpha) * ATTENUATION / gl_Position.z;
+        gl_PointSize = mix(previousKeyframe[1], keyframe[1], alpha) * size * ATTENUATION / gl_Position.z;
     }   
 
-    // gl_PointSize=10.;
-    // v_color = vec4(1., 0., 0., 1.);
+    // gl_PointSize=100.;
+    // v_color = vec4(1., 0., size, 1.);
 }
 `,
             () => `#version 300 es

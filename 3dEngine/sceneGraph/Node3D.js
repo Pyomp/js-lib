@@ -56,7 +56,7 @@ export class Node3D {
         }
 
         if (force || this.localMatrixNeedsUpdate) {
-            if (this.parent) this.worldMatrix.multiplyMatrices(this.localMatrix, this.parent.worldMatrix)
+            if (this.parent) this.worldMatrix.multiplyMatrices(this.parent.worldMatrix, this.localMatrix)
             this.normalMatrix.setFromMatrix4(this.worldMatrix).invert().transpose()
         }
 

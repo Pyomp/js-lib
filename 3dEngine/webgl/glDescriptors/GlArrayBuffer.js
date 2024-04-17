@@ -1,5 +1,12 @@
 export class GlArrayBuffer {
     version = -1
+    startToUpdate = Infinity
+    endToUpdate = 0
+
+    setNeedsUpdate(start, end) {
+        this.startToUpdate = Math.min(this.startToUpdate, start)
+        this.endToUpdate = Math.max(this.endToUpdate, end)
+    }
 
     needsDelete = false
 
