@@ -206,8 +206,15 @@ export class GlContextRenderer {
 
         this.glCapabilities.depthTest = glObject.depthTest
         this.glCapabilities.depthWrite = glObject.depthWrite
-        this.glCapabilities.cullFace = glObject.cullFace
         this.glCapabilities.depthFunc = glObject.depthFunc
+
+        if (glObject.frontCullFace === glObject.backCullFace) this.glCapabilities.cullFace = false
+        else {
+            this.glCapabilities.cullFace = false
+
+            if (glObject.frontCullFace) this.glCapabilities.setFrontFace()
+            else this.glCapabilities.setBackFace()
+        }
 
         const glProgram = this.getGlProgram(glObject.glProgram)
 

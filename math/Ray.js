@@ -50,6 +50,15 @@ class Ray {
 
 	}
 
+	fromPerspectiveCamera(cameraWorldMatrix, projectionMatrixInverse, pointer) {
+		this.origin.setFromMatrixPosition(cameraWorldMatrix)
+		this.direction.set(pointer.x, pointer.y, 0.5)
+			.applyMatrix4(projectionMatrixInverse)
+			.applyMatrix4(cameraWorldMatrix)
+			.sub(this.origin)
+			.normalize()
+	}
+
 	recast(t) {
 
 		this.origin.copy(this.at(t, _vector))

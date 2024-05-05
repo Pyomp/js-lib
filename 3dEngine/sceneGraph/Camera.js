@@ -8,11 +8,11 @@ export class Camera {
     version = 0
 
     projectionMatrix = new Matrix4()
+    projectionMatrixInverse = new Matrix4()
     worldCameraMatrix = new Matrix4()
     viewMatrix = new Matrix4()
     projectionViewMatrix = new Matrix4()
     projectionViewMatrixInverse = new Matrix4()
-
     #cameraHasMoved = true
     position = new Vector3(0, 0, -10)
     target = new Vector3(0, 0, 0)
@@ -103,5 +103,6 @@ export class Camera {
         const left = - 0.5 * width
 
         this.projectionMatrix.makePerspective(left, left + width, top, top - height, near, this.#far)
+        this.projectionMatrixInverse.copy(this.projectionMatrix).invert()
     }
 }

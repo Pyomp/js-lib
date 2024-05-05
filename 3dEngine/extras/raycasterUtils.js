@@ -3,6 +3,8 @@ import { Matrix4 } from '../../math/Matrix4.js'
 import { Ray } from '../../math/Ray.js'
 import { Triangle } from '../../math/Triangle.js'
 import { Vector3 } from '../../math/Vector3.js'
+import { Node3D } from '../sceneGraph/Node3D.js'
+import { GlObject } from '../webgl/glDescriptors/GlObject.js'
 
 const _inverseMatrix = new Matrix4()
 const _ray = new Ray()
@@ -10,6 +12,48 @@ const _vA = new Vector3()
 const _vB = new Vector3()
 const _vC = new Vector3()
 const _triangle = new Triangle()
+/**
+ * 
+ * @param {Ray} ray 
+ * @param {Node3D} node
+ * @param {Box3} boundingBox 
+ * @param {Vector3} normalTarget 
+ * @param {Matrix4} matrixWorld 
+ * @param {boolean} isFrontSide 
+ * @returns 
+ */
+export function distanceRayNode(
+    ray,
+    node,
+    boundingBox = undefined,
+    normalTarget = undefined,
+    matrixWorld = undefined,
+    isFrontSide = true,
+) {
+    let minDistance = Infinity
+
+    node.traverse((childNode) => {
+        for (const object of childNode.objects) {
+            if (object instanceof GlObject) {
+                const positionAttribute = object.glVao.attributes.find((attribute) => attribute.name.toLowerCase() === 'position')
+                if (positionAttribute) {
+                    const positionArray = positionAttribute.glArrayBuffer.arrayBuffer
+                    const indices = object.glVao.indicesUintArray
+                    if (indices) {
+                        if (object.frontCullFace) {
+                            minDistance = Math.min(minDistance, distanceRayMesh(ray, indices, positionArray, object.glVao.boundingBox, undefined, childNode.worldMatrix, true))
+                        }
+                        if (object.backCullFace) {
+                            minDistance = Math.min(minDistance, distanceRayMesh(ray, indices, positionArray, object.glVao.boundingBox, undefined, childNode.worldMatrix, false))
+                        }
+                    }
+                }
+            }
+        }
+    })
+    
+    return minDistance
+}
 
 /**
  * 
@@ -42,11 +86,9 @@ export function distanceRayMesh(
         if (_ray.intersectsBox(boundingBox) === false) return Infinity
     }
 
-    const count = indices.length / 3
-
     let minDistance = Infinity
 
-    for (let i = 0; i < count; i += 3) {
+    for (let i = 0; i < indices.length; i += 1) {
 
         _vA.fromArray(position, indices[i * 3] * 3)
         _vB.fromArray(position, indices[i * 3 + 1] * 3)

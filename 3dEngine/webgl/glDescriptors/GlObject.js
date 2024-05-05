@@ -4,7 +4,6 @@ import { GlTexture } from './GlTexture.js'
 import { GlUbo } from "./GlUbo.js"
 
 export class GlObject {
-
     /**
      * 
      * @param {{
@@ -19,7 +18,8 @@ export class GlObject {
      *      normalBlending?: boolean
      *      depthTest?: boolean
      *      depthWrite?: boolean
-     *      cullFace?: boolean
+     *      frontCullFace?: boolean
+     *      backCullFace?: boolean
      *      depthFunc?: WebGl.Render.DepthFunc | number
      * }} param0 
      */
@@ -35,7 +35,8 @@ export class GlObject {
         normalBlending = false,
         depthTest = true,
         depthWrite = true,
-        cullFace = true,
+        frontCullFace = true,
+        backCullFace = false,
         depthFunc = WebGL2RenderingContext.LESS,
     }) {
         this.glProgram = glProgram
@@ -49,7 +50,8 @@ export class GlObject {
         this.normalBlending = normalBlending
         this.depthTest = depthTest
         this.depthWrite = depthWrite
-        this.cullFace = cullFace
+        this.frontCullFace = frontCullFace
+        this.backCullFace = backCullFace
         this.depthFunc = depthFunc
     }
 
@@ -66,7 +68,8 @@ export class GlObject {
             normalBlending: this.normalBlending,
             depthTest: this.depthTest,
             depthWrite: this.depthWrite,
-            cullFace: this.cullFace,
+            frontCullFace: this.frontCullFace,
+            backCullFace: this.backCullFace,
             depthFunc: this.depthFunc,
         })
     }

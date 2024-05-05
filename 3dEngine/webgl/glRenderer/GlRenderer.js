@@ -226,9 +226,10 @@ function getObjectStateId(/** @type {GlObject} */ object) {
     let id = 0
 
     if (object.additiveBlending) id |= 0x0000_0001
-    if (object.cullFace) id |= 0x0000_0010
+    if (object.frontCullFace) id |= 0x0000_0010
     if (object.depthTest) id |= 0x0000_0100
     if (object.depthWrite) id |= 0x0000_1000
+    if (object.backCullFace) id |= 0x0001_0000
 
     return id
 }
