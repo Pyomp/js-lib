@@ -56,7 +56,7 @@ export class GlParticleRenderer {
         gl.bindBuffer(WebGL2RenderingContext.COPY_WRITE_BUFFER, vaoBuffer.glBuffer)
         gl.copyBufferSubData(WebGL2RenderingContext.TRANSFORM_FEEDBACK_BUFFER, WebGL2RenderingContext.COPY_WRITE_BUFFER, 0, 0, this.#maxParticleCount)
 
-        copyBuffer(this.#glContext.gl, transformFeedbackBuffer, vaoBuffer.glBuffer, this.#maxParticleCount * 4 * 4)
+        copyBuffer(this.#glContext.gl, transformFeedbackBuffer, vaoBuffer.glBuffer, this.#maxParticleCount * 4 * 7)
 
         vaoBuffer.updateBufferSubData()
 

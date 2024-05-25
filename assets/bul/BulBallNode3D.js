@@ -32,12 +32,14 @@ async function load(/** @type {GlTexture} */ particleTexture, /** @type {GlProgr
 
 
     objectInner = GltfNodeManager.getGlObjectData(nodes['Sphere'].mesh.primitives[0], glProgram)
-    objectInner.cullFace = false
+    objectInner.frontCullFace = false
+    objectInner.backCullFace = false
     objectInner.normalBlending = true
     objectInner.depthWrite = false
 
     objectOuter = GltfNodeManager.getGlObjectData(nodes['SphereTop'].mesh.primitives[0], glProgram)
-    objectOuter.cullFace = false
+    objectOuter.frontCullFace = false
+    objectOuter.backCullFace = false    
     objectOuter.normalBlending = true
     objectOuter.depthWrite = false
 

@@ -2,16 +2,54 @@ import { Box3 } from '../../math/Box3.js'
 import { Matrix4 } from '../../math/Matrix4.js'
 import { Ray } from '../../math/Ray.js'
 import { Triangle } from '../../math/Triangle.js'
+import { Vector2 } from '../../math/Vector2.js'
 import { Vector3 } from '../../math/Vector3.js'
 import { Node3D } from '../sceneGraph/Node3D.js'
 import { GlObject } from '../webgl/glDescriptors/GlObject.js'
 
+const _vector2 = new Vector2()
 const _inverseMatrix = new Matrix4()
 const _ray = new Ray()
 const _vA = new Vector3()
 const _vB = new Vector3()
 const _vC = new Vector3()
 const _triangle = new Triangle()
+const Matrix4Identity = new Matrix4().identity()
+
+export function getMiddle3DPosition(worldCameraMatrix, node3D, target) {
+    _vector2.x = 0
+    _vector2.y = 0
+
+    _ray.fromPerspectiveCamera(
+        worldCameraMatrix,
+        Matrix4Identity,
+        _vector2
+    )
+
+    const minDistance = distanceRayNode(_ray, node3D)
+
+    console.log(minDistance)
+
+    _ray.at(minDistance, target)
+}
+
+export function getPointer3DPosition(clientX, clientY, htmlElement, worldCameraMatrix, projectionMatrixInverse, node3D, target) {
+    _vector2.x = (clientX / htmlElement.clientWidth) * 2 - 1
+    _vector2.y = ((htmlElement.clientHeight - clientY) / htmlElement.clientHeight) * 2 - 1
+
+    _ray.fromPerspectiveCamera(
+        worldCameraMatrix,
+        projectionMatrixInverse,
+        _vector2
+    )
+
+    const minDistance = distanceRayNode(_ray, node3D)
+
+    console.log(minDistance)
+
+    _ray.at(minDistance, target)
+}
+
 /**
  * 
  * @param {Ray} ray 
@@ -51,7 +89,7 @@ export function distanceRayNode(
             }
         }
     })
-    
+
     return minDistance
 }
 

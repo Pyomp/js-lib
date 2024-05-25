@@ -39,12 +39,12 @@ export class ParticleRenderGlObject extends GlObject {
     #keyframesIndexSizeArrayBuffer
     #keyframesIndexSizeArrayBufferFloatView
 
-    constructor(inPositionTimeVelocitySize, glDepthTextureData, maxParticleCount = 100_000) {
+    constructor(inPositionTime, glDepthTextureData, maxParticleCount = 100_000) {
         const keyframesIndexSizeArrayBuffer = new GlArrayBuffer(new Uint32Array(maxParticleCount * 2))
         const glVaoData = new GlVao(
             [
                 new GlAttribute({
-                    glArrayBuffer: inPositionTimeVelocitySize,
+                    glArrayBuffer: inPositionTime,
                     name: 'position',
                     size: 3,
                     type: WebGL2RenderingContext.FLOAT,
@@ -52,7 +52,7 @@ export class ParticleRenderGlObject extends GlObject {
                     offset: POSITION_OFFSET
                 }),
                 new GlAttribute({
-                    glArrayBuffer: inPositionTimeVelocitySize,
+                    glArrayBuffer: inPositionTime,
                     name: 'time',
                     size: 1,
                     type: WebGL2RenderingContext.FLOAT,
@@ -208,8 +208,8 @@ void main() {
         gl_PointSize = mix(previousKeyframe[1], keyframe[1], alpha) * size * ATTENUATION / gl_Position.z;
     }   
 
-    // gl_PointSize=100.;
-    // v_color = vec4(1., 0., size, 1.);
+    // gl_PointSize = 100.;
+    //  v_color = vec4(1., 0., time / 5., 1.);
 }
 `,
             () => `#version 300 es

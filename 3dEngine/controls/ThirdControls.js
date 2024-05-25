@@ -61,8 +61,7 @@ export class ThirdControls {
     /** @type {{positions: Float32Array, indices: Uint8Array | Uint16Array | Uint32Array}[]} */
     groundGeometries = []
 
-    update = this.#update.bind(this)
-    #update() {
+    update() {
         if (!this.enabled) return
 
         if (this.#dx !== 0 || this.#dy !== 0) {
@@ -100,6 +99,8 @@ export class ThirdControls {
         }
 
         this.#camera.target.copy(this.#targetOffset)
+
+        this.#camera.update()
     }
 
     #initMobileEvent(domElement) {
