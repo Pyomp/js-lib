@@ -19,6 +19,7 @@ export class Chrome {
             execSync('rm -rf .chromeTestDataDir')
 
             this.#chrome = spawn('google-chrome', [
+                '--no-sandbox',
                 '--headless=new',
                 `--remote-debugging-port=${chromeDebugPort}`,
                 '--user-data-dir=.chromeTestDataDir'

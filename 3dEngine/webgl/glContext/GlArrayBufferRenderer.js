@@ -1,13 +1,8 @@
-import { GlArrayBuffer } from "../glDescriptors/GlArrayBuffer.js"
+import { GlArrayBuffer, optimizeRanges } from "../glDescriptors/GlArrayBuffer.js"
 import { GlContextRenderer } from "./GlContextRenderer.js"
 
 export class GlArrayBufferRenderer {
     #version = 0
-    #markUpdated() {
-        this.#version = this.#glArrayBuffer.version
-        this.#glArrayBuffer.startToUpdate = Infinity
-        this.#glArrayBuffer.endToUpdate = 0
-    }
 
     /** @type {WebGLBuffer} */ glBuffer
 
@@ -31,15 +26,21 @@ export class GlArrayBufferRenderer {
     updateBufferSubData() {
         if (this.#glArrayBuffer.version !== this.#version) {
             this.#gl.bindBuffer(WebGL2RenderingContext.ARRAY_BUFFER, this.glBuffer)
-            this.#gl.bufferSubData(WebGL2RenderingContext.ARRAY_BUFFER, 0, this.#glArrayBuffer.arrayBuffer)
-            this.#markUpdated()
-        } else if (this.#glArrayBuffer.endToUpdate > this.#glArrayBuffer.startToUpdate) {
-            const offset = this.#glArrayBuffer.startToUpdate
-            const length = this.#glArrayBuffer.endToUpdate - offset
-            
-            this.#gl.bindBuffer(WebGL2RenderingContext.ARRAY_BUFFER, this.glBuffer)
-            this.#gl.bufferSubData(WebGL2RenderingContext.ARRAY_BUFFER, offset * this.#glArrayBuffer.arrayBuffer.BYTES_PER_ELEMENT, this.#glArrayBuffer.arrayBuffer, offset, length)
-            this.#markUpdated()
+
+            if (this.#glArrayBuffer.updateRanges.length > 0) {
+                const optimizedUpdateRanges = optimizeRanges(this.#glArrayBuffer.updateRanges)
+
+                for (const [offset, end] of optimizedUpdateRanges) {
+                    const length = end - offset
+                    this.#gl.bufferSubData(WebGL2RenderingContext.ARRAY_BUFFER, offset * this.#glArrayBuffer.arrayBuffer.BYTES_PER_ELEMENT, this.#glArrayBuffer.arrayBuffer, offset, length)
+                }
+
+                this.#glArrayBuffer.updateRanges.length = 0
+            } else {
+                this.#gl.bufferSubData(WebGL2RenderingContext.ARRAY_BUFFER, 0, this.#glArrayBuffer.arrayBuffer)
+            }
+
+            this.#version = this.#glArrayBuffer.version
         }
     }
 

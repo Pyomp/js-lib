@@ -1,6 +1,7 @@
 "use strict"
 
 import fs from 'fs'
+import path from 'path'
 import express from 'express'
 import { Chrome } from './chromeDevTools/Chrome.js'
 import { fileUtils } from './fileUtils.js'
@@ -28,7 +29,11 @@ const server = app.listen(port, async () => {
         const chrome = new Chrome()
         processUtils.exitListeners.add(() => chrome.dispose())
         await chrome.init()
-        await chrome.openNewTab(`http://localhost:${port}/modules/test/front/index.html`)
+
+        const testIndexUrl = new URL('../front/index.html', import.meta.url)
+        
+        await chrome.openNewTab(`http://localhost:${port}/${path.relative('.', testIndexUrl.pathname)}`)
+
         consoleUtils.log('headless chrome ready')
     }
 
@@ -37,7 +42,7 @@ const server = app.listen(port, async () => {
         if (busy) return
         return new Promise((resolve) => {
             if (wsTestServer.client?.OPEN !== WebSocket.OPEN) {
-                console.warn('client not connected')
+                console.error(new Error('client not connected'))
                 return
             }
             busy = true
@@ -59,7 +64,7 @@ const server = app.listen(port, async () => {
             }
         })
     }
-    
+
     wsTestServer.dispatcher['print'] = (data) => { consoleUtils.log(`client console.${data.type}: `, data.args) }
 
     consoleUtils.stdinDispatcher['exit'] = () => { process.exit() }
