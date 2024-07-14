@@ -92,6 +92,7 @@ uniform float deltaTime;
 out vec3 outVelocity;
 out vec3 outPosition;
 out float outTime;
+// TODO ubo buffer
 
 void main() {
     outTime = time + deltaTime;
