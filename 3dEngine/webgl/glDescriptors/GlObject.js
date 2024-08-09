@@ -16,6 +16,8 @@ export class GlObject {
      *      offset?: number
      *      additiveBlending?: boolean
      *      normalBlending?: boolean
+     *      multiplyBlending?: boolean
+     *      subtractiveBlending?: boolean
      *      depthTest?: boolean
      *      depthWrite?: boolean
      *      frontCullFace?: boolean
@@ -33,6 +35,8 @@ export class GlObject {
         offset = 0,
         additiveBlending = false,
         normalBlending = false,
+        multiplyBlending = false,
+        subtractiveBlending = false,
         depthTest = true,
         depthWrite = true,
         frontCullFace = true,
@@ -48,6 +52,8 @@ export class GlObject {
         this.offset = offset
         this.additiveBlending = additiveBlending
         this.normalBlending = normalBlending
+        this.multiplyBlending = multiplyBlending
+        this.subtractiveBlending = subtractiveBlending
         this.depthTest = depthTest
         this.depthWrite = depthWrite
         this.frontCullFace = frontCullFace
@@ -65,6 +71,8 @@ export class GlObject {
             count: this.count,
             offset: this.offset,
             additiveBlending: this.additiveBlending,
+            multiplyBlending: this.multiplyBlending,
+            subtractiveBlending: this.subtractiveBlending,
             normalBlending: this.normalBlending,
             depthTest: this.depthTest,
             depthWrite: this.depthWrite,

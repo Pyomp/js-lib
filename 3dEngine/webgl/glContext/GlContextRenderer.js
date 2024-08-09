@@ -202,6 +202,8 @@ export class GlContextRenderer {
     drawObject(/** @type {GlObject} */ glObject) {
         if (glObject.additiveBlending) this.glCapabilities.setAdditiveBlending()
         else if (glObject.normalBlending) this.glCapabilities.setNormalBlending()
+        else if (glObject.multiplyBlending) this.glCapabilities.setMultiplyBlending()
+        else if (glObject.subtractiveBlending) this.glCapabilities.setMultiplyBlending()
         else this.glCapabilities.blending = false
 
         this.glCapabilities.depthTest = glObject.depthTest

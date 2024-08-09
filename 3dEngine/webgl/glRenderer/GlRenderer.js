@@ -154,7 +154,9 @@ export class GlRenderer {
         this.glContext.discardRasterizer()
 
         this.particleRenderer.update()
+
         this.glContext.drawObject(this.particleRenderer.particlePhysicsGlObject)
+
         for (const object of gpgpuObjects) {
             this.glContext.drawObject(object)
         }
@@ -178,6 +180,7 @@ export class GlRenderer {
         for (const object of transparentObjects) {
             this.glContext.drawObject(object)
         }
+
         this.glContext.drawObject(this.particleRenderer.particleRenderObject)
     }
 

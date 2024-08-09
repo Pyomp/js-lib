@@ -62,13 +62,20 @@ export class GlCapabilitiesRenderer {
         this.blending = true
         this.#gl.blendFuncSeparate(WebGL2RenderingContext.SRC_ALPHA, WebGL2RenderingContext.ONE_MINUS_SRC_ALPHA, WebGL2RenderingContext.ONE, WebGL2RenderingContext.ONE_MINUS_SRC_ALPHA)
     }
+
     setAdditiveBlending() {
         this.blending = true
         this.#gl.blendFunc(WebGL2RenderingContext.SRC_ALPHA, WebGL2RenderingContext.ONE)
     }
+
     setMultiplyBlending() {
         this.blending = true
         this.#gl.blendFunc(WebGL2RenderingContext.ZERO, WebGL2RenderingContext.SRC_COLOR)
+    }
+
+    setSubtractiveBlending() {
+        this.blending = true
+        this.#gl.blendFuncSeparate(WebGL2RenderingContext.ZERO, WebGL2RenderingContext.ONE_MINUS_SRC_COLOR, WebGL2RenderingContext.ZERO, WebGL2RenderingContext.ONE)
     }
 
     #depthTest = true
@@ -93,7 +100,7 @@ export class GlCapabilitiesRenderer {
         }
     }
 
-    
+
     #depthFunc
     get depthFunc() { return this.#depthFunc }
     set depthFunc(value) {
