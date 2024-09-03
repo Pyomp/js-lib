@@ -4,9 +4,9 @@ import { loopRaf } from "../../utils/loopRaf.js"
 const xmlns = "http://www.w3.org/2000/svg"
 
 export class SkillDirectionButton {
-    container = document.createElementNS(xmlns, "svg")
+    htmlElement = document.createElementNS(xmlns, "svg")
 
-    cooldown = 10
+    cooldown = 0.01
     maxCooldown = 10
 
     start = false
@@ -33,7 +33,7 @@ export class SkillDirectionButton {
     #absoluteCenterY = 0
 
     #updateAbsoluteCenter() {
-        const { x, y, width, height } = this.container.getBoundingClientRect()
+        const { x, y, width, height } = this.htmlElement.getBoundingClientRect()
         this.#absoluteCenterX = x + width / 2
         this.#absoluteCenterY = y + height / 2
 
@@ -41,30 +41,36 @@ export class SkillDirectionButton {
     #resizeObserver = new ResizeObserver(this.#updateAbsoluteCenter.bind(this))
 
     setImage(imageUrl) {
-        this.container.style.backgroundImage = `url(${imageUrl})`
+        this.htmlElement.style.backgroundImage = `url(${imageUrl})`
     }
 
     constructor({
-        parent = document.body,
+        parent = undefined,
         size = 40,
         directionColor = '#5555ff55',
         directionWidth = size * 0.5,
         directionMaxLength = size * 2,
+        imageUrl = undefined,
+        id,
     }) {
+        this.id = id
+        
         const m = size / 2
         this.#middle = m
         this.#directionMaxLength = directionMaxLength
         this.#directionMaxLengthSq = directionMaxLength ** 2
 
-        this.container.style.borderRadius = '50%'
-        this.container.setAttributeNS(null, 'height', size)
-        this.container.setAttributeNS(null, 'width', size)
-        this.container.setAttributeNS(null, 'overflow', 'visible')
-        parent.appendChild(this.container)
+        this.htmlElement.style.borderRadius = '50%'
+        this.htmlElement.style.backgroundSize = 'cover'
+        this.htmlElement.setAttributeNS(null, 'height', size)
+        this.htmlElement.setAttributeNS(null, 'width', size)
+        this.htmlElement.setAttributeNS(null, 'overflow', 'visible')
+        parent?.appendChild(this.htmlElement)
+        if (imageUrl) this.setImage(imageUrl)
 
         this.#cd.setAttributeNS(null, 'fill', '#00000088')
         this.#cd.setAttributeNS(null, 'd', `M ${m} ${m} L ${m} 0 A ${m} ${m} 0 1 0 0 0`)
-        this.container.appendChild(this.#cd)
+        this.htmlElement.appendChild(this.#cd)
 
         this.#text.setAttribute('fill', '#ffffff')
         this.#text.setAttribute('dominant-baseline', 'middle')
@@ -72,7 +78,7 @@ export class SkillDirectionButton {
         this.#text.style.fontSize = `${m / 2}px`
         this.#text.setAttribute('x', m)
         this.#text.setAttribute('y', m)
-        this.container.appendChild(this.#text)
+        this.htmlElement.appendChild(this.#text)
 
         this.#direction.setAttribute('x1', m)
         this.#direction.setAttribute('y1', m)
@@ -86,18 +92,17 @@ export class SkillDirectionButton {
         this.#direction.setAttributeNS(null, 'y1', m)
         this.#direction.setAttributeNS(null, 'x2', m + 10)
         this.#direction.setAttributeNS(null, 'y2', m + 10)
-        this.container.appendChild(this.#direction)
 
-        this.container.onpointerdown = this.#onpointerdown.bind(this)
-        this.container.onpointermove = this.#onpointermove.bind(this)
-        this.container.onlostpointercapture = this.#onlostpointercapture.bind(this)
+        this.htmlElement.onpointerdown = this.#onpointerdown.bind(this)
+        this.htmlElement.onpointermove = this.#onpointermove.bind(this)
+        this.htmlElement.onlostpointercapture = this.#onlostpointercapture.bind(this)
 
-        this.#resizeObserver.observe(this.container)
+        this.#resizeObserver.observe(this.htmlElement)
     }
 
     dispose() {
         this.#resizeObserver.disconnect()
-        this.container.remove()
+        this.htmlElement.remove()
     }
 
     #centerDirectionX
@@ -113,14 +118,14 @@ export class SkillDirectionButton {
     #downY
 
     #onpointerdown(event) {
-        this.container.setPointerCapture(event.pointerId)
+        this.htmlElement.setPointerCapture(event.pointerId)
         this.#downX = event.clientX
         this.#downY = event.clientY
         this.#centerDirectionX = event.clientX - this.#absoluteCenterX
         this.#centerDirectionY = event.clientY - this.#absoluteCenterY
         this.#direction.setAttributeNS(null, 'x1', this.#centerDirectionX + this.#middle)
         this.#direction.setAttributeNS(null, 'y1', this.#centerDirectionY + this.#middle)
-        this.container.appendChild(this.#direction)
+        this.htmlElement.appendChild(this.#direction)
         this.#direction.setAttributeNS(null, 'x2', this.#centerDirectionX + this.#middle)
         this.#direction.setAttributeNS(null, 'y2', this.#centerDirectionY + this.#middle)
         this.#pressed = true
@@ -176,7 +181,7 @@ export class SkillDirectionButton {
     }
 
     #onpointermove(event) {
-        if (!this.container.hasPointerCapture(event.pointerId)) return
+        if (!this.htmlElement.hasPointerCapture(event.pointerId)) return
         this.#eventX = event.clientX
         this.#eventY = event.clientY
         this.#moveNeedsUpdate = true
@@ -185,7 +190,7 @@ export class SkillDirectionButton {
 
 
     #onlostpointercapture(event) {
-        this.container.releasePointerCapture(event.pointerId)
+        this.htmlElement.releasePointerCapture(event.pointerId)
         this.x = this.#distanceDirectionX / this.#directionMaxLength
         this.y = this.#distanceDirectionY / this.#directionMaxLength
         this.#direction.remove()

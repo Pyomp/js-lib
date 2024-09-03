@@ -4,8 +4,10 @@ import { loopRaf } from "../../utils/loopRaf.js"
 const xmlns = "http://www.w3.org/2000/svg"
 
 export class SkillButton {
-    container = document.createElementNS(xmlns, "svg")
+    htmlElement = document.createElement('div')
 
+    svg = document.createElementNS(xmlns, "svg")
+    
     cooldown = 0.001 // for 1st update in constructor
     maxCooldown = 1
 
@@ -25,25 +27,40 @@ export class SkillButton {
     #middle
 
     setImage(imageUrl) {
-        this.container.style.backgroundImage = `url(${imageUrl})`
+        this.svg.style.backgroundImage = `url(${imageUrl})`
     }
 
     constructor({
-        parent = document.body,
-        size = 50
+        parent = undefined,
+        size = 44,
+        padding = 3,
+        imageUrl = undefined,
+        id,
     }) {
+        this.id = id
+
         const m = size / 2
         this.#middle = m
 
-        this.container.style.borderRadius = '50%'
-        this.container.setAttributeNS(null, 'height', size)
-        this.container.setAttributeNS(null, 'width', size)
-        this.container.setAttributeNS(null, 'overflow', 'visible')
-        parent.appendChild(this.container)
+        this.htmlElement.appendChild(this.svg)
+        this.htmlElement.style.padding = `${padding}px`
+        this.htmlElement.style.height = `${padding}px`
+        this.htmlElement.style.width = `${padding * 2 + size}px`
+        this.htmlElement.style.height = `${padding * 2 + size}px`
+
+        this.svg.style.backgroundSize = `${size}px ${size}px`
+
+        this.svg.style.borderRadius = '50%'
+        this.svg.setAttributeNS(null, 'height', size)
+        this.svg.setAttributeNS(null, 'width', size)
+        this.svg.setAttributeNS(null, 'overflow', 'visible')
+
+        parent?.appendChild(this.svg)
+        if (imageUrl) this.setImage(imageUrl)
 
         this.#cd.setAttributeNS(null, 'fill', '#00000088')
         this.#cd.setAttributeNS(null, 'd', `M ${m} ${m} L ${m} 0 A ${m} ${m} 0 1 0 0 0`)
-        this.container.appendChild(this.#cd)
+        this.svg.appendChild(this.#cd)
 
         this.#text.setAttribute('fill', '#ffffff')
         this.#text.setAttribute('dominant-baseline', 'middle')
@@ -51,20 +68,20 @@ export class SkillButton {
         this.#text.style.fontSize = `${m / 2}px`
         this.#text.setAttribute('x', m)
         this.#text.setAttribute('y', m)
-        this.container.appendChild(this.#text)
+        this.svg.appendChild(this.#text)
 
-        this.container.onpointerdown = this.#onpointerdown.bind(this)
-        this.container.onlostpointercapture = this.#onlostpointercapture.bind(this)
+        this.htmlElement.onpointerdown = this.#onpointerdown.bind(this)
+        this.htmlElement.onlostpointercapture = this.#onlostpointercapture.bind(this)
 
         this.update()
     }
 
     dispose() {
-        this.container.remove()
+        this.svg.remove()
     }
 
     #onpointerdown(event) {
-        this.container.setPointerCapture(event.pointerId)
+        this.svg.setPointerCapture(event.pointerId)
         this.#pressed = true
     }
 
@@ -95,7 +112,7 @@ export class SkillButton {
     }
 
     #onlostpointercapture(event) {
-        this.container.releasePointerCapture(event.pointerId)
+        this.svg.releasePointerCapture(event.pointerId)
         this.#pressed = false
     }
 }
