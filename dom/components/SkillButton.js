@@ -7,7 +7,7 @@ export class SkillButton {
     htmlElement = document.createElement('div')
 
     svg = document.createElementNS(xmlns, "svg")
-    
+
     cooldown = 0.001 // for 1st update in constructor
     maxCooldown = 1
 
@@ -24,10 +24,16 @@ export class SkillButton {
 
     #text = document.createElementNS(xmlns, 'text')
 
+    #shortcutText = document.createElement('span')
+
     #middle
 
     setImage(imageUrl) {
         this.svg.style.backgroundImage = `url(${imageUrl})`
+    }
+
+    setShortcutText(key) {
+        this.#shortcutText.textContent = key.toString().slice(0, 4)
     }
 
     constructor({
@@ -47,10 +53,13 @@ export class SkillButton {
         this.htmlElement.style.height = `${padding}px`
         this.htmlElement.style.width = `${padding * 2 + size}px`
         this.htmlElement.style.height = `${padding * 2 + size}px`
+        this.htmlElement.style.position = 'relative'
 
         this.svg.style.backgroundSize = `${size}px ${size}px`
-
-        this.svg.style.borderRadius = '50%'
+        this.svg.style.overflow = 'hidden'
+        this.svg.style.borderRadius = '5px'
+        this.svg.style.userSelect= 'none'
+        this.svg.style.pointerEvents = 'none'
         this.svg.setAttributeNS(null, 'height', size)
         this.svg.setAttributeNS(null, 'width', size)
         this.svg.setAttributeNS(null, 'overflow', 'visible')
@@ -58,20 +67,29 @@ export class SkillButton {
         parent?.appendChild(this.svg)
         if (imageUrl) this.setImage(imageUrl)
 
-        this.#cd.setAttributeNS(null, 'fill', '#00000088')
-        this.#cd.setAttributeNS(null, 'd', `M ${m} ${m} L ${m} 0 A ${m} ${m} 0 1 0 0 0`)
+        this.#cd.setAttributeNS(null, 'fill', '#000000aa')
+        this.#cd.setAttributeNS(null, 'transform', `translate(-${this.#middle} -${this.#middle})`)
+
         this.svg.appendChild(this.#cd)
 
+        this.#text.style.pointerEvents = 'none'
+        this.#text.style.userSelect = 'none'
         this.#text.setAttribute('fill', '#ffffff')
         this.#text.setAttribute('dominant-baseline', 'middle')
         this.#text.setAttribute('text-anchor', 'middle')
-        this.#text.style.fontSize = `${m / 2}px`
         this.#text.setAttribute('x', m)
         this.#text.setAttribute('y', m)
         this.svg.appendChild(this.#text)
 
         this.htmlElement.onpointerdown = this.#onpointerdown.bind(this)
         this.htmlElement.onlostpointercapture = this.#onlostpointercapture.bind(this)
+
+        this.#shortcutText.style.position = 'absolute'
+        this.#shortcutText.style.top = '0'
+        this.#shortcutText.style.left = '0'
+        this.#shortcutText.style.userSelect= 'none'
+        this.#shortcutText.style.pointerEvents = 'none'
+        this.htmlElement.appendChild(this.#shortcutText)
 
         this.update()
     }
@@ -104,7 +122,9 @@ export class SkillButton {
             const s = Math.sin(angleCd)
             const c = Math.cos(angleCd)
             const m = (c < 0 ? 0 : 1) ^ (s < 1 ? 0 : 0)
-            this.#cd.setAttributeNS(null, 'd', `M ${this.#middle} ${this.#middle} L ${this.#middle} 0 A ${this.#middle} ${this.#middle} 0 ${m} 0 ${this.#middle + this.#middle * c} ${this.#middle + this.#middle * s}`)
+            const mid = this.#middle
+            const r = this.#middle * 2
+            this.#cd.setAttributeNS(null, 'd', `M ${r} ${r} L ${r} 0 A ${r} ${r} 0 ${m} 0 ${r + r * c} ${r + r * s}`)
 
             if (cdNormalized > 0) this.#text.innerHTML = this.cooldown.toFixed(1)
             else this.#text.innerHTML = ''
