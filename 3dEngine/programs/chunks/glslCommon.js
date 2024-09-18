@@ -22,9 +22,10 @@ uniform sampler2D ${baseTexture};
 `
 
 /**
+ * @param {string} positionAttribute 
  * @param {string[]} matrixes 
  */
-function getWorldPosition(...matrixes) {
+function getWorldPosition(positionAttribute, ...matrixes) {
     let matrixesString = ''
     for (const matrix of matrixes) {
         if (matrix) matrixesString += `${matrix} * `
@@ -36,7 +37,7 @@ function getWorldPosition(...matrixes) {
 /**
  * @param {string[]} matrixes 
  */
-function getWorldNormal(...matrixes) {
+function getWorldNormal(normalAttribute, ...matrixes) {
     return `mat3(${[worldMatrix, ...matrixes.filter(s => s)].join(' * ')}) * ${normalAttribute}`
 }
 

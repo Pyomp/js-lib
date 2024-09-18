@@ -212,7 +212,7 @@ export class GlContextRenderer {
 
         if (glObject.frontCullFace === glObject.backCullFace) this.glCapabilities.cullFace = false
         else {
-            this.glCapabilities.cullFace = false
+            this.glCapabilities.cullFace = true
 
             if (glObject.frontCullFace) this.glCapabilities.setFrontFace()
             else this.glCapabilities.setBackFace()

@@ -1,5 +1,6 @@
 import { Color } from "../../../math/Color.js"
 import { GLSL_COMMON } from "../../programs/chunks/glslCommon.js"
+import { GLSL_MORPH_TARGET } from "../../programs/chunks/glslMorphTarget.js"
 import { GLSL_PBR } from "../../programs/chunks/glslPbr.js"
 import { GLSL_SKINNED } from "../../programs/chunks/glslSkinnedChunk.js"
 import { GlArrayBuffer } from "../../webgl/glDescriptors/GlArrayBuffer.js"
@@ -59,14 +60,40 @@ function getAttribute(attributes) {
         const glArrayBufferData = new GlArrayBuffer(attribute.buffer)
         glAttributesData.push(new GlAttribute({ glArrayBuffer: glArrayBufferData, name: GLSL_SKINNED.weights, size: 4, type: WebGL2RenderingContext.FLOAT }))
     }
+    for (const key in attributes) {
+        const attribute = attributes[key]
+        {
+            const prefix = 'POSITION_TARGET_'
+            if (key.slice(0, prefix.length) === prefix) {
+                glAttributesData.push(new GlAttribute({
+                    glArrayBuffer: new GlArrayBuffer(attribute.buffer),
+                    name: GLSL_MORPH_TARGET.positionPrefix + key.slice(prefix.length),
+                    size: 3,
+                    type: WebGL2RenderingContext.FLOAT
+                }))
+            }
+        }
+        {
+            const prefix = 'NORMAL_TARGET_'
+            if (key.slice(0, prefix.length) === prefix) {
+                glAttributesData.push(new GlAttribute({
+                    glArrayBuffer: new GlArrayBuffer(attribute.buffer),
+                    name: GLSL_MORPH_TARGET.normalPrefix + key.slice(prefix.length),
+                    size: 3,
+                    type: WebGL2RenderingContext.FLOAT
+                }))
+            }
+        }
+    }
 
     return glAttributesData
 }
 
 function getGlObjectData(
     /** @type {GltfPrimitive} */ primitive,
-    /** @type {GlProgram} */  glProgram = undefined,
+    /** @type {GlProgram} */  glProgram,
     extraUniforms = {},
+    /** @type {string[]} */ targetNames = []
 ) {
     /** @type {{[name: string]: WebGl.UniformData | GlTexture}} */
     const uniforms = {}
@@ -88,11 +115,15 @@ function getGlObjectData(
         uniforms[key] = extraUniforms[key]
     }
 
+    for (const key of targetNames) {
+        uniforms[GLSL_MORPH_TARGET.influanceUniformPrefix + key] = 0
+    }
+
     const attributesData = getAttribute(primitive.attributes)
     const glVaoData = new GlVao(attributesData, primitive.indices.buffer)
 
     return new GlObject({
-        glProgram: glProgram,
+        glProgram,
         glVao: glVaoData,
         uniforms
     })
@@ -101,13 +132,14 @@ function getGlObjectData(
 
 function getGlObjectsData(
     /** @type {GltfPrimitive[]} */ primitives,
-    /** @type {GlProgram} */  glProgram = undefined,
+    /** @type {GlProgram} */  glProgram,
     extraUniforms = {},
+    /** @type {string[] | undefined} */ targetNames,
 ) {
     const objects = []
 
     for (const primitive of primitives) {
-        objects.push(getGlObjectData(primitive, glProgram, extraUniforms))
+        objects.push(getGlObjectData(primitive, glProgram, extraUniforms, targetNames))
     }
 
     return objects
@@ -129,7 +161,10 @@ function getNode3DWithoutObjects({
     if (gltfNode.rotation) node3D.quaternion.fromArray(gltfNode.rotation)
     if (gltfNode.scale) node3D.scale.fromArray(gltfNode.scale)
     if (gltfNode.skin) {
-        node3D.mixer = new Mixer(new Animation(gltfNode.skin, animationDictionary))
+        node3D.mixer = new Mixer(new Animation({
+            gltfSkin: gltfNode.skin,
+            animationDictionary
+        }))
     }
 
     return node3D

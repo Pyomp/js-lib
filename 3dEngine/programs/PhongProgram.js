@@ -3,16 +3,19 @@ import { GlRenderer } from "../webgl/glRenderer/GlRenderer.js"
 import { GLSL_AMBIENT_LIGHT } from "./chunks/glslAmbient.js"
 import { GLSL_CAMERA } from "./chunks/glslCamera.js"
 import { GLSL_COMMON } from "./chunks/glslCommon.js"
+import { GLSL_MORPH_TARGET } from "./chunks/glslMorphTarget.js"
 import { GLSL_POINT_LIGHT } from "./chunks/glslPointLight.js"
 import { GLSL_SKINNED } from "./chunks/glslSkinnedChunk.js"
 
 function vertexShader({
     pointLightCount,
-    isSkinned
+    isSkinned,
+    morphs
 }) {
     return `#version 300 es
 ${GLSL_COMMON.vertexDeclaration}
 ${isSkinned ? GLSL_SKINNED.declaration : ''}
+${morphs ? GLSL_MORPH_TARGET.declaration(morphs) : ''}
 ${GLSL_CAMERA.declaration}
 ${GLSL_POINT_LIGHT.vertexDeclaration(pointLightCount)}
 
@@ -21,11 +24,18 @@ out vec2 v_uv;
 
 void main() {
     ${isSkinned ? GLSL_SKINNED.computeSkinMatrix : ''}
-    
-    vec4 worldPosition = ${GLSL_COMMON.getWorldPosition(isSkinned ? GLSL_SKINNED.skinMatrix : '')};
+
+    vec4 worldPosition = ${GLSL_COMMON.getWorldPosition(
+        morphs ? GLSL_MORPH_TARGET.getMorphTargetPosition : GLSL_COMMON.positionAttribute,
+        isSkinned ? GLSL_SKINNED.skinMatrix : ''
+    )};
     gl_Position = ${GLSL_CAMERA.projectionViewMatrix} * worldPosition;
 
-    v_normal = ${GLSL_COMMON.getWorldNormal(isSkinned ? GLSL_SKINNED.skinMatrix : '')};
+    v_normal = ${GLSL_COMMON.getWorldNormal(
+        morphs ? GLSL_MORPH_TARGET.getMorphTargetNormal : GLSL_COMMON.normalAttribute,
+        isSkinned ? GLSL_SKINNED.skinMatrix : ''
+    )};
+
     v_uv = uv;
 
     ${GLSL_POINT_LIGHT.computeVarying('worldPosition', GLSL_CAMERA.position, pointLightCount)}
@@ -84,17 +94,20 @@ export class PhongProgram extends GlProgram {
      *      renderer: GlRenderer
      *      isShininessEnable?: boolean
      *      isSkinned?: boolean
+     *      morphs?: string[]
      * }} param0 
      */
     constructor({
         renderer,
         isShininessEnable = true,
         isSkinned = false,
+        morphs,
     }) {
         super(
             () => vertexShader({
                 pointLightCount: renderer.pointLightCount,
-                isSkinned: this.isSkinned
+                isSkinned: this.isSkinned,
+                morphs
             }),
             () => fragmentShader({
                 pointLightCount: renderer.pointLightCount,

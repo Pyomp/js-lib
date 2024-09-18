@@ -34,7 +34,7 @@ void main() {
 
     v_uv = ${GLSL_COMMON.uvAttribute};
 
-    v_normal = ${GLSL_COMMON.getWorldNormal()};
+    v_normal = ${GLSL_COMMON.getWorldNormal(GLSL_COMMON.normalAttribute)};
     v_tangent = ${GLSL_COMMON.getTangent(GLSL_COMMON.worldMatrix, GLSL_CAMERA.viewMatrix, GLSL_COMMON.tangentAttribute)};
     v_bitangent = ${GLSL_COMMON.getBiTangent('v_normal', 'v_tangent', GLSL_COMMON.tangentAttribute)};
 

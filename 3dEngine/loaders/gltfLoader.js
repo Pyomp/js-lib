@@ -58,20 +58,20 @@ export async function parseGltf(gltf) {
             const channels = animation.channels
             const samplers = animation.samplers
 
-            const bones = {}
+            const keyframe = {}
             for (const channel of channels) {
                 const sampler = samplers[channel.sampler]
 
                 const name = nodes[channel.target.node].name
-                if (bones[name] === undefined) bones[name] = {}
-                bones[name][channel.target.path] = {
+                if (keyframe[name] === undefined) keyframe[name] = {}
+                keyframe[name][channel.target.path] = {
                     key: accessors[sampler.input],
                     frame: accessors[sampler.output],
-                    interpolation: sampler.interpolation,
+                    interpolation: sampler.interpolation
                 }
             }
 
-            animations[animation.name] = bones
+            animations[animation.name] = keyframe
             delete animation.samplers
         }
         content.animations = animations
@@ -138,6 +138,9 @@ export async function parseGltf(gltf) {
     // meshes
     for (const mesh of content.meshes) {
         const primitives = mesh.primitives
+
+        const targetNames = mesh.extras?.targetNames
+
         for (const primitive of primitives) {
             if (primitive.material !== undefined) {
                 primitive.material = materials[primitive.material]
@@ -147,9 +150,28 @@ export async function parseGltf(gltf) {
                 const accessorID = attributes[key]
                 attributes[key] = accessors[accessorID]
             }
+
+            if (targetNames && primitive.targets) {
+                for (let i = 0; i < targetNames.length; i++) {
+                    const name = targetNames[i]
+                    const target = primitive.targets[i]
+
+                    for (const key in target) {
+                        const accessorID = target[key]
+                        const attributeName = key + '_TARGET_' + name
+                        attributes[attributeName] = accessors[accessorID]
+                    }
+                }
+
+
+                delete primitive.targets
+            }
+
             primitive.indices = accessors[primitive.indices]
 
         }
+
+        delete mesh.weights
     }
 
     //skins
@@ -189,6 +211,16 @@ export async function parseGltf(gltf) {
         if (node.mesh !== undefined) node.mesh = content.meshes[node.mesh]
         if (node.children !== undefined) node.children = node.children.map(a => nodes[a])
         if (node.skin !== undefined) node.skin = skins[node.skin]
+        
+        for (const animationName in content.animations) {
+            const animation = content.animations[animationName]
+            for (const key in animation) {
+                if (key === node.name && animation[key].weights) {
+                    node.morph = animation[key].weights
+                    break
+                }
+            }
+        }
     }
 
     /** @type {{[name: string]: GltfNode}} */

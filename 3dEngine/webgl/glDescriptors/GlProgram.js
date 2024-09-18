@@ -19,4 +19,8 @@ export class GlProgram {
         this.fragmentShader = fragmentShader
         this.glTransformFeedback = glTransformFeedback
     }
+
+    dispose(){
+        this.needsDelete = true
+    }
 }

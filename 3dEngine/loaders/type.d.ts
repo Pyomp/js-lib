@@ -17,6 +17,7 @@ declare type GltfNode = {
   translation?: [number, number, number];
   rotation?: [number, number, number, number];
   scale?: [number, number, number];
+  morph?: GltfKeyFrame
 };
 
 declare type GltfAttributes = {
@@ -26,6 +27,8 @@ declare type GltfAttributes = {
   POSITION?: GltfBuffer<Float32Array>;
   TEXCOORD_0?: GltfBuffer<Float32Array>;
   WEIGHTS_0?: GltfBuffer<Float32Array>;
+  [k: `POSITION_TARGET_${string}`]: GltfBuffer<Float32Array>;
+  [k: `NORMAL_TARGET_${string}`]: GltfBuffer<Float32Array>;
 };
 
 declare type GltfBuffer<T extends Uint8Array | Uint16Array | Uint32Array | Float32Array> = {
@@ -47,16 +50,19 @@ declare type GltfMaterial = {
 };
 
 declare type GltfMesh = {
+  extras?: {
+    targetNames?: string[]
+  }
   name?: string;
   primitives: [GltfPrimitive];
 };
 
 declare type GltfAnimation = { [boneName: string]: GltfBoneAnimation };
-declare type GltfAnimations = { [animationName: string]: GltfAnimation };
+declare type GltfBoneAnimations = { [animationName: string]: GltfBoneAnimation };
 declare type GltfSkin = {
   name?: string;
   inverseBindMatrices?: GltfBuffer;
-  animations?: GltfAnimations;
+  animations?: GltfBoneAnimations;
   root: GltfBone;
   bonesCount: number;
 };

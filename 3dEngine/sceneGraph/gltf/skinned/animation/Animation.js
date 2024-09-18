@@ -1,5 +1,6 @@
 import { Quaternion } from '../../../../../math/Quaternion.js'
 import { Vector3 } from '../../../../../math/Vector3.js'
+import { GLSL_MORPH_TARGET } from '../../../../programs/chunks/glslMorphTarget.js'
 import { GlTexture } from '../../../../webgl/glDescriptors/GlTexture.js'
 import { Bone } from './Bone.js'
 import { KeyFrame } from './KeyFrame.js'
@@ -46,23 +47,59 @@ export class Animation {
     #bonesCount
     #gltfSkinRootBone
     #inverseBindMatrices
+    /** @type {string[]}} */ #morphTargetUniformNames
+    /** @type {{[name: string]: KeyFrame}}} */ morphKeyFrames
+    #animationMorphBind
+
     /**
-     * @param {GltfSkin} gltfSkin
-     * @param {{[gltfAnimationName: string]: string | number}} animationDictionary
+     * @param {{
+     *      gltfSkin: GltfSkin
+     *      animationDictionary: {[gltfAnimationName: string]: string | number}
+     *      morphTargets?: {names: string[], keyframes: GltfKeyFrame[]}
+     *      animationMorphBind?: {[animationKey: string | number]: string}
+     *  }} gltfSkin
      */
-    constructor(gltfSkin, animationDictionary = {}) {
+    constructor({
+        gltfSkin,
+        animationDictionary = {},
+        morphTargets = { names: [], keyframes: [] },
+        animationMorphBind = {}
+    }) {
         this.name = gltfSkin.name
         this.#bonesCount = gltfSkin.bonesCount
         this.#gltfSkinRootBone = gltfSkin.root
         this.#inverseBindMatrices = gltfSkin.inverseBindMatrices.buffer
 
+
         this.#initInitialPose(gltfSkin.root)
         this.#initTracks(gltfSkin.animations, animationDictionary)
+        this.#initMorphs(morphTargets)
+        this.#animationMorphBind = animationMorphBind
+    }
+
+    #initMorphs(/** @type {{names: string[], keyframes: GltfKeyFrame[]}} */ morphTargets) {
+        this.#morphTargetUniformNames = []
+
+        const morphLength = morphTargets.names.length
+
+        for (let i = 0; i < morphLength; i++) {
+            const uniformName = GLSL_MORPH_TARGET.influanceUniformPrefix + morphTargets.names[i]
+            const keyFrame = morphTargets.keyframes[i]
+            this.#morphTargetUniformNames.push(uniformName)
+
+            const keyFrameNumbers = []
+            const frame = keyFrame.frame.buffer
+            for (let i = 0; i < frame.length; i += morphLength) {
+                keyFrameNumbers.push(frame.slice(i, i + morphLength))
+            }
+
+            this.morphKeyFrames[morphTargets.names[i]] = new KeyFrame(keyFrame.key, keyFrameNumbers, true)
+        }
     }
 
     createArmature() {
         const buffer = new Float32Array(16 * this.#bonesCount)
-        
+
         const jointsTexture = new GlTexture({
             name: `joints for skin ${this.name}`,
             data: buffer,
@@ -125,16 +162,44 @@ export class Animation {
 
     /**
      * @param {number} time 
-     * @param {Track} track 
+     * @param {string | number} animationKey
      * @param {Bone} boneTarget 
+     * @param {{[name: string]: WebGl.UniformData | GlTexture}[]} uniformsTarget 
      * @returns 
      */
-    applyBoneTransformation(time, track, boneTarget) {
+    applyBoneTransformation(time, animationKey, boneTarget, uniformsTarget) {
+        const track = this.tracks[animationKey]
         const boneTransformation = track.bones[boneTarget.name]
         const initialBone = this.initialPose[boneTarget.name]
         boneTarget.position.copy(boneTransformation?.position ? getBonePosition(time, boneTransformation.position) : initialBone.position)
         boneTarget.quaternion.copy(boneTransformation?.quaternion ? getBoneQuaternion(time, boneTransformation.quaternion) : initialBone.quaternion)
         boneTarget.scale.copy(boneTransformation?.scale ? getBoneScale(time, boneTransformation.scale) : initialBone.scale)
+
+        const morphName = this.#animationMorphBind[animationKey]
+        if (morphName) {
+            const keyframe = this.morphKeyFrames[morphName]
+            for (const uniforms of uniformsTarget) {
+                this.applyMorphs(time, keyframe, uniforms)
+            }
+        }
+    }
+
+    /**
+     * @param {number} time 
+     * @param {KeyFrame} keyframe 
+     * @param {{[name: string]: WebGl.UniformData | GlTexture}} uniformTarget
+     * @returns 
+     */
+    applyMorphs(time, keyframe, uniformTarget) {
+        const keys = keyframe.key
+        const frames = keyframe.frame
+
+        const index = getIndexFromKeysTime(time, keys)
+        const result = lerpNumbers(time, index, keys, frames)
+
+        for (let i = 0; i < this.#morphTargetUniformNames.length; i++) {
+            uniformTarget[this.#morphTargetUniformNames[i]] = result[i]
+        }
     }
 }
 
@@ -173,6 +238,26 @@ function lerpVector3(time, index, keys, frames) {
         _vector3.lerpVectors(frames[index - 1], frames[index], alpha)
     }
     return _vector3
+}
+
+
+/**
+ * @param {number} time
+ * @param {number} index 
+ * @param {number[]} keys 
+ * @param {number[][]} frames 
+ */
+function lerpNumbers(time, index, keys, frames) {
+    if (index === 0) {
+        return frames[0]
+    } else if (index >= keys.length) {
+        return frames[frames.length - 1]
+    } else {
+        const alpha = getAlpha(time, index, keys)
+        const fromArray = frames[index - 1]
+        const toArray = frames[index]
+        return fromArray.map((from, index) => from + (toArray[index] - from) * alpha)
+    }
 }
 
 /**

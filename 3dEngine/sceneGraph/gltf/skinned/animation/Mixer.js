@@ -3,13 +3,16 @@ import { Vector3 } from "../../../../../math/Vector3.js"
 import { Track } from "./Track.js"
 import { Animation, LoopOnce, LoopPingpong } from "./Animation.js"
 import { Bone } from "./Bone.js"
-import { loopRaf } from "../../../../../utils/loopRaf.js" 
+import { loopRaf } from "../../../../../utils/loopRaf.js"
+import { KeyFrame } from "./KeyFrame.js"
+import { GLSL_SKINNED } from "../../../../programs/chunks/glslSkinnedChunk.js"
 
 export class Mixer {
     rootBone
     #poseSaved = {}
 
     /** @type {{[trackName: string]: Track}} */ #tracks = {}
+    /** @type {{[trackName: string]: GltfKeyFrame}} */ #morphs = {}
     /** @type {Track} */ #currentTrack
 
     #time = 0
@@ -20,6 +23,8 @@ export class Mixer {
     fadeSpeed = 7
 
     #animation
+    #currentAnimationName = ''
+    #uniforms = []
 
     /**
      * @param {Animation} animation
@@ -35,6 +40,11 @@ export class Mixer {
         this.#initPoseSaved()
         this.#initCurrentTrack()
         this.rootBone.updateMatrix()
+    }
+
+    bindUniform(uniforms) {
+        uniforms[GLSL_SKINNED.jointsTexture] = this.jointsTexture
+        this.#uniforms.push(uniforms)
     }
 
     dispose() {
@@ -65,7 +75,7 @@ export class Mixer {
      * @param {Bone} bone
      */
     #applyTransformationToBone(bone) {
-        this.#animation.applyBoneTransformation(this.#time, this.#currentTrack, bone)
+        this.#animation.applyBoneTransformation(this.#time, this.#currentAnimationName, bone, this.#uniforms)
         if (this.#fadeTime > 0) {
             const saved = this.#poseSaved[bone.name]
             bone.position.lerp(saved.position, this.#fadeTime)
@@ -121,6 +131,7 @@ export class Mixer {
             this.#fadeTime = 1
             this.#timeDirection = 1
             this.#saveCurrentPose()
+            this.#currentAnimationName = animationName
             this.#currentTrack = this.#tracks[animationName]
         }
 
@@ -130,6 +141,6 @@ export class Mixer {
     }
 
     clone() {
-        return new Mixer(this.#animation)
+        return new Mixer(this.#animation, this.#morphs)
     }
 }
