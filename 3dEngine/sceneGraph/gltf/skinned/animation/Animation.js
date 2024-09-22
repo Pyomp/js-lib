@@ -169,6 +169,9 @@ export class Animation {
      */
     applyBoneTransformation(time, animationKey, boneTarget, uniformsTarget) {
         const track = this.tracks[animationKey]
+
+        if (!track) return
+
         const boneTransformation = track.bones[boneTarget.name]
         const initialBone = this.initialPose[boneTarget.name]
         boneTarget.position.copy(boneTransformation?.position ? getBonePosition(time, boneTransformation.position) : initialBone.position)
@@ -198,7 +201,7 @@ export class Animation {
         const result = lerpNumbers(time, index, keys, frames)
 
         for (let i = 0; i < this.#morphTargetUniformNames.length; i++) {
-            uniformTarget[this.#morphTargetUniformNames[i]] = result[i]
+            if (uniformTarget[this.#morphTargetUniformNames[i]]) uniformTarget[this.#morphTargetUniformNames[i]] = result[i]
         }
     }
 }

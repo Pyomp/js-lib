@@ -126,13 +126,13 @@ export class Mixer {
 
         if (track === undefined) return
 
-        if (this.#currentTrack !== track) {
+        if (this.#currentAnimationName !== animationName) {
             this.#time = 0
             this.#fadeTime = 1
             this.#timeDirection = 1
             this.#saveCurrentPose()
             this.#currentAnimationName = animationName
-            this.#currentTrack = this.#tracks[animationName]
+            this.#currentTrack = track
         }
 
         if (this.#currentTrack.loop === LoopOnce) {
@@ -141,6 +141,6 @@ export class Mixer {
     }
 
     clone() {
-        return new Mixer(this.#animation, this.#morphs)
+        return new Mixer(this.#animation)
     }
 }
