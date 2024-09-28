@@ -1,4 +1,6 @@
 import { Box3 } from "../../../math/Box3.js"
+import { Vector3 } from "../../../math/Vector3.js"
+import { TextureObject } from "../../extras/TextureObject.js"
 import { GLSL_AMBIENT_LIGHT } from "../../programs/chunks/glslAmbient.js"
 import { GLSL_CAMERA } from "../../programs/chunks/glslCamera.js"
 import { GLSL_POINT_LIGHT } from "../../programs/chunks/glslPointLight.js"
@@ -12,7 +14,6 @@ import { GlDepthTextureData } from "../../textures/DepthTexture.js"
 import { GlContextRenderer } from "../glContext/GlContextRenderer.js"
 import { GlFrameBuffer } from "../glDescriptors/GlFrameBuffer.js"
 import { GlObject } from "../glDescriptors/GlObject.js"
-import { GlTexture } from "../glDescriptors/GlTexture.js"
 import { GlAmbientLightRenderer } from "./GlAmbientLightRenderer.js"
 import { GlCameraUbo } from "./GlCameraUbo.js"
 import { GlPointLightRenderer } from "./GlPointLightRenderer.js"
@@ -61,7 +62,6 @@ export class GlRenderer {
         this.htmlElement.innerHTML = ''
         this.htmlElement.appendChild(canvas)
 
-
         this.glContext = new GlContextRenderer(
             canvas,
             undefined,
@@ -81,6 +81,7 @@ export class GlRenderer {
 
     onResize(width, height) {
         this.camera.aspect = width / height
+
         this.depthTexture.width = width
         this.depthTexture.height = height
         this.depthTexture.paramsVersion++
@@ -167,7 +168,6 @@ export class GlRenderer {
 
         const [opaqueObjects, transparentObjects] = this.getObjectsToDraw(nodesInFrustum)
 
-
         gl.clear(WebGL2RenderingContext.COLOR_BUFFER_BIT | WebGL2RenderingContext.DEPTH_BUFFER_BIT)
 
         for (const object of opaqueObjects) {
@@ -175,6 +175,7 @@ export class GlRenderer {
         }
 
         this.glContext.getGlFrameBuffer(this.depthFrameBuffer).blit(null, this.windowInfo.width, this.windowInfo.height)
+
         gl.bindFramebuffer(WebGL2RenderingContext.FRAMEBUFFER, null)
 
         for (const object of transparentObjects) {

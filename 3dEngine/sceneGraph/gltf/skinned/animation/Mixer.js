@@ -20,7 +20,7 @@ export class Mixer {
     #fadeTime = 0
     #timeDirection = 1
 
-    fadeSpeed = 7
+    fadeSpeed = 15
 
     #animation
     #currentAnimationName = ''
