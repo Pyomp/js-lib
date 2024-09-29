@@ -28,7 +28,6 @@ export class GlContextRenderer {
             alpha: true,
             antialias: true,
             depth: true,
-            // desynchronized?: boolean
             failIfMajorPerformanceCaveat: false,
             powerPreference: 'default',
             premultipliedAlpha: true,

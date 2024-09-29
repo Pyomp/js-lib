@@ -54,26 +54,18 @@ export function getPointer3DPosition(clientX, clientY, htmlElement, worldCameraM
  * 
  * @param {Ray} ray 
  * @param {Node3D} node
- * @param {Box3} boundingBox 
- * @param {Vector3} normalTarget 
- * @param {Matrix4} matrixWorld 
- * @param {boolean} isFrontSide 
  * @returns 
  */
 export function distanceRayNode(
     ray,
     node,
-    boundingBox = undefined,
-    normalTarget = undefined,
-    matrixWorld = undefined,
-    isFrontSide = true,
 ) {
     let minDistance = Infinity
 
     node.traverse((childNode) => {
         for (const object of childNode.objects) {
             if (object instanceof GlObject) {
-                const positionAttribute = object.glVao.attributes.find((attribute) => attribute.name.toLowerCase() === 'position')
+                const positionAttribute = object.glVao?.attributes.find((attribute) => attribute.name.toLowerCase() === 'position')
                 if (positionAttribute) {
                     const positionArray = positionAttribute.glArrayBuffer.arrayBuffer
                     const indices = object.glVao.indicesUintArray
@@ -126,11 +118,11 @@ export function distanceRayMesh(
 
     let minDistance = Infinity
 
-    for (let i = 0; i < indices.length; i += 1) {
+    for (let i = 0; i < indices.length; i += 3) {
 
-        _vA.fromArray(position, indices[i * 3] * 3)
-        _vB.fromArray(position, indices[i * 3 + 1] * 3)
-        _vC.fromArray(position, indices[i * 3 + 2] * 3)
+        _vA.fromArray(position, indices[i] * 3)
+        _vB.fromArray(position, indices[i + 1] * 3)
+        _vC.fromArray(position, indices[i + 2] * 3)
 
         const distance = _ray.distanceFromTriangle(_vA, _vB, _vC, isFrontSide)
 

@@ -6,7 +6,6 @@ const linearizeDepth = Object.freeze({
     return (2.0 * ${cameraNear} * ${cameraFar}) / (${cameraFar} + ${cameraNear} - ndc * (${cameraFar} - ${cameraNear}));	
 }`},
     call(depth) { return `linearizeDepth(${depth})` }
-
 })
 
 export const GLSL_UTILS = Object.freeze({

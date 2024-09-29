@@ -206,12 +206,14 @@ export class GlRenderer {
         const materialIdB = this.#programCache.get(b.glProgram)
         if (materialIdA !== materialIdB) return materialIdA - materialIdB
 
-        if (!this.#vaoCache.has(a.glVao)) this.#vaoCache.set(a.glVao, this.#lastVaoId++)
-        if (!this.#vaoCache.has(b.glVao)) this.#vaoCache.set(b.glVao, this.#lastVaoId++)
-        const geometryIdA = this.#vaoCache.get(a.glVao)
-        const geometryIdB = this.#vaoCache.get(b.glVao)
-        if (geometryIdA !== geometryIdB) return geometryIdA - geometryIdB
-
+        if (a.glVao && b.glVao) {
+            if (!this.#vaoCache.has(a.glVao)) this.#vaoCache.set(a.glVao, this.#lastVaoId++)
+            if (!this.#vaoCache.has(b.glVao)) this.#vaoCache.set(b.glVao, this.#lastVaoId++)
+            const geometryIdA = this.#vaoCache.get(a.glVao)
+            const geometryIdB = this.#vaoCache.get(b.glVao)
+            if (geometryIdA !== geometryIdB) return geometryIdA - geometryIdB
+        }
+        
         if (!this.#objectState.has(a)) this.#objectState.set(a, getObjectStateId(a))
         if (!this.#objectState.has(b)) this.#objectState.set(b, getObjectStateId(b))
         const stateIdA = this.#objectState.get(a)
