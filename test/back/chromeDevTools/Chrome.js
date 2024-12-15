@@ -2,6 +2,7 @@ import { WebSocket } from 'ws'
 import { execSync, spawn } from 'child_process'
 import { chromeHttp } from './chromeHttp.js'
 import { consoleUtils } from '../consoleUtils.js'
+import { rmSync } from 'fs'
 
 export class Chrome {
     #browserWsUrl = ''
@@ -16,7 +17,7 @@ export class Chrome {
         return new Promise((resolve) => {
             this.#chromeDebugPort = chromeDebugPort
 
-            execSync('rm -rf .chromeTestDataDir')
+            rmSync('.chromeTestDataDir', {force: true, recursive: true})
 
             this.#chrome = spawn('google-chrome', [
                 '--no-sandbox',

@@ -57,7 +57,7 @@ export class SkillButton {
 
         this.svg.style.backgroundSize = `${size}px ${size}px`
         this.svg.style.overflow = 'hidden'
-        this.svg.style.borderRadius = '5px'
+        this.svg.style.borderRadius = '50%'
         this.svg.style.userSelect= 'none'
         this.svg.style.pointerEvents = 'none'
         this.svg.setAttributeNS(null, 'height', size)

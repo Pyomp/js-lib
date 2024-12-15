@@ -50,6 +50,7 @@ export const appTestUtils = {
                 const result = line.result
                 if (result.success === true) {
                     console.log(`✅ ${line.title} (${result.time.toFixed(1)} ms)`)
+                    if (result.console) console.log(result.console)
                 } else {
                     console.log(`❌ ${line.title} (${result.time.toFixed(1)} ms)`)
                     console.log(result.error)
