@@ -1,5 +1,6 @@
 import { StylesVar } from "./StylesVar.js"
 import { EventSet } from "../../utils/EventSet.js"
+import { CssClass } from "./CssClass.js"
 
 const darkStyle = {
     '--background1': 'hsl(0, 0%, 4%)',
@@ -36,12 +37,22 @@ const styleVar = new StylesVar(darkStyle)
 let onChange = new EventSet()
 let isDark = true
 
+/** @type {string[]} */
+const cssClassNames = []
+
 export const styles = {
+
     get onChange() { return onChange },
     get isDark() { return isDark },
     get vars() { return styleVar.varKeys },
     setDark() { styleVar.updateStyleVar(darkStyle); isDark = true; onChange.emit() },
-    setLight() { styleVar.updateStyleVar(lightStyle); isDark = false; onChange.emit() }
+    setLight() { styleVar.updateStyleVar(lightStyle); isDark = false; onChange.emit() },
+    addClass(name, css) {
+        if (cssClassNames.some((cssClassName) => cssClassName === name)) {
+            throw new Error('CSS class already exist')
+        }
+        styleElement.textContent += `\n${name} {\n    ${css.join(';\n    ')};\n}\n`
+    },
 }
 
 const styleElement = document.createElement('style')

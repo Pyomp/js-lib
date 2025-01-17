@@ -1,12 +1,16 @@
 export const jsonLocalStorage = {
-    get(key) {
+    get(key, defaultValue, version) {
         try {
-            return JSON.parse(localStorage.getItem(key))
+            const value = JSON.parse(localStorage.getItem(key))
+            if (typeof value !== 'object' || value === null || value.version !== version)
+                throw 'version has been updated'
+            return value.data
         } catch {
-            return
+            jsonLocalStorage.set(key, defaultValue, version)
+            return defaultValue
         }
     },
-    set(key, value) {
-        localStorage.setItem(key, JSON.stringify(value))
+    set(key, data, version) {
+        localStorage.setItem(key, JSON.stringify({ version, data }))
     }
 }
