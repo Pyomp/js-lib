@@ -104,7 +104,7 @@ export class GlProgramRenderer {
 
             const { type, name } = this.#gl.getActiveUniform(this.#webGlProgram, i)
 
-            if (type === WebGL2RenderingContext.SAMPLER_2D || type === WebGL2RenderingContext.SAMPLER_CUBE || type === WebGL2RenderingContext.UNSIGNED_INT_SAMPLER_2D) {
+            if (type === WebGL2RenderingContext.SAMPLER_2D || type === WebGL2RenderingContext.INT_SAMPLER_2D || type === WebGL2RenderingContext.SAMPLER_CUBE || type === WebGL2RenderingContext.UNSIGNED_INT_SAMPLER_2D) {
                 this.#gl.uniform1i(this.#gl.getUniformLocation(this.#webGlProgram, name), unit)
                 this.textureUnit[name] = WebGL2RenderingContext[`TEXTURE${unit}`]
                 unit++

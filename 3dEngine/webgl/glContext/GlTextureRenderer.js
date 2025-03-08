@@ -51,6 +51,7 @@ export class GlTextureRenderer {
     }
 
     #texImage2D(target, data) {
+        this.#gl.bindTexture(this.#target, this.#webGlTexture)
         this.#gl.texImage2D(
             target,
             0, // level
@@ -94,17 +95,32 @@ export class GlTextureRenderer {
         )
     }
 
-    #texImage2DUrl(target, url) {
-        const image = new Image()
-
+    #texImage2DWhenLoaded(target, image) {
         image.addEventListener('load', () => {
             this.#glTexture.width = image.width
             this.#glTexture.height = image.height
-            this.#gl.bindTexture(this.#target, this.#webGlTexture)
             this.#texImage2D(target, image)
         }, { once: true })
+    }
 
+    #texImage2DUrl(target, url) {
+        const image = new Image()
+        this.#texImage2DWhenLoaded(target, image)
         image.src = url.href
+    }
+
+    async #updateTexture(target, data) {
+        if (data instanceof URL) {
+            this.#texImage2DUrl(target, data)
+        } else if (data instanceof Image) {
+            if (data.complete) {
+                setTimeout(() => this.#texImage2D(target, data), 100)
+            } else {
+                this.#texImage2DWhenLoaded(target, data)
+            }
+        } else {
+            this.#texImage2D(WebGL2RenderingContext.TEXTURE_2D, data)
+        }
     }
 
     async #updateParams() {
@@ -114,20 +130,10 @@ export class GlTextureRenderer {
 
         if (this.#isCubeMap) {
             for (let i = 0; i < 6; i++) {
-                if (data[i] instanceof URL) {
-                    this.#texImage2DUrl(CUBE_MAP_TARGETS[i], data[i])
-                } else {
-                    this.#texImage2D(CUBE_MAP_TARGETS[i], data[i])
-                }
-            }
-        } else if (data instanceof URL) {
-            this.#texImage2DUrl(WebGL2RenderingContext.TEXTURE_2D, data)
-        } else if (data instanceof Image) {
-            if (data.width > 0) {
-                this.#texImage2D(WebGL2RenderingContext.TEXTURE_2D, data)
+                this.#updateTexture(CUBE_MAP_TARGETS[i], data[i])
             }
         } else {
-            this.#texImage2D(WebGL2RenderingContext.TEXTURE_2D, data)
+            this.#updateTexture(WebGL2RenderingContext.TEXTURE_2D, data)
         }
     }
 

@@ -63,11 +63,11 @@ export class TextureObject extends GlObject {
                     out vec4 outColor;
 
                     void main() {
-
                         float red = pow(texture(map, v_uv).r, 1000.);
                         // float f = (0.01 * 2000.) / ((2000. - 0.01) * red - 2000.);
-                        outColor = vec4(red, 0.,0., 1.);
-                        // outColor = texture(map, v_uv);
+                        // outColor = vec4(red, 0.,0., 1.);
+                        outColor.rgb = texture(map, v_uv).rgb;
+                        outColor.a = 1.;
                         // outColor = vec4(gl_FragCoord.x / 1000. ,0. ,0.,1.);
                     }`
             ),

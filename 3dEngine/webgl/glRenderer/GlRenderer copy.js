@@ -1,6 +1,5 @@
 import { Box3 } from "../../../math/Box3.js"
 import { Vector3 } from "../../../math/Vector3.js"
-import { RenderObject } from "../../extras/RenderObject.js"
 import { TextureObject } from "../../extras/TextureObject.js"
 import { GLSL_AMBIENT_LIGHT } from "../../programs/chunks/glslAmbient.js"
 import { GLSL_CAMERA } from "../../programs/chunks/glslCamera.js"
@@ -15,20 +14,16 @@ import { GlDepthTextureData } from "../../textures/DepthTexture.js"
 import { GlContextRenderer } from "../glContext/GlContextRenderer.js"
 import { GlFrameBuffer } from "../glDescriptors/GlFrameBuffer.js"
 import { GlObject } from "../glDescriptors/GlObject.js"
-import { GlTexture } from "../glDescriptors/GlTexture.js"
 import { GlAmbientLightRenderer } from "./GlAmbientLightRenderer.js"
 import { GlCameraUbo } from "./GlCameraUbo.js"
 import { GlPointLightRenderer } from "./GlPointLightRenderer.js"
 import { GlWindowInfo } from "./GlWindowInfo.js"
-import { OpaqueLightingPostprocessingObject } from "./OpaqueLightingPostprocessingObject.js"
 import { GlParticleRenderer } from "./ParticlesRenderer/GlParticleRenderer.js"
 
 const _box3 = new Box3()
 
 export class GlRenderer {
     htmlElement = document.createElement('div')
-
-    /** @type {GlContextRenderer} */ glContext
 
     scene = new Node3D()
 
@@ -37,74 +32,12 @@ export class GlRenderer {
 
     windowInfo = new GlWindowInfo()
     depthTexture = new GlDepthTextureData()
+    depthFrameBuffer = new GlFrameBuffer({ [WebGL2RenderingContext.DEPTH_ATTACHMENT]: this.depthTexture })
 
     pointLightRenderer = new GlPointLightRenderer()
     get pointLightCount() { return this.pointLightRenderer.uboPointLightCount }
 
     ambientLightRenderer = new GlAmbientLightRenderer()
-
-    opaqueColorTexture = new GlTexture({
-        name: 'objectColorTexture',
-        wrapS: 'CLAMP_TO_EDGE', wrapT: 'CLAMP_TO_EDGE',
-        minFilter: 'NEAREST', magFilter: 'NEAREST',
-        internalformat: 'RGB8',
-        width: 1, height: 1, border: 0,
-        format: 'RGB', type: 'UNSIGNED_BYTE',
-        data: null,
-        needsMipmap: false
-    })
-
-    opaquePositionTexture = new GlTexture({
-        name: 'objectPositionTexture',
-        wrapS: 'CLAMP_TO_EDGE', wrapT: 'CLAMP_TO_EDGE',
-        minFilter: 'NEAREST', magFilter: 'NEAREST',
-        internalformat: 'RGBA32I',
-        width: 1, height: 1, border: 0,
-        format: 'RGBA_INTEGER', type: 'INT',
-        data: null,
-        needsMipmap: false
-    })
-
-    opaqueNormalTexture = new GlTexture({
-        name: 'objectPositionTexture',
-        wrapS: 'CLAMP_TO_EDGE', wrapT: 'CLAMP_TO_EDGE',
-        minFilter: 'NEAREST', magFilter: 'NEAREST',
-        internalformat: 'RGBA32I',
-        width: 1, height: 1, border: 0,
-        format: 'RGBA_INTEGER', type: 'INT',
-        data: null,
-        needsMipmap: false
-    })
-
-    objectDepthTexture = new GlTexture({
-        name: 'Renderer Depth Texture',
-        wrapS: 'CLAMP_TO_EDGE',
-        wrapT: 'CLAMP_TO_EDGE',
-        minFilter: 'NEAREST',
-        magFilter: 'NEAREST',
-        internalformat: 'DEPTH_COMPONENT24',
-        width: 1,
-        height: 1,
-        border: 0,
-        format: 'DEPTH_COMPONENT',
-        type: 'UNSIGNED_INT',
-        data: null,
-        needsMipmap: false
-    })
-
-    opaqueFrameBuffer = new GlFrameBuffer({
-        [WebGL2RenderingContext.COLOR_ATTACHMENT0]: this.opaqueColorTexture,
-        [WebGL2RenderingContext.COLOR_ATTACHMENT1]: this.opaquePositionTexture,
-        [WebGL2RenderingContext.COLOR_ATTACHMENT2]: this.opaqueNormalTexture,
-        [WebGL2RenderingContext.DEPTH_ATTACHMENT]: this.depthTexture
-    })
-
-    opaqueLightingPostprocessingObject = new OpaqueLightingPostprocessingObject({
-        renderer: this,
-        inColorTexture: this.opaqueColorTexture,
-        inPositionTexture: this.opaquePositionTexture,
-        inNormalTexture: this.opaqueNormalTexture
-    })
 
     constructor() {
         this.htmlElement.style.top = '0'
@@ -131,16 +64,7 @@ export class GlRenderer {
 
         this.glContext = new GlContextRenderer(
             canvas,
-            {
-                alpha: true,
-                antialias: false,
-                depth: true,
-                failIfMajorPerformanceCaveat: false,
-                powerPreference: 'default',
-                premultipliedAlpha: true,
-                preserveDrawingBuffer: false,
-                stencil: false
-            },
+            undefined,
             {
                 [GLSL_CAMERA.uboName]: this.#cameraUbo.glUboData,
                 [GLSL_AMBIENT_LIGHT.uboName]: this.ambientLightRenderer.glUboData,
@@ -158,13 +82,9 @@ export class GlRenderer {
     onResize(width, height) {
         this.camera.aspect = width / height
 
-        this.depthTexture.resize(width, height)
-
-        this.opaqueColorTexture.resize(width, height)
-        this.opaquePositionTexture.resize(width, height)
-        this.opaqueNormalTexture.resize(width, height)
-        this.objectDepthTexture.resize(width, height)
-        this.opaqueLightingPostprocessingObject.resize(width, height)
+        this.depthTexture.width = width
+        this.depthTexture.height = height
+        this.depthTexture.paramsVersion++
     }
 
     resetGlStates() {
@@ -183,7 +103,6 @@ export class GlRenderer {
         return [opaque, transparent]
     }
 
-
     render() {
         this.glContext.updateCache()
         const gl = this.glContext.gl
@@ -196,6 +115,8 @@ export class GlRenderer {
         const pointLights = []
         /** @type {AmbientLight[]} */
         const ambientLights = []
+        /** @type {Particle[]} */
+        const particlesToAdd = []
         /** @type {GlObject[]} */
         const gpgpuObjects = []
         /** @type {Set<Node3D>} */
@@ -210,7 +131,7 @@ export class GlRenderer {
                 } else if (object instanceof AmbientLight) {
                     ambientLights.push(object)
                 } else if (object instanceof Particle) {
-                    this.particleRenderer.addParticle(object)
+                    particlesToAdd.push(object)
                     node.objects.delete(object)
                 } else if (object instanceof GlObject) {
                     if (object.glProgram.glTransformFeedback) {
@@ -227,7 +148,9 @@ export class GlRenderer {
 
         this.glContext.updateGlobalUbos()
 
-        // # GPGPU
+        for (const particle of particlesToAdd) {
+            this.particleRenderer.addParticle(particle)
+        }
 
         this.glContext.discardRasterizer()
 
@@ -240,44 +163,23 @@ export class GlRenderer {
         }
         this.glContext.enableRasterizer()
 
-        // # Render
-
         const nodesInFrustum = getNodesInFrustum(node3Ds, this.camera.frustum)
         for (const node of nodesInFrustum) if (node.mixer) node.mixer.updateJointsTexture()
 
         const [opaqueObjects, transparentObjects] = this.getObjectsToDraw(nodesInFrustum)
 
-        // ## Opaque
-
-        const glOpaqueFrameBuffer = this.glContext.getGlFrameBuffer(this.opaqueFrameBuffer)
-        glOpaqueFrameBuffer.bind()
-
-        gl.enable(WebGL2RenderingContext.CULL_FACE)
-        this.glContext.glCapabilities.setFrontFace()
-        gl.enable(WebGL2RenderingContext.DEPTH_TEST)
-        gl.depthMask(true)
-        gl.disable(WebGL2RenderingContext.BLEND)
-        this.glContext.glCapabilities.setNormalBlending()
-
-        gl.clearBufferfv(gl.COLOR, 0, new Float32Array([0.0, 0.0, 0.0, 0.0]))
-        gl.clearBufferiv(gl.COLOR, 1, new Int32Array([0, 0, 0, 2147483647]))
-        gl.clearBufferiv(gl.COLOR, 2, new Int32Array([0, 0, 0, 0]))
-        gl.clearBufferfi(gl.DEPTH_STENCIL, 0, 1.0, 0)
-
-        for (const object of opaqueObjects) this.glContext.drawObject(object)
-
-        // ## Transparent
-
-        gl.bindFramebuffer(WebGL2RenderingContext.FRAMEBUFFER, null)
-        
         gl.clear(WebGL2RenderingContext.COLOR_BUFFER_BIT | WebGL2RenderingContext.DEPTH_BUFFER_BIT)
 
-        glOpaqueFrameBuffer.blitTo(null, this.windowInfo.width, this.windowInfo.height, WebGL2RenderingContext.DEPTH_BUFFER_BIT)
+        for (const object of opaqueObjects) {
+            this.glContext.drawObject(object)
+        }
 
-        this.glContext.drawObject(this.opaqueLightingPostprocessingObject)
+        this.glContext.getGlFrameBuffer(this.depthFrameBuffer).blit(null, this.windowInfo.width, this.windowInfo.height)
+
+        gl.bindFramebuffer(WebGL2RenderingContext.FRAMEBUFFER, null)
 
         for (const object of transparentObjects) {
-        this.glContext.drawObject(object)
+            this.glContext.drawObject(object)
         }
 
         this.glContext.drawObject(this.particleRenderer.particleRenderObject)
@@ -311,7 +213,7 @@ export class GlRenderer {
             const geometryIdB = this.#vaoCache.get(b.glVao)
             if (geometryIdA !== geometryIdB) return geometryIdA - geometryIdB
         }
-
+        
         if (!this.#objectState.has(a)) this.#objectState.set(a, getObjectStateId(a))
         if (!this.#objectState.has(b)) this.#objectState.set(b, getObjectStateId(b))
         const stateIdA = this.#objectState.get(a)

@@ -164,6 +164,8 @@ export class ParticleRenderGlObject extends GlObject {
 class ParticleRenderGlProgram extends GlProgram {
     constructor() {
         super(() => `#version 300 es
+#define ATTENUATION 100.0
+
 in vec3 position;
 in float time;
 in uint keyframesHeightIndex;
@@ -178,7 +180,8 @@ float getAlpha(float start, float end, float current){
 }
 
 out vec4 v_color;
-#define ATTENUATION 100.0
+out float v_size;
+
 void main() {
     gl_Position = ${GLSL_CAMERA.projectionViewMatrix} * vec4(position, 1.);
     
@@ -206,9 +209,11 @@ void main() {
         vec4 keyframeColor = texelFetch(keyframesTexture, ivec2(widthIndex + ${KEYFRAME_COLOR_PIXEL_OFFSET}, keyframesHeightIndex), 0);
         v_color = mix(previousKeyframeColor, keyframeColor, alpha);
         gl_PointSize = mix(previousKeyframe[1], keyframe[1], alpha) * size * ATTENUATION / gl_Position.z;
-    }   
+    }
 
-    // gl_PointSize = 100.;
+    v_size = size;
+
+    // gl_PointSize = 10.;
     //  v_color = vec4(1., 0., time / 5., 1.);
 }
 `,
@@ -217,6 +222,7 @@ precision highp float;
 precision highp sampler2D;
 
 in vec4 v_color;
+in float v_size;
 
 uniform sampler2D bumpTexture;
 uniform sampler2D depthTexture;
@@ -224,25 +230,26 @@ uniform sampler2D depthTexture;
 ${GLSL_CAMERA.declaration}
 ${GLSL_WINDOW.declaration}
 ${GLSL_UTILS.linearizeDepth.declaration(GLSL_CAMERA.near, GLSL_CAMERA.far)}
+${GLSL_UTILS.linearDepthToGl.declaration(GLSL_CAMERA.near, GLSL_CAMERA.far)}
 
 out vec4 color;
-
-float depthBetter(float depth){
-    float ndc = depth * 2.0 - 1.0; 
-    return (2.0 * ${GLSL_CAMERA.near} * ${GLSL_CAMERA.far}) / (${GLSL_CAMERA.far} + ${GLSL_CAMERA.near} - ndc * (${GLSL_CAMERA.far} - ${GLSL_CAMERA.near}));
-}
 
 void main(){
     color = texture(bumpTexture, gl_PointCoord.xy) * v_color;
 
     vec2 uv = gl_FragCoord.xy / ${GLSL_WINDOW.resolution};
-    float depth = float(texture(depthTexture, uv).x);
-    
-    float l = abs(${GLSL_UTILS.linearizeDepth.call('depth')} - ${GLSL_UTILS.linearizeDepth.call('gl_FragCoord.z')});
+    float screenDepth = float(texture(depthTexture, uv).x);
+        
+    float particleDepthLinear = ${GLSL_UTILS.linearizeDepth.call('gl_FragCoord.z')};
+
+    float de  = length(gl_PointCoord * 2. - 1.);
+    float sphereDepth = 1. - de * de;
+    particleDepthLinear -= sphereDepth * v_size * 0.038;
+
+    float l = abs(${GLSL_UTILS.linearizeDepth.call('screenDepth')} - particleDepthLinear);
     color.a *= clamp(l * 5., 0., 1.);
-    
-    // color = v_color;
-    // color = vec4(${GLSL_CAMERA.far}/10000.,0.,0.,1.);
+
+    gl_FragDepth = ${GLSL_UTILS.linearDepthToGl.call('particleDepthLinear')};
 }
 `)
     }

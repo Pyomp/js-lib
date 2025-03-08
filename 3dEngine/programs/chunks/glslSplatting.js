@@ -54,7 +54,7 @@ vec3 getSplattingNormal(vec3 inNormal, vec3 viewTangent, vec3 viewBitangent, vec
                     texture(${textureNormal2}, uv * ${textureScale2}).xyz * splatting.g + 
                     texture(${textureNormal3}, uv * ${textureScale3}).xyz * splatting.b + 
                     texture(${textureNormal4}, uv * ${textureScale4}).xyz * splatting.a;
-
+    // return normalMap;
     normalMap = normalize(normalMap) * 2.0 - 1.0;
     return normalize( tbn * normalMap );
 }

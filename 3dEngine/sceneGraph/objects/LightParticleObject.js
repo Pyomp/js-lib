@@ -16,7 +16,7 @@ export class LightParticleProgram extends GlProgram {
                 return `#version 300 es
 precision highp float;
 ${GLSL_CAMERA.declaration}
-${GLSL_POINT_LIGHT.declaration(renderer.pointLightCount)}
+${GLSL_POINT_LIGHT.uboDeclaration(renderer.pointLightCount)}
 
 out vec4 v_color;
 

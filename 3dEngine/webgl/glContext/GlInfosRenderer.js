@@ -31,6 +31,8 @@ export class GlInfosRenderer {
         this.blueBits = gl.getParameter(gl.BLUE_BITS)
         this.depthBits = gl.getParameter(gl.DEPTH_BITS)
         this.stencilBits = gl.getParameter(gl.STENCIL_BITS)
+
+        console.log(this)
     }
 
     getError(operation) {

@@ -82,10 +82,10 @@ export class ThirdControls {
 
         this.spherical.copy(this.#wantedSpherical)
 
-        if (this.#isModeFollow === true) {
-            this.#direction.subVectors(this.#cameraPosition, this.#targetOffset)
-            this.spherical.theta = Math.atan2(this.#direction.x, this.#direction.z)
-        }
+        // if (this.#isModeFollow === true) {
+        //     this.#direction.subVectors(this.#cameraPosition, this.#targetOffset)
+        //     this.spherical.theta = Math.atan2(this.#direction.x, this.#direction.z)
+        // }
 
         this.#direction.setFromSpherical(this.spherical)
 

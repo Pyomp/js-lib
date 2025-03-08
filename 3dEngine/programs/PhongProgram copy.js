@@ -6,7 +6,6 @@ import { GLSL_COMMON } from "./chunks/glslCommon.js"
 import { GLSL_MORPH_TARGET } from "./chunks/glslMorphTarget.js"
 import { GLSL_POINT_LIGHT } from "./chunks/glslPointLight.js"
 import { GLSL_SKINNED } from "./chunks/glslSkinnedChunk.js"
-import { GLSL_UTILS } from "./chunks/glslUtils.js"
 
 function vertexShader({
     pointLightCount,
@@ -14,9 +13,6 @@ function vertexShader({
     morphs
 }) {
     return `#version 300 es
-precision highp float;
-precision highp int;
-
 ${GLSL_COMMON.vertexDeclaration}
 ${isSkinned ? GLSL_SKINNED.declaration : ''}
 ${morphs ? GLSL_MORPH_TARGET.declaration(morphs) : ''}
@@ -24,11 +20,7 @@ ${GLSL_CAMERA.declaration}
 ${GLSL_POINT_LIGHT.vertexDeclaration(pointLightCount)}
 
 out vec3 v_normal;
-out vec3 v_position;
 out vec2 v_uv;
-out float v_depth;
-
-#define INT_RANGE 2147483647.0
 
 void main() {
     ${isSkinned ? GLSL_SKINNED.computeSkinMatrix : ''}
@@ -37,15 +29,7 @@ void main() {
         morphs ? GLSL_MORPH_TARGET.getMorphTargetPosition : GLSL_COMMON.positionAttribute,
         isSkinned ? GLSL_SKINNED.skinMatrix : ''
     )};
-
-    v_position = worldPosition.xyz;
-
     gl_Position = ${GLSL_CAMERA.projectionViewMatrix} * worldPosition;
-
-    float depthRange = ${GLSL_CAMERA.far} - ${GLSL_CAMERA.near};
-    float depthRangeHalf = depthRange / 2.;
-
-    v_depth = (gl_Position.z - depthRangeHalf) / (depthRange / INT_RANGE);
 
     v_normal = ${GLSL_COMMON.getWorldNormal(
         morphs ? GLSL_MORPH_TARGET.getMorphTargetNormal : GLSL_COMMON.normalAttribute,
@@ -53,6 +37,8 @@ void main() {
     )};
 
     v_uv = uv;
+
+    ${GLSL_POINT_LIGHT.computeVarying('worldPosition', GLSL_CAMERA.position, pointLightCount)}
 }`
 }
 
@@ -62,35 +48,48 @@ function fragmentShader({
 }) {
     return `#version 300 es
     precision highp float;
-    precision highp int;
     
     in vec2 v_uv;
     in vec3 v_normal;
-    in vec3 v_position;
-    in float v_depth;
     
-    ${GLSL_CAMERA.declaration}
     ${GLSL_COMMON.fragmentDeclaration}
+    ${GLSL_AMBIENT_LIGHT.fragmentDeclaration}
+    ${GLSL_POINT_LIGHT.fragmentDeclaration(pointLightCount, isShininessEnable)}
     
     uniform vec3 specular;
     uniform float ${GLSL_COMMON.alphaTest};
 
-    layout(location = 0) out vec3 outColor;
-    layout(location = 1) out ivec4 outPosition;
-    layout(location = 2) out ivec4 outNormal;
-    layout(location = 3) out float outDepth; // not used
-    layout(location = 4) out int outStencil; // not used
-    
-    #define INT_RANGE 2147483647.0
+    layout(location = 0) out vec4 outColor;
+    layout(location = 1) out vec3 outNormal;
 
+    // layout(location = 1) out float outDepth;
+    // layout(location = 0) out float outDepth;
+    layout(location = 2) out float outDepth;
+    
     void main() {
-        vec4 color = texture(${GLSL_COMMON.baseTexture}, v_uv);
-        if(color.a < ${GLSL_COMMON.alphaTest}) discard;
-        outColor = color.xyz;
-        outPosition = ivec4(v_position * 1000., v_depth);
-        outNormal = ivec4(normalize(v_normal) * INT_RANGE, 1);
+        vec3 normal = normalize(v_normal);
+        outNormal = normal;
+        // outNormal = vec3(255., 0.,0.);
         outDepth = gl_FragCoord.z;
-        outStencil = 0;
+
+        vec3 pointLightColor;
+        ${isShininessEnable ? 'float pointLightSpecular;' : ''}
+
+        ${pointLightCount > 0 ? GLSL_POINT_LIGHT.computePointLight('normal', 'pointLightColor', isShininessEnable ? 'pointLightSpecular;' : '') : ''}
+        
+        vec3 lightColor = ${GLSL_AMBIENT_LIGHT.color} + pointLightColor;
+
+        ${isShininessEnable ? 'float lightSpecular = pointLightSpecular;' : ''}
+
+        vec4 color = texture(${GLSL_COMMON.baseTexture}, v_uv);
+        outColor = color;
+        // outNormal = color.rgb;
+        // color.xyz += ${GLSL_COMMON.baseColor};
+
+        // outColor = vec4(color.xyz * lightColor ${isShininessEnable ? ' + lightSpecular * specular' : ''}, color.a);
+
+        // if(outColor.a < ${GLSL_COMMON.alphaTest}) discard;
+        // 
     }`
 }
 

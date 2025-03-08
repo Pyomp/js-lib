@@ -6,10 +6,11 @@ const specular = 'specular'
 const incidence = 'incidence'
 const pointLights = 'pointLights'
 const uboName = 'pointLightUbo'
+const PointLight = 'PointLight'
 
-function declaration(pointLightCount) {
+function uboDeclaration(pointLightCount) {
     return pointLightCount > 0 ? `
-struct PointLight {
+struct ${PointLight} {
     vec3 ${position};
     float ${intensity};
     vec3 ${color};
@@ -17,7 +18,7 @@ struct PointLight {
 };
 
 layout(std140) uniform ${uboName} {
-    PointLight ${pointLights}[${pointLightCount}];
+    ${PointLight} ${pointLights}[${pointLightCount}];
 };
 `: ''
 }
@@ -36,19 +37,11 @@ v_surfaceToView = ${cameraPosition} - v_worldPosition;
 `: ''
 }
 
-function fragmentDeclaration(pointLightCount = 0, shininessEnable = false) {
-    return pointLightCount > 0 ? `
-${declaration(pointLightCount)}
-
-in vec3 v_surfaceToView;
-in vec3 v_worldPosition;
-
-${shininessEnable ? `uniform float ${shininess};` : ''}
-${shininessEnable ? `uniform vec3 ${specular};` : ''}
-
+function calcPointLightsDeclaration(pointLightCount, shininessEnable = false) {
+    return `
 void calcPointLight(in vec3 normal, out vec3 color${shininessEnable ? ', out float specular' : ''}){
     for (int i = 0; i < ${pointLightCount}; i++) {
-        PointLight pointLight = ${pointLights}[i];
+        ${PointLight} pointLight = ${pointLights}[i];
         
         vec3 eyeVec = normalize(v_surfaceToView);
         vec3 incidentVec = v_worldPosition - pointLight.position;
@@ -66,7 +59,20 @@ void calcPointLight(in vec3 normal, out vec3 color${shininessEnable ? ', out flo
         specular += highlight * pointLight.${intensity};`
             : ''}
     }
+}`
 }
+
+function fragmentDeclaration(pointLightCount = 0, shininessEnable = false) {
+    return pointLightCount > 0 ? `
+${uboDeclaration(pointLightCount)}
+
+in vec3 v_surfaceToView;
+in vec3 v_worldPosition;
+
+${shininessEnable ? `uniform float ${shininess};` : ''}
+${shininessEnable ? `uniform vec3 ${specular};` : ''}
+
+${calcPointLightsDeclaration(pointLightCount, shininessEnable)}
 ` : ''
 }
 
@@ -91,12 +97,17 @@ export const GLSL_POINT_LIGHT = Object.freeze({
     uboName,
     uboOffset,
     uboByteLength,
+    PointLight,
     pointLights,
     position,
     intensity,
     color,
+    incidence,
     shininess,
-    declaration,
+    uboDeclaration,
+
+    calcPointLightsDeclaration,
+
     vertexDeclaration,
     computeVarying,
     fragmentDeclaration,
