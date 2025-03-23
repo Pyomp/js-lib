@@ -151,20 +151,30 @@ function disposeDefaultGltfGlObject(glObject) {
     if (glObject.uniforms[GLSL_PBR.metallicRoughnessTexture]) glObject.uniforms[GLSL_PBR.metallicRoughnessTexture].needsDelete = true
 }
 
-function getNode3DWithoutObjects({
-    /** @type {GltfNode} */ gltfNode,
-    animationDictionary
-}) {
+function getNode3DWithoutObjects(
+    /** 
+     * @type {{
+     *  gltfNode: GltfNode
+     *  animationDictionary: {[gltfAnimationName: string]: string | number} 
+     * }} 
+     */ {
+        gltfNode,
+        animationDictionary
+    }) {
     const node3D = new Node3D()
     if (gltfNode.name) node3D.name = gltfNode.name
     if (gltfNode.translation) node3D.position.fromArray(gltfNode.translation)
     if (gltfNode.rotation) node3D.quaternion.fromArray(gltfNode.rotation)
     if (gltfNode.scale) node3D.scale.fromArray(gltfNode.scale)
     if (gltfNode.skin) {
-        node3D.mixer = new Mixer(new Animation({
-            gltfSkin: gltfNode.skin,
-            animationDictionary
-        }))
+        if (gltfNode.skin.name.includes('hair')) {
+            
+        } else {
+            node3D.mixer = new Mixer(new Animation({
+                gltfSkin: gltfNode.skin,
+                animationDictionary
+            }))
+        }
     }
 
     return node3D

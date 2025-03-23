@@ -1,18 +1,33 @@
-import { DEG2RAD } from './MathUtils.js'
+import { Euler } from './Euler.js'
 import { Vector3, _up } from './Vector3.js'
 
 class Matrix4 {
 
-    elements = [
-
+    elements = new Float32Array([
         1, 0, 0, 0,
         0, 1, 0, 0,
         0, 0, 1, 0,
         0, 0, 0, 1
+    ])
 
-    ]
-
-    set(n11, n12, n13, n14, n21, n22, n23, n24, n31, n32, n33, n34, n41, n42, n43, n44) {
+    set(
+        /** @type {number} */ n11,
+        /** @type {number} */ n12,
+        /** @type {number} */ n13,
+        /** @type {number} */ n14,
+        /** @type {number} */ n21,
+        /** @type {number} */ n22,
+        /** @type {number} */ n23,
+        /** @type {number} */ n24,
+        /** @type {number} */ n31,
+        /** @type {number} */ n32,
+        /** @type {number} */ n33,
+        /** @type {number} */ n34,
+        /** @type {number} */ n41,
+        /** @type {number} */ n42,
+        /** @type {number} */ n43,
+        /** @type {number} */ n44
+    ) {
 
         const te = this.elements
 
@@ -46,7 +61,9 @@ class Matrix4 {
 
     }
 
-    copy(m) {
+    copy(
+        /** @type {Matrix4} */ m
+    ) {
 
         const te = this.elements
         const me = m.elements
@@ -60,7 +77,9 @@ class Matrix4 {
 
     }
 
-    copyPosition(m) {
+    copyPosition(
+        /** @type {Matrix4} */ m
+    ) {
 
         const te = this.elements, me = m.elements
 
@@ -72,7 +91,9 @@ class Matrix4 {
 
     }
 
-    setFromMatrix3(m) {
+    setFromMatrix3(
+        /** @type {Matrix3} */ m
+    ) {
 
         const me = m.elements
 
@@ -89,7 +110,11 @@ class Matrix4 {
 
     }
 
-    extractBasis(xAxis, yAxis, zAxis) {
+    extractBasis(
+        /** @type {Vector3} */ xAxis,
+        /** @type {Vector3} */ yAxis,
+        /** @type {Vector3} */ zAxis
+    ) {
 
         xAxis.setFromMatrixColumn(this, 0)
         yAxis.setFromMatrixColumn(this, 1)
@@ -99,7 +124,11 @@ class Matrix4 {
 
     }
 
-    makeBasis(xAxis, yAxis, zAxis) {
+    makeBasis(
+        /** @type {Vector3} */ xAxis,
+        /** @type {Vector3} */ yAxis,
+        /** @type {Vector3} */ zAxis
+    ) {
 
         this.set(
             xAxis.x, yAxis.x, zAxis.x, 0,
@@ -112,7 +141,9 @@ class Matrix4 {
 
     }
 
-    extractRotation(m) {
+    extractRotation(
+        /** @type {Matrix4} */ m
+    ) {
 
         // this method does not support reflection matrices
 
@@ -147,14 +178,9 @@ class Matrix4 {
 
     }
 
-    makeRotationFromEuler(euler) {
-
-        if (!(euler && euler.isEuler)) {
-
-            console.error('THREE.Matrix4: .makeRotationFromEuler() now expects a Euler rotation rather than a Vector3 and order.')
-
-        }
-
+    makeRotationFromEuler(
+        /** @type {Euler} */ euler
+    ) {
         const te = this.elements
 
         const x = euler.x, y = euler.y, z = euler.z
@@ -275,13 +301,19 @@ class Matrix4 {
 
     }
 
-    makeRotationFromQuaternion(q) {
+    makeRotationFromQuaternion(
+        /** @type {Quaternion} */ q
+    ) {
 
         return this.compose(_zero, q, _one)
 
     }
 
-    lookAt(eye, target, up) {
+    lookAt(
+        /** @type {Vector3} */ eye,
+        /** @type {Vector3} */ target,
+        /** @type {Vector3} */ up
+    ) {
 
         const te = this.elements
 
@@ -328,26 +360,25 @@ class Matrix4 {
 
     }
 
-    multiply(m, n) {
-
-        if (n !== undefined) {
-
-            console.warn('THREE.Matrix4: .multiply() now only accepts one argument. Use .multiplyMatrices( a, b ) instead.')
-            return this.multiplyMatrices(m, n)
-
-        }
-
+    multiply(
+        /** @type {Matrix4} */ m
+    ) {
         return this.multiplyMatrices(this, m)
 
     }
 
-    premultiply(m) {
+    premultiply(
+        /** @type {Matrix4} */ m
+    ) {
 
         return this.multiplyMatrices(m, this)
 
     }
 
-    multiplyMatrices(a, b) {
+    multiplyMatrices(
+        /** @type {Matrix4} */ a,
+        /** @type {Matrix4} */ b
+    ) {
 
         const ae = a.elements
         const be = b.elements
@@ -387,7 +418,9 @@ class Matrix4 {
 
     }
 
-    multiplyScalar(s) {
+    multiplyScalar(
+        /** @type {number} */ s
+    ) {
 
         const te = this.elements
 
@@ -467,7 +500,11 @@ class Matrix4 {
 
     }
 
-    setPosition(x, y, z) {
+    setPosition(
+        /** @type {number | Vector3} */ x,
+        /** @type {number} */ y,
+        /** @type {number} */ z
+    ) {
 
         const te = this.elements
 
@@ -534,7 +571,9 @@ class Matrix4 {
 
     }
 
-    scale(v) {
+    scale(
+        /** @type {Vector3} */ v
+    ) {
 
         const te = this.elements
         const x = v.x, y = v.y, z = v.z
@@ -560,7 +599,11 @@ class Matrix4 {
 
     }
 
-    makeTranslation(x, y, z) {
+    makeTranslation(
+        /** @type {number} */ x,
+        /** @type {number} */ y,
+        /** @type {number} */ z
+    ) {
 
         this.set(
 
@@ -575,7 +618,9 @@ class Matrix4 {
 
     }
 
-    makeRotationX(theta) {
+    makeRotationX(
+        /** @type {number} */ theta
+    ) {
 
         const c = Math.cos(theta), s = Math.sin(theta)
 
@@ -592,7 +637,9 @@ class Matrix4 {
 
     }
 
-    makeRotationY(theta) {
+    makeRotationY(
+        /** @type {number} */ theta
+    ) {
 
         const c = Math.cos(theta), s = Math.sin(theta)
 
@@ -609,7 +656,9 @@ class Matrix4 {
 
     }
 
-    makeRotationZ(theta) {
+    makeRotationZ(
+        /** @type {number} */ theta
+    ) {
 
         const c = Math.cos(theta), s = Math.sin(theta)
 
@@ -626,7 +675,10 @@ class Matrix4 {
 
     }
 
-    makeRotationAxis(axis, angle) {
+    makeRotationAxis(
+        /** @type {Vector3} */ axis,
+        /** @type {number} */ angle
+    ) {
 
         // Based on http://www.gamedev.net/reference/articles/article1199.asp
 
@@ -679,7 +731,11 @@ class Matrix4 {
 
     }
 
-    compose(position, quaternion, scale) {
+    compose(
+        /** @type {Vector3} */ position,
+        /** @type {Quaternion} */ quaternion,
+        /** @type {Vector3} */ scale
+    ) {
 
         const te = this.elements
 
@@ -716,7 +772,11 @@ class Matrix4 {
     }
 
 
-    decompose(position, quaternion, scale) {
+    decompose(
+        /** @type {Vector3} */ position,
+        /** @type {Quaternion} */ quaternion,
+        /** @type {Vector3} */ scale
+    ) {
 
         const te = this.elements
 
@@ -761,14 +821,14 @@ class Matrix4 {
 
     }
 
-    makePerspective(left, right, top, bottom, near, far) {
-
-        if (far === undefined) {
-
-            console.warn('THREE.Matrix4: .makePerspective() has been redefined and has a new signature. Please check the docs.')
-
-        }
-
+    makePerspective(
+        /** @type {number} */ left,
+        /** @type {number} */ right,
+        /** @type {number} */ top,
+        /** @type {number} */ bottom,
+        /** @type {number} */ near,
+        /** @type {number} */ far
+    ) {
         const te = this.elements
         const x = 2 * near / (right - left)
         const y = 2 * near / (top - bottom)
@@ -786,7 +846,12 @@ class Matrix4 {
         return this
     }
 
-    perspective(fieldOfViewInRadians, aspect, near, far) {
+    perspective(
+        /** @type {number} */ fieldOfViewInRadians,
+        /** @type {number} */ aspect,
+        /** @type {number} */ near,
+        /** @type {number} */ far
+    ) {
         const te = this.elements
         var f = Math.tan(Math.PI * 0.5 - 0.5 * fieldOfViewInRadians)
         var rangeInv = 1.0 / (near - far)
@@ -811,7 +876,14 @@ class Matrix4 {
         return this
     }
 
-    makeOrthographic(left, right, top, bottom, near, far) {
+    makeOrthographic(
+        /** @type {number} */ left,
+        /** @type {number} */ right,
+        /** @type {number} */ top,
+        /** @type {number} */ bottom,
+        /** @type {number} */ near,
+        /** @type {number} */ far
+    ) {
 
         const te = this.elements
         const w = 1.0 / (right - left)
@@ -831,7 +903,9 @@ class Matrix4 {
 
     }
 
-    equals(matrix) {
+    equals(
+        /** @type {Matrix4} */ matrix
+    ) {
 
         const te = this.elements
         const me = matrix.elements
@@ -846,13 +920,12 @@ class Matrix4 {
 
     }
 
-    fromArray(array, offset = 0) {
+    fromArray(
+        /** @type {Float32Array | number[]} */ array,
+        /** @type {number} */ offset = 0
+    ) {
 
-        for (let i = 0; i < 16; i++) {
-
-            this.elements[i] = array[i + offset]
-
-        }
+        this.elements.set(array, offset)
 
         return this
 

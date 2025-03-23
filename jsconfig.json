@@ -4,6 +4,9 @@
     "target": "es2022",
     "moduleResolution": "classic",
     "checkJs": true,
+    "strict": true,
+    "strictNullChecks": true,
+    "noImplicitAny": true,
     // "experimentalDecorators": true,
     "alwaysStrict": true,
     "baseUrl": ".",
@@ -12,7 +15,11 @@
     //"paths": {}
     "pretty": true,
     "rootDir": ".",
-    "declaration": true
+    "declaration": true,
+    "noPropertyAccessFromIndexSignature": true
   },
+  "include": [
+    "./**/*.js"
+  ],
   "exclude": ["node_modules"]
 }
