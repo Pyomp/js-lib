@@ -1,4 +1,3 @@
-import { Euler } from './Euler.js'
 import { Vector3, _up } from './Vector3.js'
 
 class Matrix4 {
@@ -179,7 +178,7 @@ class Matrix4 {
     }
 
     makeRotationFromEuler(
-        /** @type {Euler} */ euler
+        /** @type {import('./Euler.js').Euler} */ euler
     ) {
         const te = this.elements
 
