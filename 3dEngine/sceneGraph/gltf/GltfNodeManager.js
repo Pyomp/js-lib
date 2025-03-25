@@ -92,7 +92,7 @@ function getAttribute(attributes) {
 function getGlObjectData(
     /** @type {GltfPrimitive} */ primitive,
     /** @type {GlProgram} */  glProgram,
-    extraUniforms = {},
+    /** @type {{[name: string]: WebGl.UniformData}} */ extraUniforms = {},
     /** @type {string[]} */ targetNames = []
 ) {
     /** @type {{[name: string]: WebGl.UniformData | GlTexture}} */
@@ -101,8 +101,8 @@ function getGlObjectData(
     if (primitive.material) {
         const material = primitive.material
         uniforms[GLSL_COMMON.alphaTest] = material.alphaMode === 'MASK' ? 0.1 : 0
-        if (material.pbrMetallicRoughness) {
-            const pbrMetallicRoughness = primitive.material.pbrMetallicRoughness
+        const pbrMetallicRoughness = material.pbrMetallicRoughness
+        if (pbrMetallicRoughness) {
             if (pbrMetallicRoughness.baseColorFactor) uniforms[GLSL_COMMON.baseColor] = new Color(pbrMetallicRoughness.baseColorFactor)
             if (pbrMetallicRoughness.baseColorTexture) uniforms[GLSL_COMMON.baseTexture] = getGlTextureData(pbrMetallicRoughness.baseColorTexture)
             if (pbrMetallicRoughness.metallicFactor) uniforms[GLSL_PBR.metallic] = pbrMetallicRoughness.metallicFactor
@@ -120,7 +120,7 @@ function getGlObjectData(
     }
 
     const attributesData = getAttribute(primitive.attributes)
-    const glVaoData = new GlVao(attributesData, primitive.indices.buffer)
+    const glVaoData = new GlVao(attributesData, primitive.indices?.buffer)
 
     return new GlObject({
         glProgram,
@@ -145,10 +145,16 @@ function getGlObjectsData(
     return objects
 }
 
-function disposeDefaultGltfGlObject(glObject) {
-    glObject.glVao.needsDelete = true
-    if (glObject.uniforms[GLSL_COMMON.baseTexture]) glObject.uniforms[GLSL_COMMON.baseTexture].needsDelete = true
-    if (glObject.uniforms[GLSL_PBR.metallicRoughnessTexture]) glObject.uniforms[GLSL_PBR.metallicRoughnessTexture].needsDelete = true
+function disposeDefaultGltfGlObject(
+    /** @type {GlObject} */ glObject
+) {
+    if (glObject.glVao) glObject.glVao.needsDelete = true
+
+    const baseTexture = glObject.uniforms[GLSL_COMMON.baseTexture]
+    if (baseTexture instanceof GlTexture) baseTexture.needsDelete = true
+
+    const metallicRoughnessTexture = glObject.uniforms[GLSL_PBR.metallicRoughnessTexture]
+    if (metallicRoughnessTexture instanceof GlTexture) metallicRoughnessTexture.needsDelete = true
 }
 
 function getNode3DWithoutObjects(
@@ -167,14 +173,10 @@ function getNode3DWithoutObjects(
     if (gltfNode.rotation) node3D.quaternion.fromArray(gltfNode.rotation)
     if (gltfNode.scale) node3D.scale.fromArray(gltfNode.scale)
     if (gltfNode.skin) {
-        if (gltfNode.skin.name.includes('hair')) {
-            
-        } else {
-            node3D.mixer = new Mixer(new Animation({
-                gltfSkin: gltfNode.skin,
-                animationDictionary
-            }))
-        }
+        node3D.mixer = new Mixer(new Animation({
+            gltfSkin: gltfNode.skin,
+            animationDictionary
+        }))
     }
 
     return node3D
@@ -200,6 +202,14 @@ function linkObjectsToNode(
     }
 }
 
+/**
+ * @param {{
+*      gltfNode: GltfNode
+*      glProgramData?: GlProgram
+*      extraUniforms?: {[name: string]: WebGl.UniformData}
+*      animationDictionary?: {[gltfAnimationName: string]: string | number}
+* }} params
+*/
 function getNode3D({
     gltfNode,
     extraUniforms = {},
@@ -210,6 +220,8 @@ function getNode3D({
         gltfNode,
         animationDictionary
     })
+
+    if (gltfNode.mesh === undefined) throw new Error('GLTF node has no mesh')
 
     const objects = getGlObjectsData(gltfNode.mesh.primitives, glProgramData, extraUniforms)
 
@@ -253,7 +265,7 @@ export class GltfNodeManager {
         })
     }
 
-    getNode(glProgram) {
+    getNode() {
         const node = new Node3D()
 
         return this.#node3D.clone()

@@ -45,10 +45,10 @@ export class GlObject {
     }) {
         this.glProgram = glProgram
         this.glVao = glVao
-        this.uniforms = uniforms
+        this.uniforms = uniforms ?? {}
         this.glUbos = glUbos
         this.drawMode = WebGL2RenderingContext[drawMode] ?? drawMode
-        this.count = count ?? countFromGlVaoData(glVao)
+        this.count = count ?? (glVao ? countFromGlVaoData(glVao) : 0)
         this.offset = offset
         this.additiveBlending = additiveBlending
         this.normalBlending = normalBlending

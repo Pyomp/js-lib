@@ -93,7 +93,7 @@ export class Animation {
                 keyFrameNumbers.push(frame.slice(i, i + morphLength))
             }
 
-            this.morphKeyFrames[morphTargets.names[i]] = new KeyFrame(keyFrame.key, keyFrameNumbers, true)
+            this.morphKeyFrames[morphTargets.names[i]] = new KeyFrame(keyFrame.key.buffer, keyFrameNumbers, true)
         }
     }
 

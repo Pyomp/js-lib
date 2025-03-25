@@ -1,4 +1,4 @@
-import { loadGLTF } from "../../loaders/gltfLoader.js"
+import { loadGLTF } from "./gltfLoader.js"
 import { GlProgram } from "../../webgl/glDescriptors/GlProgram.js"
 import { Node3D } from "../Node3D.js"
 import { GltfNodeManager } from "./GltfNodeManager.js"
@@ -10,7 +10,7 @@ export class GltfNodeLoader {
     #uniforms
     #animationDictionary
 
-    /** @type {GltfNodeManager} */ #gltfNodeManager
+    /** @type {GltfNodeManager | undefined} */ #gltfNodeManager
 
     /**
      * 

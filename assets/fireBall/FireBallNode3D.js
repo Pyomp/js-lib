@@ -1,4 +1,4 @@
-import { loadGLTF } from "../../3dEngine/loaders/gltfLoader.js"
+import { loadGLTF } from "../../3dEngine/sceneGraph/gltf/gltfLoader.js"
 import { Node3D } from "../../3dEngine/sceneGraph/Node3D.js"
 import { PointLight } from "../../3dEngine/sceneGraph/PointLight.js"
 import { GltfNodeManager } from "../../3dEngine/sceneGraph/gltf/GltfNodeManager.js"
