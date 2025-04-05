@@ -116,12 +116,15 @@ export class Mixer {
     }
 
     updateJointsTexture() {
-        this.rootBone.traverse((bone) => { this.#applyTransformationToBone(bone) })
+        this.rootBone.traverse((/** @type {Bone} */ bone) => { this.#applyTransformationToBone(bone) })
         this.rootBone.updateMatrix()
         this.jointsTexture.dataVersion++
     }
 
-    play(animationName, timeUpdate = 0) {
+    play(
+        /** @type {string} */ animationName,
+        timeUpdate = 0
+    ) {
         const track = this.#tracks[animationName]
 
         if (track === undefined) return

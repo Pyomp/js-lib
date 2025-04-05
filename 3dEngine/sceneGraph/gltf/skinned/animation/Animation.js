@@ -47,8 +47,8 @@ export class Animation {
     #bonesCount
     #gltfSkinRootBone
     #inverseBindMatrices
-    /** @type {string[]}} */ #morphTargetUniformNames
-    /** @type {{[name: string]: KeyFrame}}} */ morphKeyFrames
+    /** @type {string[]}} */ #morphTargetUniformNames = []
+    /** @type {{[name: string]: KeyFrame}}} */ morphKeyFrames = {}
     #animationMorphBind
 
     /**
@@ -78,8 +78,6 @@ export class Animation {
     }
 
     #initMorphs(/** @type {{names: string[], keyframes: GltfKeyFrame[]}} */ morphTargets) {
-        this.#morphTargetUniformNames = []
-
         const morphLength = morphTargets.names.length
 
         for (let i = 0; i < morphLength; i++) {
