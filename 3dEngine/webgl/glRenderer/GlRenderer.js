@@ -155,7 +155,10 @@ export class GlRenderer {
         this.glContext.resizeListeners.add(this.onResize.bind(this))
     }
 
-    onResize(width, height) {
+    onResize(
+        /** @type {number} */ width,
+        /** @type {number} */  height
+    ) {
         this.camera.aspect = width / height
 
         this.depthTexture.resize(width, height)
@@ -269,7 +272,7 @@ export class GlRenderer {
         // ## Transparent
 
         gl.bindFramebuffer(WebGL2RenderingContext.FRAMEBUFFER, null)
-        
+
         gl.clear(WebGL2RenderingContext.COLOR_BUFFER_BIT | WebGL2RenderingContext.DEPTH_BUFFER_BIT)
 
         glOpaqueFrameBuffer.blitTo(null, this.windowInfo.width, this.windowInfo.height, WebGL2RenderingContext.DEPTH_BUFFER_BIT)
@@ -277,7 +280,7 @@ export class GlRenderer {
         this.glContext.drawObject(this.opaqueLightingPostprocessingObject)
 
         for (const object of transparentObjects) {
-        this.glContext.drawObject(object)
+            this.glContext.drawObject(object)
         }
 
         this.glContext.drawObject(this.particleRenderer.particleRenderObject)

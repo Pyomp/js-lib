@@ -11,10 +11,10 @@ const MinPolarAngle = 0.1
 const MaxPolarAngle = 3.05
 const MinDistCam = 1
 const MaxDistCam = 70
-const MinDistCamToGround = 1
+const MinDistCamToGround = 0.5
 
 export class ThirdControls {
-    offsetY = 1
+    offsetY = 0.5
     sensitivity = 8
 
     #targetOffset = new Vector3()
@@ -78,7 +78,7 @@ export class ThirdControls {
         }
 
         this.#targetOffset.copy(this.target)
-        this.#targetOffset.y += this.offsetY + this.#wantedSpherical.radius * 0.2
+        this.#targetOffset.y += this.offsetY + this.#wantedSpherical.radius * 0.1
 
         this.spherical.copy(this.#wantedSpherical)
 

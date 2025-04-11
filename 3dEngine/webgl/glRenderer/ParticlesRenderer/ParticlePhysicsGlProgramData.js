@@ -64,22 +64,22 @@ export class ParticlePhysicsGlObject extends GlObject {
         this.#vaoF32a = this.#inPositionVelocityTime.arrayBuffer
     }
 
-    /**
-     * 
-     * @param {Particle} particle 
-     * @param {number} offset
-     */
-    addParticle(particle, offset) {
+    addParticle(
+        /** @type {Particle} */ particle,
+        /** @type {number} */ offset
+    ) {
         const bufferOffset = FLOAT_32_ELEMENT_COUNT * offset
         particle.position.toArray(this.#vaoF32a, bufferOffset)
         particle.velocity.toArray(this.#vaoF32a, bufferOffset + 3)
-        this.#vaoF32a[bufferOffset + 6] = 0
+        this.#vaoF32a[bufferOffset + 6] = particle.time
         this.#inPositionVelocityTime.setNeedsUpdate(bufferOffset, bufferOffset + FLOAT_32_ELEMENT_COUNT)
     }
 }
 
 class ParticlePhysicsGlProgram extends GlProgram {
-    constructor(maxParticleCount) {
+    constructor(
+        /** @type {number} */ maxParticleCount
+    ) {
         const arrayBufferData = new GlArrayBuffer(new Float32Array(maxParticleCount * FLOAT_32_ELEMENT_COUNT), 'DYNAMIC_COPY')
 
         super(() => `#version 300 es

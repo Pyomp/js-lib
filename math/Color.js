@@ -60,13 +60,21 @@ class Color {
     r = 1
     g = 1
     b = 1
+    a
 
     get x() { return this.r }
     get y() { return this.g }
     get z() { return this.b }
     get w() { return this.a }
 
-    constructor(r, g, b, a = 1) {
+    constructor(
+        /** @type {number} */ r,
+        /** @type {number} */ g,
+        /** @type {number} */ b,
+        /** @type {number} */ a = 1
+    ) {
+
+        this.a = a
 
         if (g === undefined && b === undefined) {
 
@@ -74,8 +82,6 @@ class Color {
             return this.set(r)
 
         }
-
-        this.a = a
 
         return this.setRGB(r, g, b)
     }

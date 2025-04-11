@@ -10,6 +10,7 @@ export class Particle {
      *      size?: Number,
      *      keyframes: ParticleKeyframe[]
      *      texture: GlTexture
+     *      time?: number
      * }} param0 
      */
     constructor({
@@ -17,12 +18,14 @@ export class Particle {
         velocity = new Vector3(),
         size = 1,
         keyframes,
-        texture
+        texture,
+        time = 0
     }) {
         this.position = position
         this.velocity = velocity
         this.size = size
         this.keyframes = keyframes
         this.texture = texture
+        this.time = time
     }
 }

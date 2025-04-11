@@ -11,9 +11,10 @@ const _quaternion = new Quaternion()
 export class HairSystem {
     /** @type {HairStep[]} */ #hairSteps = []
 
-    worldMatrix = new Matrix4()
-
-    constructor(/** @type {GltfSkin} */ gltfSkin) {
+    constructor(
+        /** @type {GltfSkin} */ gltfSkin, 
+        /** @type {Matrix4} */ worldMatrix
+    ) {
         const buffer = new Float32Array(16 * gltfSkin.bonesCount)
 
         this.jointsTexture = new GlTexture({
@@ -35,18 +36,18 @@ export class HairSystem {
             needsMipmap: false,
         })
 
-        this.addHairStep(buffer, gltfSkin.root)
+        this.addHairStep(buffer, gltfSkin.root, worldMatrix)
     }
 
     addHairStep(
         /** @type {Float32Array} */ jointElements,
         /** @type {GltfBone} */ gltfBone,
-        parentWorldMatrix = this.worldMatrix
+        /** @type {Matrix4} */ parentWorldMatrix
     ) {
         const initialLocalMatrix = new Matrix4().compose(
-            _vector3.fromArray(gltfBone.translation),
-            _quaternion.fromArray(gltfBone.rotation),
-            _vector3_2.fromArray(gltfBone.scale)
+            gltfBone.translation ? _vector3.fromArray(gltfBone.translation) : _vector3_2.set(0, 0, 0),
+            gltfBone.rotation ? _quaternion.fromArray(gltfBone.rotation) : _quaternion.identity(),
+            gltfBone.scale ? _vector3_2.fromArray(gltfBone.scale) : _vector3_2.set(1, 1, 1)
         )
 
         const m4Index = 16 * gltfBone.id
@@ -71,5 +72,6 @@ export class HairSystem {
         for (const hairStep of this.#hairSteps) {
             hairStep.update(lineColliders)
         }
+        this.jointsTexture.dataVersion += 1
     }
 }

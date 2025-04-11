@@ -11,11 +11,13 @@ import { GlUbo } from "../glDescriptors/GlUbo.js"
 import { GlObject } from "../glDescriptors/GlObject.js"
 import { GlFrameBuffer } from "../glDescriptors/GlFrameBuffer.js"
 import { GlFrameBufferRenderer } from "./GlFrameBufferRenderer.js"
+import { GlVaoRenderer } from "./GlVaoRenderer.js"
 
 export class GlContextRenderer {
     #globalUbos
     /** @type {{[uniformName: string]: number}} */
     #globalUbosIndex = {}
+    /** @type {WebGL2RenderingContext} */ gl
 
     /**
     * @param {HTMLCanvasElement} canvas 
@@ -37,6 +39,7 @@ export class GlContextRenderer {
         globalUbos = {},
     ) {
         this.canvas = canvas
+        // @ts-ignore no 3D no game
         this.gl = canvas.getContext("webgl2", options)
 
         this.glCapabilities = new GlCapabilitiesRenderer(this.gl)
@@ -57,10 +60,13 @@ export class GlContextRenderer {
     }
 
     /** @type {Map<GlArrayBuffer, GlArrayBufferRenderer>} */ #arrayBuffers = new Map()
+    /** @returns {GlArrayBufferRenderer} */
+    /** @returns {GlArrayBufferRenderer} */
     getGlArrayBuffer(/** @type {GlArrayBuffer} */ glArrayBuffer) {
         if (!this.#arrayBuffers.has(glArrayBuffer)) {
             this.#arrayBuffers.set(glArrayBuffer, new GlArrayBufferRenderer(this, glArrayBuffer))
         }
+        // @ts-ignore
         return this.#arrayBuffers.get(glArrayBuffer)
     }
     freeGlArrayBuffer(/** @type {GlArrayBuffer} */ glArrayBuffer) {
@@ -75,10 +81,12 @@ export class GlContextRenderer {
     }
 
     /** @type {Map<GlProgram, GlProgramRenderer>} */ #programs = new Map()
+    /** @returns {GlProgramRenderer} */
     getGlProgram(/** @type {GlProgram} */ glProgram) {
         if (!this.#programs.has(glProgram)) {
             this.#programs.set(glProgram, new GlProgramRenderer(this, glProgram, this.#globalUbosIndex))
         }
+        // @ts-ignore
         return this.#programs.get(glProgram)
     }
     freeGlProgram(/** @type {GlProgram} */ glProgram) {
@@ -93,10 +101,12 @@ export class GlContextRenderer {
     }
 
     /** @type {Map<GlTexture, GlTextureRenderer>} */ #textures = new Map()
+    /** @returns {GlTextureRenderer} */
     getGlTexture(/** @type {GlTexture} */ glTexture) {
         if (!this.#textures.has(glTexture)) {
             this.#textures.set(glTexture, new GlTextureRenderer(this, glTexture))
         }
+        // @ts-ignore
         return this.#textures.get(glTexture)
     }
     freeGlTexture(/** @type {GlTexture} */ glTexture) {
@@ -111,10 +121,13 @@ export class GlContextRenderer {
     }
 
     /** @type {Map<GlUbo, GlUboRenderer>} */ #ubos = new Map()
+    /** @returns {GlUboRenderer} */
     getGlUbo(/** @type {GlUbo} */ glUbo) {
         if (!this.#ubos.has(glUbo)) {
             this.#ubos.set(glUbo, new GlUboRenderer(this, glUbo))
         }
+
+        // @ts-ignore
         return this.#ubos.get(glUbo)
     }
     freeGlUbo(/** @type {GlUbo} */ glUbo) {
@@ -131,6 +144,9 @@ export class GlContextRenderer {
         if (!this.#frameBuffers.has(glFrameBuffer)) {
             this.#frameBuffers.set(glFrameBuffer, new GlFrameBufferRenderer(this, glFrameBuffer))
         }
+
+        /** @returns {GlFrameBufferRenderer} */
+        // @ts-ignore
         return this.#frameBuffers.get(glFrameBuffer)
     }
     freeGlFrameBuffer(/** @type {GlFrameBuffer} */ glFrameBuffer) {
@@ -196,8 +212,8 @@ export class GlContextRenderer {
         }
     }
 
-    #currentProgram
-    #currentVao
+    /** @type {GlProgramRenderer | undefined} */ #currentProgram
+    /** @type {GlVaoRenderer | undefined} */ #currentVao
     drawObject(/** @type {GlObject} */ glObject) {
         if (glObject.additiveBlending) this.glCapabilities.setAdditiveBlending()
         else if (glObject.normalBlending) this.glCapabilities.setNormalBlending()
@@ -275,15 +291,13 @@ export class GlContextRenderer {
         this.gl.bindTransformFeedback(WebGL2RenderingContext.TRANSFORM_FEEDBACK, null)
     }
 
-    /**
-     * 
-     * @param {GlArrayBuffer} glArrayBufferSource 
-     * @param {GlArrayBuffer} glArrayBufferTarget 
-     * @param {number?} offsetSource 
-     * @param {number?} offsetTarget 
-     * @param {number?} size 
-     */
-    copyBufferSubData(glArrayBufferSource, glArrayBufferTarget, offsetSource = undefined, offsetTarget = undefined, size = undefined) {
+    copyBufferSubData(
+        /** @type {GlArrayBuffer} */ glArrayBufferSource,
+        /** @type {GlArrayBuffer} */ glArrayBufferTarget,
+        /** @type {number | undefined} */ offsetSource = undefined,
+        /** @type {number | undefined} */ offsetTarget = undefined,
+        /** @type {number | undefined} */ size = undefined
+    ) {
         const source = this.getGlArrayBuffer(glArrayBufferSource)
         const target = this.getGlArrayBuffer(glArrayBufferTarget)
         source.copyTo(target, offsetSource, offsetTarget, size)

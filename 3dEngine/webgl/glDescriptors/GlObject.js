@@ -10,7 +10,7 @@ export class GlObject {
      *      glProgram: GlProgram
      *      glVao?: GlVao | undefined
      *      uniforms?: {[name: string]: WebGl.UniformData | GlTexture}
-     *      glUbos?: GlUbo
+     *      glUbos?: {[name: string]: GlUbo}
      *      drawMode?: WebGl.Render.DrawMode | number
      *      count?: number
      *      offset?: number

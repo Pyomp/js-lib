@@ -1,34 +1,95 @@
 import { Line3 } from "../../../math/Line3.js"
 import { Vector3 } from "../../../math/Vector3.js"
+import { GlTexture } from "../../webgl/glDescriptors/GlTexture.js"
+import { Particle } from "./Particle.js"
+import { ParticleKeyframe } from "./ParticleKeyframe.js"
 
-export class ParticleEmiter {
-    #direction = new Vector3()
-    #stepDistance
-    #stepDistanceSq
-    newEmiterPosition = new Vector3()
-    previousEmiterPosition = new Vector3()
-    #distanceRest = 0
-    line = new Line3()
+const _vector3null = new Vector3()
+const _vector3 = new Vector3()
 
-    constructor(stepDistance = 0.01) {
-        this.#stepDistance = stepDistance
-        this.#stepDistanceSq = this.#stepDistance ** 2
+export class ParticleEmitter {
+    #direction
+    #stepTime
+    #timeRest
+
+    #line
+    /** @type {Particle[]} */ #particleBuffer
+    /** @type {ParticleKeyframe[]} */ #keyframes
+    /** @type {GlTexture} */ #texture
+
+    constructor(
+        /** @type {Vector3} */ initialPosition,
+        /** @type {ParticleKeyframe[]} */ keyframes,
+        /** @type {GlTexture} */ texture,
+        stepTime = 0.01
+    ) {
+        this.#particleBuffer = []
+        this.#line = new Line3()
+        this.#timeRest = 0
+        this.#stepTime = stepTime
+        this.#direction = new Vector3()
+        this.#line.start.copy(initialPosition)
+        this.#line.end.copy(initialPosition)
+        this.#keyframes = keyframes
+        this.#texture = texture
     }
 
-    update(/** @type {Vector3} */ newPosition) {
-        this.line.end.copy(newPosition)
+    #getParticle(
+        /** @type {number} */ index
+    ) {
+        if (index >= this.#particleBuffer.length) {
+            this.#particleBuffer.push(new Particle({
+                keyframes: this.#keyframes,
+                texture: this.#texture
+            }))
+        }
+        return this.#particleBuffer[index]
+    }
 
-        const lineDistance = this.line.distance()
-        this.#direction.subVectors(this.line.end, this.line.start)
-        this.#direction.divideScalar(lineDistance)
+    getParticles(
+        /** @type {Vector3} */ newPosition,
+        /** @type {number} */ deltaTime,
+        /** @type {Vector3} */ velocity = _vector3null
+    ) {
+        this.#line.start.copy(this.#line.end)
+        this.#line.end.copy(newPosition)
 
-        this.#distanceRest += lineDistance
+        this.#direction.subVectors(this.#line.end, this.#line.start)
 
-        while (this.#distanceRest >= this.#stepDistance) {
-            // move line.start allong the line
-            this.line.at(this.#stepDistance, this.line.start)
+        const ttTime = this.#timeRest + deltaTime
 
-            this.#distanceRest -= this.#stepDistance
+        this.#direction.divideScalar(ttTime / this.#stepTime)
+
+
+        const particle = this.#getParticle(0)
+
+        _vector3.copy(this.#direction).multiplyScalar(this.#timeRest / this.#stepTime).add(this.#line.start)
+        particle.velocity.copy(velocity)
+        particle.time = deltaTime - this.#timeRest
+        particle.position
+            .copy(velocity)
+            .multiplyScalar(particle.time)
+            .add(_vector3)
+
+        this.#timeRest = deltaTime
+
+        let particleIndex = 1
+
+        while (this.#timeRest >= this.#stepTime) {
+            this.#timeRest -= this.#stepTime
+
+            _vector3.add(this.#direction)
+
+            const particle = this.#getParticle(particleIndex)
+
+            particle.velocity.copy(velocity)
+            particle.time = this.#timeRest
+            particle.position
+                .copy(velocity)
+                .multiplyScalar(particle.time)
+                .add(_vector3)
+
+            particleIndex++
         }
     }
 }

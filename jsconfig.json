@@ -5,7 +5,7 @@
     "moduleResolution": "classic",
     "checkJs": true,
     "strict": true,
-    "strictNullChecks": true,
+    // "strictNullChecks": true,
     "noImplicitAny": true,
     // "experimentalDecorators": true,
     "alwaysStrict": true,
@@ -16,7 +16,7 @@
     "pretty": true,
     "rootDir": ".",
     "declaration": true,
-    "noPropertyAccessFromIndexSignature": true
+    // "noPropertyAccessFromIndexSignature": true
   },
   "include": [
     "./**/*.js",

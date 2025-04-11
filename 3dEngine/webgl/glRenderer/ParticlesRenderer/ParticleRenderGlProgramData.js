@@ -39,7 +39,11 @@ export class ParticleRenderGlObject extends GlObject {
     #keyframesIndexSizeArrayBuffer
     #keyframesIndexSizeArrayBufferFloatView
 
-    constructor(inPositionTime, glDepthTextureData, maxParticleCount = 100_000) {
+    constructor(
+        /** @type {GlArrayBuffer} */ inPositionTime,
+        /** @type {GlTexture} */ glDepthTextureData,
+        /** @type {number} */ maxParticleCount = 100_000
+    ) {
         const keyframesIndexSizeArrayBuffer = new GlArrayBuffer(new Uint32Array(maxParticleCount * 2))
         const glVaoData = new GlVao(
             [

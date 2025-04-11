@@ -22,7 +22,7 @@ export class HairStep {
         this.#parentWorldMatrix = parentWorldMatrix
         this.#initialLocalMatrix = initialLocalMatrix
         this.tail.set(0, 1, 0)
-            .applyMatrix4Rotation(this.#parentWorldMatrix)
+            // .applyMatrix4Rotation(this.#parentWorldMatrix)
             .applyMatrix4Rotation(this.#initialLocalMatrix)
         this.#up.setFromMatrixColumn(this.#initialLocalMatrix, 1)
         this.worldMatrix.elements = targetMatrix4Elements
@@ -62,9 +62,9 @@ export class HairStep {
     update(
         /** @type { {line: Line3, collisionDistanceSq: number}[] } */ lineColliders,
     ) {
-        this.#updateInertia()
-        this.#updateElasticity()
-        this.#updateCollision(lineColliders)
+        // this.#updateInertia()
+        // this.#updateElasticity()
+        // this.#updateCollision(lineColliders)
         _vector3.setFromMatrixPosition(this.worldMatrix)
         this.worldMatrix
             .lookAt(_vector3, this.tail, this.#up)
