@@ -21,13 +21,6 @@ export class HairSystem {
     #positions = []
 
     /**
-     * used for Elasticity 
-     * it is the position if no hair system would be applied
-     * @type {Vector3[]}
-    */
-    #solidPosition = []
-
-    /**
      * still not sure
      *  @type {Vector3[]}
      */
@@ -45,20 +38,11 @@ export class HairSystem {
      */
     #initialLengthSqs = []
 
-    /**
-     * still not sure
-     *  @type {Vector3[]}
-     */
-    #initialLocalPositions = []
-
-    /**
-     * still not sure
-     *  @type {Matrix4[]}
-     */
-    #initialMatrices = []
-
     /** @type {Matrix4} */
     #parentMatrix
+
+    /** @type {Matrix4} */
+    #parentBoneMatrix
 
     /**
      *  @type {Matrix4[]}
@@ -70,14 +54,20 @@ export class HairSystem {
      */
     #inverseBindMatrices = []
 
+    /**
+     *  @type {number[]}
+     */
+    #elasticities = []
+
     /** @type {number} */ #length = 0
 
     constructor(
         /** @type {GltfBone} */ rootBone,
-        /** @type {Matrix4} */ parentMatrix
+        /** @type {Matrix4} */ parentMatrix,
+        /** @type {Matrix4} */ parentBoneMatrix = new Matrix4().identity()
     ) {
         this.#parentMatrix = parentMatrix
-        let i = 0
+        this.#parentBoneMatrix = parentBoneMatrix
 
         /** @type {GltfBone | undefined} */ let bone = rootBone
 
@@ -88,19 +78,18 @@ export class HairSystem {
             const initialLocalPosition = new Vector3().fromArray(bone.translation)
             const initialLocalMatrix = new Matrix4()
 
+            this.#elasticities.push(bone.extras?.elasticity ?? 0.01)
+
             const initialLocalLengthSq = initialLocalPosition.lengthSq()
             this.#initialLengthSqs.push(initialLocalLengthSq)
             this.#initialLengths.push(Math.sqrt(initialLocalLengthSq))
 
             initialLocalMatrix.compose(initialLocalPosition, initialLocalQuaternion, _scale1)
             cumulMatrix.multiply(initialLocalMatrix)
-
-            this.#initialMatrices.push(new Matrix4().copy(cumulMatrix))
-
-            const initialPosition = new Vector3().setFromMatrixPosition(cumulMatrix)
+            const initialPosition = new Vector3()
+                .setFromMatrixPosition(cumulMatrix)
 
             this.#initialPositions.push(initialPosition)
-            this.#solidPosition.push(new Vector3().copy(initialPosition))
             this.#positions.push(new Vector3().copy(initialPosition))
 
             const inverseBindMatrices = new Matrix4().identity()
@@ -112,8 +101,6 @@ export class HairSystem {
 
         const buffer = new Float32Array(16 * (this.#length - 1))
 
-        const parentCenterInit = _vector3_2.set(0, 0, 0)
-
         const up = _vector3.set(1, 0, 0)
         for (let i = 0; i < this.#length - 1; i++) {
             const matrix4 = new Matrix4()
@@ -123,8 +110,9 @@ export class HairSystem {
 
             const position = this.#positions[i]
             const target = this.#positions[i + 1]
-            matrix4.setPosition(position)
-            matrix4.lookAt(position, target, up)
+            matrix4
+                .setPosition(position)
+                .lookAt(position, target, up)
         }
 
         this.jointsTexture = new GlTexture({
@@ -152,8 +140,8 @@ export class HairSystem {
     }
 
     #updateMatrices() {
-        const parentCenter = _vector3_2.setFromMatrixPosition(this.#parentMatrix)
-        const up = _vector3.set(1, 0, 0).applyMatrix4Rotation(this.#parentMatrix)
+        const up = _vector3.set(1, 0, 0).applyMatrix4Rotation(this.#parentMatrix).applyMatrix4Rotation(this.#parentBoneMatrix)
+
         for (let i = 0; i < this.#length - 1; i++) {
             const matrix4 = this.matrices[i]
             const position = this.#positions[i]
@@ -167,18 +155,23 @@ export class HairSystem {
     }
 
     #updatePositions() {
+        const i = new Matrix4().copy(this.#parentBoneMatrix)
+        _matrix4.copy(this.#parentMatrix).multiply(i)
         this.#positions[0].copy(
-            _vector3.copy(this.#initialPositions[0]).applyMatrix4(this.#parentMatrix)
+            _vector3.copy(this.#initialPositions[0]).applyMatrix4(_matrix4)
         )
 
         for (let i = 1; i < this.#length; i++) {
             const initialPosition = this.#initialPositions[i]
-            const solidPosition = _vector3.copy(initialPosition).applyMatrix4(this.#parentMatrix)
+            const solidPosition = _vector3.copy(initialPosition).applyMatrix4(_matrix4)
             const position = this.#positions[i]
 
-            position.lerp(solidPosition, (1 - (i / this.#length)) * 0.1)
+            const alpha = Math.min(1, this.#elasticities[i - 1] * loopRaf.deltatimeSecond)
+
+            position.lerp(solidPosition, alpha)
 
             _vector3.subVectors(position, this.#positions[i - 1])
+
             const lengthSq = _vector3.lengthSq()
             if (lengthSq > this.#initialLengthSqs[i] + 0.001) {
                 const length = Math.sqrt(lengthSq)

@@ -5,22 +5,29 @@ import { Vector3 } from '../../../../../math/Vector3.js'
 export class Bone {
 
     /** @type {Set<Bone>} */ #children = new Set()
-    #parent = null
+    /** @type {Bone | null} */ #parent
 
     quaternion = new Quaternion()
     position = new Vector3()
     scale = new Vector3(1, 1, 1)
 
     #inverseBindMatrix = new Matrix4()
-    #localMatrix = new Matrix4()
+    /** @readonly */
+    localMatrix = new Matrix4()
+    /** @readonly */
     worldMatrix = new Matrix4()
 
-    constructor(gltfBone, jointMatricesF32a, inverseBindMatricesF32a, parentBone) {
+    constructor(
+        /** @type {GltfBone} */ gltfBone,
+        /** @type {Float32Array} */ jointMatricesF32a,
+        /** @type {Float32Array} */ inverseBindMatricesF32a,
+        /** @type {Bone | null} */ parentBone = null
+    ) {
         this.name = gltfBone.name
         this.#parent = parentBone
 
         this.#inverseBindMatrix.elements = inverseBindMatricesF32a.subarray(gltfBone.id * 16, gltfBone.id * 16 + 16)
-        this.#localMatrix.elements = jointMatricesF32a.subarray(gltfBone.id * 16, gltfBone.id * 16 + 16)
+        this.localMatrix.elements = jointMatricesF32a.subarray(gltfBone.id * 16, gltfBone.id * 16 + 16)
 
         if (gltfBone.rotation) this.quaternion.fromArray(gltfBone.rotation)
         if (gltfBone.translation) this.position.fromArray(gltfBone.translation)
@@ -34,11 +41,11 @@ export class Bone {
     }
 
     updateMatrix(parentUpdate = true, childUpdate = true) {
-        if (this.#parent && parentUpdate) this.#parent.update(true, false)
+        if (this.#parent && parentUpdate) this.#parent.updateMatrix(true, false)
 
         this.worldMatrix.compose(this.position, this.quaternion, this.scale)
         if (this.#parent) this.worldMatrix.premultiply(this.#parent.worldMatrix)
-        this.#localMatrix.copy(this.worldMatrix).multiply(this.#inverseBindMatrix)
+        this.localMatrix.copy(this.worldMatrix).multiply(this.#inverseBindMatrix)
 
         if (childUpdate === true) {
             for (const child of this.#children) {

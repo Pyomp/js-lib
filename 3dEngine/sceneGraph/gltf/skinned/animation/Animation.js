@@ -117,8 +117,12 @@ export class Animation {
             needsMipmap: false,
         })
 
+        const rootBone = new Bone(this.#gltfSkinRootBone, buffer, this.#inverseBindMatrices)
+
+        rootBone.updateMatrix(true, true)
+
         return {
-            rootBone: new Bone(this.#gltfSkinRootBone, buffer, this.#inverseBindMatrices),
+            rootBone,
             jointsTexture
         }
     }

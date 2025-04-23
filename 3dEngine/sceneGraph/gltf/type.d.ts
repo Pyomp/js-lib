@@ -116,6 +116,7 @@ declare type GltfBone = {
   translation?: [number, number, number];
   rotation?: [number, number, number, number];
   scale?: [number, number, number];
+  extras?: any
 };
 
 declare type GltfKeyFrame = {
