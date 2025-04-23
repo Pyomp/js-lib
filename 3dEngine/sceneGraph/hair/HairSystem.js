@@ -1,24 +1,134 @@
+import { Line3 } from "../../../math/Line3.js"
 import { Matrix4 } from "../../../math/Matrix4.js"
 import { Quaternion } from "../../../math/Quaternion.js"
-import { Vector3 } from "../../../math/Vector3.js"
+import { _up, Vector3 } from "../../../math/Vector3.js"
+import { DeltaTimeUpdater } from "../../../utils/DeltaTimeUpdater.js"
+import { loopRaf } from "../../../utils/loopRaf.js"
 import { GlTexture } from "../../webgl/glDescriptors/GlTexture.js"
-import { HairStep } from "./HairStepOld.js"
 
 const _vector3 = new Vector3()
 const _vector3_2 = new Vector3()
-const _quaternion = new Quaternion()
+
+const _scale1 = new Vector3(1, 1, 1)
+
+const _matrix4 = new Matrix4()
 
 export class HairSystem {
-    /** @type {HairStep[]} */ #hairSteps = []
+    /**
+     * current positions
+     *  @type {Vector3[]}
+     */
+    #positions = []
+
+    /**
+     * used for Elasticity 
+     * it is the position if no hair system would be applied
+     * @type {Vector3[]}
+    */
+    #solidPosition = []
+
+    /**
+     * still not sure
+     *  @type {Vector3[]}
+     */
+    #initialPositions = []
+
+    /**
+     * still not sure
+     *  @type {number[]}
+     */
+    #initialLengths = []
+
+    /**
+     * still not sure
+     *  @type {number[]}
+     */
+    #initialLengthSqs = []
+
+    /**
+     * still not sure
+     *  @type {Vector3[]}
+     */
+    #initialLocalPositions = []
+
+    /**
+     * still not sure
+     *  @type {Matrix4[]}
+     */
+    #initialMatrices = []
+
+    /** @type {Matrix4} */
+    #parentMatrix
+
+    /**
+     *  @type {Matrix4[]}
+     */
+    matrices = []
+
+    /**
+     *  @type {Matrix4[]}
+     */
+    #inverseBindMatrices = []
+
+    /** @type {number} */ #length = 0
 
     constructor(
-        /** @type {GltfSkin} */ gltfSkin,
-        /** @type {Matrix4} */ worldMatrix
+        /** @type {GltfBone} */ rootBone,
+        /** @type {Matrix4} */ parentMatrix
     ) {
-        const buffer = new Float32Array(16 * gltfSkin.bonesCount)
+        this.#parentMatrix = parentMatrix
+        let i = 0
+
+        /** @type {GltfBone | undefined} */ let bone = rootBone
+
+        const cumulMatrix = new Matrix4().identity()
+
+        while (bone) {
+            const initialLocalQuaternion = new Quaternion().fromArray(bone.rotation)
+            const initialLocalPosition = new Vector3().fromArray(bone.translation)
+            const initialLocalMatrix = new Matrix4()
+
+            const initialLocalLengthSq = initialLocalPosition.lengthSq()
+            this.#initialLengthSqs.push(initialLocalLengthSq)
+            this.#initialLengths.push(Math.sqrt(initialLocalLengthSq))
+
+            initialLocalMatrix.compose(initialLocalPosition, initialLocalQuaternion, _scale1)
+            cumulMatrix.multiply(initialLocalMatrix)
+
+            this.#initialMatrices.push(new Matrix4().copy(cumulMatrix))
+
+            const initialPosition = new Vector3().setFromMatrixPosition(cumulMatrix)
+
+            this.#initialPositions.push(initialPosition)
+            this.#solidPosition.push(new Vector3().copy(initialPosition))
+            this.#positions.push(new Vector3().copy(initialPosition))
+
+            const inverseBindMatrices = new Matrix4().identity()
+            this.#inverseBindMatrices.push(inverseBindMatrices)
+
+            bone = bone?.children?.[0]
+            this.#length += 1
+        }
+
+        const buffer = new Float32Array(16 * (this.#length - 1))
+
+        const parentCenterInit = _vector3_2.set(0, 0, 0)
+
+        const up = _vector3.set(1, 0, 0)
+        for (let i = 0; i < this.#length - 1; i++) {
+            const matrix4 = new Matrix4()
+            matrix4.elements = buffer.subarray(i * 16, i * 16 + 16)
+            matrix4.identity()
+            this.matrices.push(matrix4)
+
+            const position = this.#positions[i]
+            const target = this.#positions[i + 1]
+            matrix4.setPosition(position)
+            matrix4.lookAt(position, target, up)
+        }
 
         this.jointsTexture = new GlTexture({
-            name: `joints for skin ${gltfSkin.name}`,
+            name: `joints for hair system`,
             data: buffer,
 
             wrapS: 'CLAMP_TO_EDGE',
@@ -28,7 +138,7 @@ export class HairSystem {
 
             internalformat: 'RGBA32F',
             width: 4, // 16 element (matrix 4x4)
-            height: gltfSkin.bonesCount,
+            height: this.#length - 1,
             border: 0,
             format: 'RGBA',
             type: 'FLOAT',
@@ -36,45 +146,49 @@ export class HairSystem {
             needsMipmap: false,
         })
 
-        this.addHairStep(buffer, gltfSkin.root, gltfSkin.inverseBindMatrices.buffer, worldMatrix)
+        for (let i = 0; i < this.#length - 1; i++) {
+            this.#inverseBindMatrices[i].copy(this.matrices[i]).invert()
+        }
     }
 
-    addHairStep(
-        /** @type {Float32Array} */ jointElements,
-        /** @type {GltfBone} */ gltfBone,
-        /** @type {Float32Array} */ inverseBindMatrices,
-        /** @type {Matrix4} */ parentWorldMatrix
-    ) {
-        const inverseBindMatrice = new Matrix4().fromArray(inverseBindMatrices.subarray(gltfBone.id * 16, gltfBone.id * 16 + 16))
+    #updateMatrices() {
+        const parentCenter = _vector3_2.setFromMatrixPosition(this.#parentMatrix)
+        const up = _vector3.set(1, 0, 0).applyMatrix4Rotation(this.#parentMatrix)
+        for (let i = 0; i < this.#length - 1; i++) {
+            const matrix4 = this.matrices[i]
+            const position = this.#positions[i]
+            const target = this.#positions[i + 1]
+            matrix4.setPosition(position)
+            matrix4.lookAt(position, target, up)
+            matrix4.multiply(this.#inverseBindMatrices[i])
+        }
 
-        const initialLocalMatrix = new Matrix4().compose(
-            gltfBone.translation ? _vector3.fromArray(gltfBone.translation) : _vector3_2.set(0, 0, 0),
-            gltfBone.rotation ? _quaternion.fromArray(gltfBone.rotation) : _quaternion.identity(),
-            gltfBone.scale ? _vector3_2.fromArray(gltfBone.scale) : _vector3_2.set(1, 1, 1)
-        ).premultiply(parentWorldMatrix).multiply(inverseBindMatrice)
+        this.jointsTexture.dataVersion += 1
+    }
 
-        const m4Index = 16 * gltfBone.id
-        const targetMatrix4Elements = jointElements.subarray(m4Index, m4Index + 16)
-
-        const hairStep = new HairStep(
-            parentWorldMatrix,
-            initialLocalMatrix,
-            targetMatrix4Elements,
+    #updatePositions() {
+        this.#positions[0].copy(
+            _vector3.copy(this.#initialPositions[0]).applyMatrix4(this.#parentMatrix)
         )
 
-        this.#hairSteps.push(hairStep)
+        for (let i = 1; i < this.#length; i++) {
+            const initialPosition = this.#initialPositions[i]
+            const solidPosition = _vector3.copy(initialPosition).applyMatrix4(this.#parentMatrix)
+            const position = this.#positions[i]
 
-        for (const child of gltfBone.children ?? []) {
-            this.addHairStep(jointElements, child, inverseBindMatrices, hairStep.worldMatrix)
+            position.lerp(solidPosition, (1 - (i / this.#length)) * 0.1)
+
+            _vector3.subVectors(position, this.#positions[i - 1])
+            const lengthSq = _vector3.lengthSq()
+            if (lengthSq > this.#initialLengthSqs[i] + 0.001) {
+                const length = Math.sqrt(lengthSq)
+                position.sub(_vector3.multiplyScalar((length - this.#initialLengths[i]) / length))
+            }
         }
     }
 
-    update(
-         /** @type { {line: Line3, collisionDistanceSq: number}[] } */ lineColliders,
-    ) {
-        for (const hairStep of this.#hairSteps) {
-            hairStep.update(lineColliders)
-        }
-        this.jointsTexture.dataVersion += 1
+    update() {
+        this.#updatePositions()
+        this.#updateMatrices()
     }
 }

@@ -1,27 +1,16 @@
 import { GlProgram } from "../webgl/glDescriptors/GlProgram.js"
-import { GlRenderer } from "../webgl/glRenderer/GlRenderer.js"
-import { GLSL_AMBIENT_LIGHT } from "./chunks/glslAmbient.js"
 import { GLSL_CAMERA } from "./chunks/glslCamera.js"
 import { GLSL_COMMON } from "./chunks/glslCommon.js"
-import { GLSL_MORPH_TARGET } from "./chunks/glslMorphTarget.js"
-import { GLSL_POINT_LIGHT } from "./chunks/glslPointLight.js"
 import { GLSL_SKINNED } from "./chunks/glslSkinnedChunk.js"
-import { GLSL_UTILS } from "./chunks/glslUtils.js"
 
-function vertexShader({
-    pointLightCount,
-    isSkinned,
-    morphs
-}) {
+function vertexShader() {
     return `#version 300 es
 precision highp float;
 precision highp int;
 
 ${GLSL_COMMON.vertexDeclaration}
-${isSkinned ? GLSL_SKINNED.declaration : ''}
-${morphs ? GLSL_MORPH_TARGET.declaration(morphs) : ''}
+${GLSL_SKINNED.declaration}
 ${GLSL_CAMERA.declaration}
-${GLSL_POINT_LIGHT.vertexDeclaration(pointLightCount)}
 
 out vec3 v_normal;
 out vec3 v_position;
@@ -31,11 +20,9 @@ out float v_depth;
 #define INT_RANGE 2147483647.0
 
 void main() {
-    ${isSkinned ? GLSL_SKINNED.computeSkinMatrix : ''}
+    ${GLSL_SKINNED.computeSkinMatrix}
 
-    vec4 worldPosition = ${GLSL_COMMON.getWorldPosition(GLSL_COMMON.positionAttribute,
-        isSkinned ? GLSL_SKINNED.skinMatrix : ''
-    )};
+    vec4 worldPosition = ${GLSL_SKINNED.skinMatrix} * vec4(${GLSL_COMMON.positionAttribute}, 1.0);    
 
     v_position = worldPosition.xyz;
 
@@ -46,18 +33,13 @@ void main() {
 
     v_depth = (gl_Position.z - depthRangeHalf) / (depthRange / INT_RANGE);
 
-    v_normal = ${GLSL_COMMON.getWorldNormal(GLSL_COMMON.normalAttribute,
-        isSkinned ? GLSL_SKINNED.skinMatrix : ''
-    )};
-
+    v_normal = mat3(${GLSL_SKINNED.skinMatrix}) * ${GLSL_COMMON.normalAttribute};
+    
     v_uv = uv;
 }`
 }
 
-function fragmentShader({
-    pointLightCount,
-    isShininessEnable
-}) {
+function fragmentShader() {
     return `#version 300 es
     precision highp float;
     precision highp int;
@@ -92,38 +74,11 @@ function fragmentShader({
     }`
 }
 
-export class PhongProgram extends GlProgram {
-    isShininessEnable = true
-    isSkinned = false
-
-    /**
-     * 
-     * @param {{
-     *      renderer: GlRenderer
-     *      isShininessEnable?: boolean
-     *      isSkinned?: boolean
-     *      morphs?: string[]
-     * }} param0 
-     */
-    constructor({
-        renderer,
-        isShininessEnable = true,
-        isSkinned = false,
-        morphs,
-    }) {
+export class HairDeferredProgram extends GlProgram {
+    constructor() {
         super(
-            () => vertexShader({
-                pointLightCount: renderer.pointLightCount,
-                isSkinned: this.isSkinned,
-                morphs
-            }),
-            () => fragmentShader({
-                pointLightCount: renderer.pointLightCount,
-                isShininessEnable: this.isShininessEnable
-            })
+            vertexShader,
+            fragmentShader
         )
-
-        this.isShininessEnable = isShininessEnable
-        this.isSkinned = isSkinned
     }
 }

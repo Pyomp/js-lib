@@ -931,7 +931,7 @@ class Matrix4 {
     }
 
     /**
-     * @param {Array | ArrayBufferView} array 
+     * @param {Array<number> | ArrayBufferView} array 
      * @param {number} offset 
      */
     toArray(array = [], offset = 0) {

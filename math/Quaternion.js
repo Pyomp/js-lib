@@ -532,7 +532,7 @@ class Quaternion {
             return this
 
         }
-        
+
         const sinHalfTheta = Math.sqrt(sqrSinHalfTheta)
         const halfTheta = Math.atan2(sinHalfTheta, cosHalfTheta)
         const ratioA = Math.sin((1 - t) * halfTheta) / sinHalfTheta,
@@ -614,7 +614,10 @@ class Quaternion {
 
     }
 
-    toArray(array = [], offset = 0) {
+    toArray(
+        /** @type {[number, number, number, number]} */ array = [0, 0, 0, 0],
+        offset = 0
+    ) {
 
         array[offset] = this._x
         array[offset + 1] = this._y

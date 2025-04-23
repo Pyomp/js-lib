@@ -9,6 +9,7 @@ import { GlObject } from "../webgl/glDescriptors/GlObject.js"
 import { AmbientLight } from "./AmbientLight.js"
 import { PointLight } from "./PointLight.js"
 import { Mixer } from "./gltf/skinned/animation/Mixer.js"
+import { HairSystem } from "./hair/HairSystem.js"
 import { Particle } from "./particle/Particle.js"
 
 export class Node3D {
@@ -36,6 +37,8 @@ export class Node3D {
 
     /** @type {Mixer | undefined} */
     mixer
+    /** @type {HairSystem[]} */
+    hairSystems = []
 
     /** @param {Node3D} node */
     addNode3D(node) {

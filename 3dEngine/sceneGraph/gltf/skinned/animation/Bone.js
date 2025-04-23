@@ -32,7 +32,7 @@ export class Bone {
             }
         }
     }
-    
+
     updateMatrix(parentUpdate = true, childUpdate = true) {
         if (this.#parent && parentUpdate) this.#parent.update(true, false)
 
@@ -47,7 +47,9 @@ export class Bone {
         }
     }
 
-    traverse(callback) {
+    traverse(
+        /** @type {(bone: Bone) => void} */ callback
+    ) {
         callback(this)
         for (const child of this.#children) {
             child.traverse(callback)

@@ -140,15 +140,18 @@ export class GlContextRenderer {
     }
 
     /** @type {Map<GlFrameBuffer, GlFrameBufferRenderer>} */ #frameBuffers = new Map()
+
+
+    /** @returns {GlFrameBufferRenderer} */
     getGlFrameBuffer(/** @type {GlFrameBuffer} */ glFrameBuffer) {
         if (!this.#frameBuffers.has(glFrameBuffer)) {
             this.#frameBuffers.set(glFrameBuffer, new GlFrameBufferRenderer(this, glFrameBuffer))
         }
 
-        /** @returns {GlFrameBufferRenderer} */
         // @ts-ignore
         return this.#frameBuffers.get(glFrameBuffer)
     }
+
     freeGlFrameBuffer(/** @type {GlFrameBuffer} */ glFrameBuffer) {
         this.#frameBuffers.get(glFrameBuffer)?.dispose()
         this.#frameBuffers.delete(glFrameBuffer)

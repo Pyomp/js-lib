@@ -21,7 +21,6 @@ ${GLSL_COMMON.vertexDeclaration}
 ${isSkinned ? GLSL_SKINNED.declaration : ''}
 ${morphs ? GLSL_MORPH_TARGET.declaration(morphs) : ''}
 ${GLSL_CAMERA.declaration}
-${GLSL_POINT_LIGHT.vertexDeclaration(pointLightCount)}
 
 out vec3 v_normal;
 out vec3 v_position;

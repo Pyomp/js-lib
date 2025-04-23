@@ -1,4 +1,5 @@
 import { Box3 } from "../../../math/Box3.js"
+import { Frustum } from "../../../math/Frustum.js"
 import { Vector3 } from "../../../math/Vector3.js"
 import { RenderObject } from "../../extras/RenderObject.js"
 import { TextureObject } from "../../extras/TextureObject.js"
@@ -29,6 +30,8 @@ export class GlRenderer {
     htmlElement = document.createElement('div')
 
     /** @type {GlContextRenderer} */ glContext
+
+    /** @type {GlParticleRenderer} */ particleRenderer
 
     scene = new Node3D()
 
@@ -201,8 +204,8 @@ export class GlRenderer {
         const ambientLights = []
         /** @type {GlObject[]} */
         const gpgpuObjects = []
-        /** @type {Set<Node3D>} */
-        const node3Ds = new Set()
+        /** @type {Node3D[]} */
+        const node3Ds = []
 
         this.scene.traverse((node) => {
             if (node.mixer) node.mixer.updateTime()
@@ -219,7 +222,7 @@ export class GlRenderer {
                     if (object.glProgram.glTransformFeedback) {
                         gpgpuObjects.push(object)
                     } else {
-                        node3Ds.add(node)
+                        node3Ds.push(node)
                     }
                 }
             }
@@ -246,7 +249,12 @@ export class GlRenderer {
         // # Render
 
         const nodesInFrustum = getNodesInFrustum(node3Ds, this.camera.frustum)
-        for (const node of nodesInFrustum) if (node.mixer) node.mixer.updateJointsTexture()
+        for (const node of nodesInFrustum) {
+            if (node.mixer) node.mixer.updateJointsTexture()
+            for (const hairSystem of node.hairSystems) {
+                hairSystem.update()
+            }
+        }
 
         const [opaqueObjects, transparentObjects] = this.getObjectsToDraw(nodesInFrustum)
 
@@ -325,7 +333,7 @@ export class GlRenderer {
     }
 
     loseContext() {
-        this.glContext.gl.getExtension("WEBGL_lose_context").loseContext()
+        this.glContext.gl.getExtension("WEBGL_lose_context")?.loseContext()
     }
 }
 
@@ -356,7 +364,10 @@ function sortTransparencyObjects(/** @type {GlObject[]} */ objects) {
     return [opaque, transparent]
 }
 
-function getNodesInFrustum(node3Ds, frustum) {
+function getNodesInFrustum(
+    /** @type {Node3D[]} */ node3Ds,
+    /** @type {Frustum} */ frustum
+) {
     /** @type {Node3D[]} */
     const nodes = []
 
@@ -374,7 +385,10 @@ function getNodesInFrustum(node3Ds, frustum) {
     return nodes
 }
 
-function getObjectsInFrustum(/** @type {Node3D[]} */ nodes, frustum) {
+function getObjectsInFrustum(
+    /** @type {Node3D[]} */ nodes,
+    /** @type {Frustum} */ frustum
+) {
     /** @type {GlObject[]} */
     const result = []
 

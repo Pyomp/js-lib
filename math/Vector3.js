@@ -91,7 +91,9 @@ export class Vector3 {
 
     }
 
-    copy(v) {
+    copy(
+        /** @type {Vector3} */ v
+    ) {
 
         this.x = v.x
         this.y = v.y
@@ -101,21 +103,29 @@ export class Vector3 {
 
     }
 
-    add(v) {
+    add(
+        /** @type {Vector3} */ v
+    ) {
         this.x += v.x
         this.y += v.y
         this.z += v.z
         return this
     }
 
-    addElements(x, y, z) {
+    addElements(
+        /** @type {number} */ x,
+        /** @type {number} */ y,
+        /** @type {number} */ z
+    ) {
         this.x += x
         this.y += y
         this.z += z
         return this
     }
 
-    addScalar(s) {
+    addScalar(
+        /** @type {number} */ s
+    ) {
 
         this.x += s
         this.y += s
@@ -125,7 +135,10 @@ export class Vector3 {
 
     }
 
-    addVectors(a, b) {
+    addVectors(
+        /** @type {Vector3} */ a,
+        /** @type {Vector3} */ b
+    ) {
 
         this.x = a.x + b.x
         this.y = a.y + b.y
@@ -135,7 +148,10 @@ export class Vector3 {
 
     }
 
-    addScaledVector(v, s) {
+    addScaledVector(
+        /** @type {Vector3} */ v,
+        /** @type {number} */ s
+    ) {
 
         this.x += v.x * s
         this.y += v.y * s
@@ -145,7 +161,9 @@ export class Vector3 {
 
     }
 
-    sub(v) {
+    sub(
+        /** @type {Vector3} */ v
+    ) {
 
         this.x -= v.x
         this.y -= v.y
@@ -155,7 +173,9 @@ export class Vector3 {
 
     }
 
-    subScalar(s) {
+    subScalar(
+        /** @type {number} */ s
+    ) {
 
         this.x -= s
         this.y -= s
@@ -165,7 +185,10 @@ export class Vector3 {
 
     }
 
-    subVectors(a, b) {
+    subVectors(
+        /** @type {Vector3} */ a,
+        /** @type {Vector3} */ b
+    ) {
 
         this.x = a.x - b.x
         this.y = a.y - b.y
@@ -175,24 +198,19 @@ export class Vector3 {
 
     }
 
-    multiply(v, w) {
-
-        if (w !== undefined) {
-
-            console.warn('THREE.Vector3: .multiply() now only accepts one argument. Use .multiplyVectors( a, b ) instead.')
-            return this.multiplyVectors(v, w)
-
-        }
-
+    multiply(
+        /** @type {Vector3} */ v
+    ) {
         this.x *= v.x
         this.y *= v.y
         this.z *= v.z
 
         return this
-
     }
 
-    multiplyScalar(scalar) {
+    multiplyScalar(
+        /** @type {number} */ scalar
+    ) {
 
         this.x *= scalar
         this.y *= scalar
@@ -202,7 +220,10 @@ export class Vector3 {
 
     }
 
-    multiplyVectors(a, b) {
+    multiplyVectors(
+        /** @type {Vector3} */ a,
+        /** @type {Vector3} */ b
+    ) {
 
         this.x = a.x * b.x
         this.y = a.y * b.y
@@ -687,11 +708,10 @@ export class Vector3 {
 
     }
 
-    /**
-     * @param {Array | ArrayBufferView} array 
-     * @param {number} offset 
-     */
-    toArray(array = [], offset = 0) {
+    toArray(
+        /** @type {[number, number, number]} */ array = [0, 0, 0],
+        /** @type {number} */ offset = 0
+    ) {
 
         array[offset] = this.x
         array[offset + 1] = this.y
