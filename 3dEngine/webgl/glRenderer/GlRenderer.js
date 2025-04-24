@@ -1,8 +1,5 @@
 import { Box3 } from "../../../math/Box3.js"
 import { Frustum } from "../../../math/Frustum.js"
-import { Vector3 } from "../../../math/Vector3.js"
-import { RenderObject } from "../../extras/RenderObject.js"
-import { TextureObject } from "../../extras/TextureObject.js"
 import { GLSL_AMBIENT_LIGHT } from "../../programs/chunks/glslAmbient.js"
 import { GLSL_CAMERA } from "../../programs/chunks/glslCamera.js"
 import { GLSL_POINT_LIGHT } from "../../programs/chunks/glslPointLight.js"
@@ -251,7 +248,7 @@ export class GlRenderer {
         const nodesInFrustum = getNodesInFrustum(node3Ds, this.camera.frustum)
         for (const node of nodesInFrustum) {
             if (node.mixer) node.mixer.updateJointsTexture()
-            for (const hairSystem of node.hairSystems) {
+            for (const hairSystem of node.hairSkins) {
                 hairSystem.update()
             }
         }

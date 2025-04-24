@@ -67,11 +67,11 @@ export class Animation {
     }) {
         this.name = gltfSkin.name
         this.#bonesCount = gltfSkin.bonesCount
-        this.#gltfSkinRootBone = gltfSkin.root
+        this.#gltfSkinRootBone = gltfSkin.rootBones[0]
         this.#inverseBindMatrices = gltfSkin.inverseBindMatrices.buffer
 
 
-        this.#initInitialPose(gltfSkin.root)
+        this.#initInitialPose(gltfSkin.rootBones[0])
         this.#initTracks(gltfSkin.animations, animationDictionary)
         this.#initMorphs(morphTargets)
         this.#animationMorphBind = animationMorphBind

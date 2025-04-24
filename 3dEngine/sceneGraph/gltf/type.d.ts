@@ -63,7 +63,7 @@ declare type GltfSkin = {
   name?: string;
   inverseBindMatrices?: GltfBuffer;
   animations?: GltfBoneAnimations;
-  root: GltfBone;
+  rootBones: GltfBone[];
   bonesCount: number;
 };
 

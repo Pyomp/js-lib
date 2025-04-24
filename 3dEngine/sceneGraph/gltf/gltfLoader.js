@@ -184,9 +184,16 @@ export async function parseGltf(gltf) {
 
             const joints = skin.joints.map(a => nodes[a])
 
+            const childrenJointIds = new Set()
+
             for (let i = 0; i < joints.length; i++) {
                 const joint = joints[i]
                 joint.id = i
+
+                for (const childNodeId of joint.children ?? []) {
+                    const childJointId = skin.joints.findIndex((nodeId) => nodeId === childNodeId)
+                    childrenJointIds.add(childJointId)
+                }
 
                 for (const animationName in content.animations) {
                     const animation = content.animations[animationName]
@@ -199,8 +206,10 @@ export async function parseGltf(gltf) {
                 }
             }
 
-            skin.root = joints[0]
+            skin.rootBones = joints.filter((joint) => !childrenJointIds.has(joint.id))
+
             skin.bonesCount = joints.length
+
             delete skin.joints
             delete skin.name
         }
@@ -211,7 +220,7 @@ export async function parseGltf(gltf) {
         if (node.mesh !== undefined) node.mesh = content.meshes[node.mesh]
         if (node.children !== undefined) node.children = node.children.map(a => nodes[a])
         if (node.skin !== undefined) node.skin = skins[node.skin]
-        
+
         for (const animationName in content.animations) {
             const animation = content.animations[animationName]
             for (const key in animation) {
