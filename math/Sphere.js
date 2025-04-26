@@ -64,7 +64,7 @@ class Sphere {
             (max.y - min.y),
             (max.z - min.z),
         )
-        
+
         return this
     }
 
@@ -131,6 +131,23 @@ class Sphere {
         target.copy(point)
 
         if (deltaLengthSq > (this.radius * this.radius)) {
+
+            target.sub(this.center).normalize()
+            target.multiplyScalar(this.radius).add(this.center)
+
+        }
+
+        return target
+
+    }
+
+    clampInPoint(point, target) {
+
+        const deltaLengthSq = this.center.distanceToSquared(point)
+
+        target.copy(point)
+
+        if (deltaLengthSq < (this.radius * this.radius)) {
 
             target.sub(this.center).normalize()
             target.multiplyScalar(this.radius).add(this.center)

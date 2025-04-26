@@ -20,8 +20,10 @@ export class HairSkin {
         this.#jointsBuffer = new Float32Array(gltfSkin.bonesCount * 16)
 
         for (const rootBone of gltfSkin.rootBones) {
-            const hairSystem = new HairSystem(rootBone, this.#jointsBuffer, parentMatrix, parentBoneMatrix)
-            this.hairSystems.push(hairSystem)
+            if (rootBone.children) {
+                const hairSystem = new HairSystem(rootBone, this.#jointsBuffer, parentMatrix, parentBoneMatrix)
+                this.hairSystems.push(hairSystem)
+            }
         }
 
 

@@ -11,30 +11,31 @@ export class Vector3 {
 
     }
 
-    set(x, y, z) {
-
-        if (z === undefined) z = this.z // sprite.scale.set(x,y)
-
+    set(
+        /** @type {number} */ x,
+        /** @type {number} */ y,
+        /** @type {number} */ z
+    ) {
         this.x = x
         this.y = y
         this.z = z
 
         return this
-
     }
 
-    setScalar(scalar) {
-
+    setScalar(
+        /** @type {number} */ scalar
+    ) {
         this.x = scalar
         this.y = scalar
         this.z = scalar
 
         return this
-
     }
 
-    setX(x) {
-
+    setX(
+        /** @type {number} */ x
+    ) {
         this.x = x
 
         return this

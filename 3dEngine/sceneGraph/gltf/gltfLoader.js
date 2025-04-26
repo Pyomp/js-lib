@@ -39,15 +39,19 @@ export async function parseGltf(gltf) {
     const bufferViews = content.bufferViews
     for (const accessor of accessors) {
         const bufferView = bufferViews[accessor.bufferView]
-        let cache
-        Object.defineProperty(accessor, 'buffer', {
-            get() {
-                if (!cache) cache = new TYPE_CLASS[accessor.componentType](
-                    body.slice(bufferView.byteOffset, bufferView.byteOffset + bufferView.byteLength)
-                )
-                return cache
-            }
-        })
+
+        if (accessor.sparse) {
+            const indicesBufferViews = bufferViews[accessor.sparse.indices.bufferView]
+            const indicesBuffer = new TYPE_CLASS[accessor.sparse.indices.componentType](body.slice(indicesBufferViews.byteOffset, indicesBufferViews.byteOffset + indicesBufferViews.byteLength))
+            const valuesBufferViews = bufferViews[accessor.sparse.values.bufferView]
+            const valuesBuffer = new TYPE_CLASS[accessor.componentType](body.slice(valuesBufferViews.byteOffset, valuesBufferViews.byteOffset + valuesBufferViews.byteLength))
+            accessor.buffer = new TYPE_CLASS[accessor.componentType](indicesBuffer.map((index) => valuesBuffer[index]))
+        } else {
+            accessor.buffer = new TYPE_CLASS[accessor.componentType](
+                body.slice(bufferView.byteOffset, bufferView.byteOffset + bufferView.byteLength)
+            )
+        }
+
         delete accessor.bufferView
     }
 
@@ -84,36 +88,24 @@ export async function parseGltf(gltf) {
             const image = content.images[i]
 
             const bufferView = bufferViews[image.bufferView]
-            let bufferCache
-            Object.defineProperty(image, 'buffer', {
-                get() {
-                    if (!bufferCache) bufferCache =
-                        body.slice(bufferView.byteOffset, bufferView.byteOffset + bufferView.byteLength)
-                    return bufferCache
-                }
-            })
 
-            let imageCache
-            Object.defineProperty(image, 'htmlImageElement', {
-                get() {
-                    if (!imageCache) {
-                        imageCache = new Image()
-                        imageCache.alt = image.name
-                        const blob = new Blob([image.buffer], { type: image.mimeType })
-                        const url = URL.createObjectURL(blob)
-                        imageCache.src = url
-                        const revoke = () => {
-                            URL.revokeObjectURL(url)
-                            imageCache.removeEventListener('error', revoke)
-                            imageCache.removeEventListener('load', revoke)
-                        }
-                        imageCache.addEventListener('error', revoke)
-                        imageCache.addEventListener('load', revoke)
-                    }
+            image.buffer = body.slice(bufferView.byteOffset, bufferView.byteOffset + bufferView.byteLength)
 
-                    return imageCache
-                }
-            })
+            image.htmlImageElement
+
+            const imageElement = new Image()
+            imageElement.alt = image.name
+            const blob = new Blob([image.buffer], { type: image.mimeType })
+            const url = URL.createObjectURL(blob)
+            imageElement.src = url
+            const revoke = () => {
+                URL.revokeObjectURL(url)
+                imageElement.removeEventListener('error', revoke)
+                imageElement.removeEventListener('load', revoke)
+            }
+            imageElement.addEventListener('error', revoke)
+            imageElement.addEventListener('load', revoke)
+            image.htmlImageElement = imageElement
         }
     }
 

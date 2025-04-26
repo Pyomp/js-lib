@@ -1,7 +1,9 @@
 import { Line3 } from "../../../math/Line3.js"
 import { Matrix4 } from "../../../math/Matrix4.js"
 import { Quaternion } from "../../../math/Quaternion.js"
+import { Sphere } from "../../../math/Sphere.js"
 import { _up, Vector3 } from "../../../math/Vector3.js"
+import { DeltaTimeUpdater } from "../../../utils/DeltaTimeUpdater.js"
 import { loopRaf } from "../../../utils/loopRaf.js"
 
 const _vector3 = new Vector3()
@@ -10,12 +12,20 @@ const _scale1 = new Vector3(1, 1, 1)
 
 const _matrix4 = new Matrix4()
 
+const PHYSICS_DT = 0.01
+
 export class HairSystem {
-    /**
-     * current positions
-     *  @type {Vector3[]}
-     */
+    /** @type {Vector3[]} */
     #positions = []
+
+    /** @type {Vector3[]} */
+    #renderPositions = []
+
+    /** @type {Vector3[]} */
+    #velocities = []
+
+    /** @type {Vector3[]} */
+    #solidPositions = []
 
     /**
      * still not sure
@@ -56,7 +66,14 @@ export class HairSystem {
      */
     #elasticities = []
 
+    /**
+     *  @type {number[]}
+     */
+    #rigidity = []
+
     /** @type {number} */ #length = 0
+
+    #preMatrix = new Matrix4()
 
     constructor(
         /** @type {GltfBone} */ rootBone,
@@ -78,7 +95,8 @@ export class HairSystem {
             const initialLocalPosition = new Vector3().fromArray(bone.translation ?? [0, 0, 0])
             const initialLocalMatrix = new Matrix4()
 
-            this.#elasticities.push(bone.extras?.elasticity ?? 0.01)
+            this.#elasticities.push((bone.extras?.elasticisty ?? 0.1) / PHYSICS_DT)
+            this.#rigidity.push((bone.extras?.rigidity ?? (1 / (this.#length + 1)) ** 3) / PHYSICS_DT)
 
             const initialLocalLengthSq = initialLocalPosition.lengthSq()
             this.#initialLengthSqs.push(initialLocalLengthSq)
@@ -91,6 +109,9 @@ export class HairSystem {
 
             this.#initialPositions.push(initialPosition)
             this.#positions.push(new Vector3().copy(initialPosition))
+            this.#renderPositions.push(new Vector3().copy(initialPosition))
+            this.#solidPositions.push(new Vector3().copy(initialPosition))
+            this.#velocities.push(new Vector3())
 
             const inverseBindMatrices = new Matrix4().identity()
             this.#inverseBindMatrices.push(inverseBindMatrices)
@@ -105,7 +126,9 @@ export class HairSystem {
             this.#length += 1
         }
 
-        for (let i = 0; i < this.#length - 1; i++) {
+        const lastIndex = this.#length - 1
+
+        for (let i = 0; i < lastIndex; i++) {
             const position = this.#positions[i]
             const target = this.#positions[i + 1]
             this.matrices[i]
@@ -113,51 +136,135 @@ export class HairSystem {
                 .lookAt(position, target, up)
         }
 
-        for (let i = 0; i < this.#length - 1; i++) {
+        this.matrices[lastIndex].copy(this.matrices[lastIndex - 1])
+
+        for (let i = 0; i < this.#length; i++) {
             this.#inverseBindMatrices[i].copy(this.matrices[i]).invert()
         }
     }
 
     #updateMatrices() {
+        const lastIndex = this.#length - 1
+
+        for (let i = 1; i < this.#length; i++) {
+            const position = this.#positions[i]
+            const renderPosition = this.#renderPositions[i]
+            const dt = loopRaf.deltatimeSecond % PHYSICS_DT
+            const rigidityAlpha = this.#rigidity[i - 1] * dt
+
+
+
+            renderPosition
+                .copy(position)
+                // .add(_vector3.copy(this.#velocities[i]).multiplyScalar(dt))
+                .lerp(this.#solidPositions[i], rigidityAlpha)
+
+
+            // _vector3.subVectors(renderPosition, this.#renderPositions[i - 1])
+            // const lengthSq = _vector3.lengthSq()
+            // if (lengthSq > this.#initialLengthSqs[i]) {
+            //     const length = Math.sqrt(lengthSq)
+            //     _vector3.multiplyScalar((length - this.#initialLengths[i]) / length)
+            //     renderPosition.sub(_vector3)
+            // }
+        }
+
         const up = _vector3.set(1, 0, 0).applyMatrix4Rotation(this.#parentMatrix).applyMatrix4Rotation(this.#parentBoneMatrix)
 
-        for (let i = 0; i < this.#length - 1; i++) {
-            const matrix4 = this.matrices[i]
-            const position = this.#positions[i]
-            const target = this.#positions[i + 1]
-            matrix4.setPosition(position)
-            matrix4.lookAt(position, target, up)
-            matrix4.multiply(this.#inverseBindMatrices[i])
+        for (let i = 0; i < lastIndex; i++) {
+            this.matrices[i]
+                .setPosition(this.#renderPositions[i])
+                .lookAt(this.#renderPositions[i], this.#renderPositions[i + 1], up)
+                .multiply(this.#inverseBindMatrices[i])
+        }
+
+        this.matrices[lastIndex].copy(this.matrices[lastIndex - 1])
+    }
+
+    #updateCollision(
+        /** @type {Vector3} */ position,
+        /** @type {Vector3} */ velocity,
+    ) {
+        const sphere = new Sphere(new Vector3(0, 0.8, 0), 0.13)
+        sphere.center.applyMatrix4(this.#preMatrix)
+
+        _vector3.subVectors(position, sphere.center)
+        const deltaLengthSq = _vector3.lengthSq()
+
+        if (deltaLengthSq < (sphere.radius * sphere.radius)) {
+            const length = Math.sqrt(deltaLengthSq)
+            position
+                .copy(_vector3.divideScalar(length))
+                .multiplyScalar(sphere.radius)
+                .add(sphere.center)
         }
     }
 
     #updatePositions() {
-        const i = new Matrix4().copy(this.#parentBoneMatrix)
-        _matrix4.copy(this.#parentMatrix).multiply(i)
         this.#positions[0].copy(
-            _vector3.copy(this.#initialPositions[0]).applyMatrix4(_matrix4)
+            _vector3.copy(this.#initialPositions[0]).applyMatrix4(this.#preMatrix)
         )
 
+        this.#renderPositions[0].copy(this.#positions[0])
+
+
         for (let i = 1; i < this.#length; i++) {
-            const initialPosition = this.#initialPositions[i]
-            const solidPosition = _vector3.copy(initialPosition).applyMatrix4(_matrix4)
             const position = this.#positions[i]
+            const velocity = this.#velocities[i]
 
-            const alpha = Math.min(1, this.#elasticities[i - 1] * loopRaf.deltatimeSecond)
+            position.add(_vector3.copy(velocity).multiplyScalar(PHYSICS_DT))
 
-            position.lerp(solidPosition, alpha)
+            // rigidity
+            const rigidityAlpha = this.#rigidity[i - 1] * PHYSICS_DT
+            position.lerp(this.#solidPositions[i], rigidityAlpha)
 
+            // collision
+            this.#updateCollision(position, velocity)
+
+            // replace position to max length from parent point
             _vector3.subVectors(position, this.#positions[i - 1])
-
             const lengthSq = _vector3.lengthSq()
-            if (lengthSq > this.#initialLengthSqs[i] + 0.001) {
+            if (lengthSq > this.#initialLengthSqs[i]) {
                 const length = Math.sqrt(lengthSq)
-                position.sub(_vector3.multiplyScalar((length - this.#initialLengths[i]) / length))
+                velocity.add(_vector3)
+                _vector3.multiplyScalar((length - this.#initialLengths[i]) / length)
+                position.sub(_vector3)
             }
         }
     }
 
+    #updateVelocities() {
+        for (let i = 0; i < this.#length; i++) {
+            const velocity = this.#velocities[i]
+
+            // air resistance
+            velocity.multiplyScalar(0.9)
+
+            // elasticity
+            const elasticity = Math.min(1, this.#elasticities[i - 1] * PHYSICS_DT)
+            velocity.add(_vector3.subVectors(this.#solidPositions[i], this.#positions[i]).multiplyScalar(elasticity))
+
+            // gravity
+            velocity.y -= 0.01
+        }
+    }
+
+    #physicsPrepare() {
+        this.#preMatrix.copy(this.#parentMatrix).multiply(this.#parentBoneMatrix)
+        for (let i = 1; i < this.#length; i++) {
+            this.#solidPositions[i].copy(this.#initialPositions[i]).applyMatrix4(this.#preMatrix)
+        }
+    }
+
+    #physicsUpdate() {
+        this.#updateVelocities()
+        this.#updatePositions()
+    }
+
+    #deltaTimeUpdater = new DeltaTimeUpdater(this.#physicsUpdate.bind(this), this.#physicsPrepare.bind(this), PHYSICS_DT)
+
     update() {
+        this.#deltaTimeUpdater.update()
         this.#updatePositions()
         this.#updateMatrices()
     }
