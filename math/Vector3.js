@@ -710,7 +710,7 @@ export class Vector3 {
     }
 
     toArray(
-        /** @type {[number, number, number]} */ array = [0, 0, 0],
+        /** @type {any} */ array = [0, 0, 0],
         /** @type {number} */ offset = 0
     ) {
 

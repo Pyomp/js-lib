@@ -19,9 +19,6 @@ export class HairSystem {
     #positions = []
 
     /** @type {Vector3[]} */
-    #renderPositions = []
-
-    /** @type {Vector3[]} */
     #velocities = []
 
     /** @type {Vector3[]} */
@@ -95,7 +92,7 @@ export class HairSystem {
             const initialLocalPosition = new Vector3().fromArray(bone.translation ?? [0, 0, 0])
             const initialLocalMatrix = new Matrix4()
 
-            this.#elasticities.push((bone.extras?.elasticisty ?? 0.1) / PHYSICS_DT)
+            this.#elasticities.push((bone.extras?.elasticity ?? 0.1) / PHYSICS_DT)
             this.#rigidity.push((bone.extras?.rigidity ?? (1 / (this.#length + 1)) ** 3) / PHYSICS_DT)
 
             const initialLocalLengthSq = initialLocalPosition.lengthSq()
@@ -109,7 +106,6 @@ export class HairSystem {
 
             this.#initialPositions.push(initialPosition)
             this.#positions.push(new Vector3().copy(initialPosition))
-            this.#renderPositions.push(new Vector3().copy(initialPosition))
             this.#solidPositions.push(new Vector3().copy(initialPosition))
             this.#velocities.push(new Vector3())
 
@@ -146,35 +142,14 @@ export class HairSystem {
     #updateMatrices() {
         const lastIndex = this.#length - 1
 
-        for (let i = 1; i < this.#length; i++) {
-            const position = this.#positions[i]
-            const renderPosition = this.#renderPositions[i]
-            const dt = loopRaf.deltatimeSecond % PHYSICS_DT
-            const rigidityAlpha = this.#rigidity[i - 1] * dt
-
-
-
-            renderPosition
-                .copy(position)
-                // .add(_vector3.copy(this.#velocities[i]).multiplyScalar(dt))
-                .lerp(this.#solidPositions[i], rigidityAlpha)
-
-
-            // _vector3.subVectors(renderPosition, this.#renderPositions[i - 1])
-            // const lengthSq = _vector3.lengthSq()
-            // if (lengthSq > this.#initialLengthSqs[i]) {
-            //     const length = Math.sqrt(lengthSq)
-            //     _vector3.multiplyScalar((length - this.#initialLengths[i]) / length)
-            //     renderPosition.sub(_vector3)
-            // }
-        }
-
         const up = _vector3.set(1, 0, 0).applyMatrix4Rotation(this.#parentMatrix).applyMatrix4Rotation(this.#parentBoneMatrix)
 
         for (let i = 0; i < lastIndex; i++) {
+            const position = this.#positions[i]
+            const target = this.#positions[i + 1]
             this.matrices[i]
-                .setPosition(this.#renderPositions[i])
-                .lookAt(this.#renderPositions[i], this.#renderPositions[i + 1], up)
+                .setPosition(position)
+                .lookAt(position, target, up)
                 .multiply(this.#inverseBindMatrices[i])
         }
 
@@ -205,9 +180,6 @@ export class HairSystem {
             _vector3.copy(this.#initialPositions[0]).applyMatrix4(this.#preMatrix)
         )
 
-        this.#renderPositions[0].copy(this.#positions[0])
-
-
         for (let i = 1; i < this.#length; i++) {
             const position = this.#positions[i]
             const velocity = this.#velocities[i]
@@ -226,7 +198,7 @@ export class HairSystem {
             const lengthSq = _vector3.lengthSq()
             if (lengthSq > this.#initialLengthSqs[i]) {
                 const length = Math.sqrt(lengthSq)
-                velocity.add(_vector3)
+                velocity.copy(_vector3)
                 _vector3.multiplyScalar((length - this.#initialLengths[i]) / length)
                 position.sub(_vector3)
             }
@@ -238,14 +210,14 @@ export class HairSystem {
             const velocity = this.#velocities[i]
 
             // air resistance
-            velocity.multiplyScalar(0.9)
+            // velocity.multiplyScalar(0.9)
 
             // elasticity
             const elasticity = Math.min(1, this.#elasticities[i - 1] * PHYSICS_DT)
             velocity.add(_vector3.subVectors(this.#solidPositions[i], this.#positions[i]).multiplyScalar(elasticity))
 
             // gravity
-            velocity.y -= 0.01
+            velocity.y -= 0.1
         }
     }
 
@@ -261,10 +233,9 @@ export class HairSystem {
         this.#updatePositions()
     }
 
-    #deltaTimeUpdater = new DeltaTimeUpdater(this.#physicsUpdate.bind(this), this.#physicsPrepare.bind(this), PHYSICS_DT)
-
     update() {
-        this.#deltaTimeUpdater.update()
+        this.#physicsPrepare()
+        this.#physicsUpdate()
         this.#updatePositions()
         this.#updateMatrices()
     }

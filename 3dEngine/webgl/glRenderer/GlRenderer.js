@@ -1,5 +1,6 @@
 import { Box3 } from "../../../math/Box3.js"
 import { Frustum } from "../../../math/Frustum.js"
+import { Vector3 } from "../../../math/Vector3.js"
 import { GLSL_AMBIENT_LIGHT } from "../../programs/chunks/glslAmbient.js"
 import { GLSL_CAMERA } from "../../programs/chunks/glslCamera.js"
 import { GLSL_POINT_LIGHT } from "../../programs/chunks/glslPointLight.js"
@@ -22,6 +23,7 @@ import { OpaqueLightingPostprocessingObject } from "./OpaqueLightingPostprocessi
 import { GlParticleRenderer } from "./ParticlesRenderer/GlParticleRenderer.js"
 
 const _box3 = new Box3()
+const _vector3 = new Vector3()
 
 export class GlRenderer {
     htmlElement = document.createElement('div')
@@ -253,8 +255,40 @@ export class GlRenderer {
             }
         }
 
-        const [opaqueObjects, transparentObjects] = this.getObjectsToDraw(nodesInFrustum)
+        const opaqueObjects = []
+        const transparentObjects = []
+        const cameraPosition = this.camera.position
+        for (const node of nodesInFrustum) {
+            const objectsToDraw = getObjectsInFrustumFromNode(node, this.camera.frustum)
+            if (objectsToDraw.length > 0) {
+                for (const object of objectsToDraw) {
 
+
+                    if (object.normalBlending || object.additiveBlending || object.multiplyBlending) {
+                        transparentObjects.push(object)
+
+                        if (object.glVao) {
+                            _box3.copy(object.glVao.boundingBox)
+                                .applyMatrix4(node.worldMatrix)
+                                .clampPoint(cameraPosition, _vector3)
+
+                            const distanceSq = _vector3.distanceToSquared(this.camera.position)
+
+                            this.#cameraDistanceCache.set(object, distanceSq)
+                        } else {
+                            this.#cameraDistanceCache.set(object, 0)
+                        }
+                    } else {
+                        opaqueObjects.push(object)
+                    }
+                }
+            }
+        }
+
+        opaqueObjects.sort(this.compareObjectDrawOptimizationBound)
+
+        transparentObjects.sort(this.#compareCameraDistanceBound)
+        this.#cameraDistanceCache.clear()
         // ## Opaque
 
         const glOpaqueFrameBuffer = this.glContext.getGlFrameBuffer(this.opaqueFrameBuffer)
@@ -297,15 +331,22 @@ export class GlRenderer {
     #vaoCache = new WeakMap()
     #objectState = new WeakMap()
 
-    compareObjectDrawOptimizationBound = this.compareObjectDrawOptimization.bind(this)
 
-    /**
-     * 
-     * @param {GlObject} a 
-     * @param {GlObject} b 
-     * @returns 
-     */
-    compareObjectDrawOptimization(a, b) {
+    #cameraDistanceCache = new Map()
+
+    #compareCameraDistanceBound = this.#compareCameraDistance.bind(this)
+    #compareCameraDistance(
+        /** @type {GlObject} */ a,
+        /** @type {GlObject} */ b
+    ) {
+        return this.#cameraDistanceCache.get(b) - this.#cameraDistanceCache.get(a)
+    }
+
+    compareObjectDrawOptimizationBound = this.compareObjectDrawOptimization.bind(this)
+    compareObjectDrawOptimization(
+        /** @type {GlObject} */ a,
+        /** @type {GlObject} */ b
+    ) {
         if (!this.#programCache.has(a.glProgram)) this.#programCache.set(a.glProgram, this.#lastProgramId++)
         if (!this.#programCache.has(b.glProgram)) this.#programCache.set(b.glProgram, this.#lastProgramId++)
         const materialIdA = this.#programCache.get(a.glProgram)
@@ -351,7 +392,7 @@ function sortTransparencyObjects(/** @type {GlObject[]} */ objects) {
     const transparent = []
 
     for (const object of objects) {
-        if (object.normalBlending || object.additiveBlending) {
+        if (object.normalBlending || object.additiveBlending || object.multiplyBlending) {
             transparent.push(object)
         } else {
             opaque.push(object)
@@ -390,21 +431,33 @@ function getObjectsInFrustum(
     const result = []
 
     for (const node of nodes) {
-        for (const object of node.objects) {
-            if (object instanceof GlObject && !object.glProgram.glTransformFeedback) {
-                if (object.glVao) {
-                    const boundingBox = object.glVao.boundingBox
+        result.push(...getObjectsInFrustumFromNode(node))
+    }
 
-                    if (
-                        boundingBox.isEmpty()
-                        || frustum.intersectsBox(
-                            _box3.copy(boundingBox).translate(node.position))
-                    ) {
-                        result.push(object)
-                    }
-                } else {
+    return result
+}
+
+function getObjectsInFrustumFromNode(
+    /** @type {Node3D} */ node,
+    /** @type {Frustum} */ frustum
+) {
+    /** @type {GlObject[]} */
+    const result = []
+
+    for (const object of node.objects) {
+        if (object instanceof GlObject && !object.glProgram.glTransformFeedback) {
+            if (object.glVao) {
+                const boundingBox = object.glVao.boundingBox
+
+                if (
+                    boundingBox.isEmpty()
+                    || frustum.intersectsBox(
+                        _box3.copy(boundingBox).applyMatrix4(node.worldMatrix))
+                ) {
                     result.push(object)
                 }
+            } else {
+                result.push(object)
             }
         }
     }

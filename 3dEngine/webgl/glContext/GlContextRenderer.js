@@ -228,12 +228,19 @@ export class GlContextRenderer {
         this.glCapabilities.depthWrite = glObject.depthWrite
         this.glCapabilities.depthFunc = glObject.depthFunc
 
-        if (glObject.frontCullFace === glObject.backCullFace) this.glCapabilities.cullFace = false
-        else {
-            this.glCapabilities.cullFace = true
+        let isDoubleSide = glObject.frontCullFace && glObject.backCullFace
 
-            if (glObject.frontCullFace) this.glCapabilities.setFrontFace()
-            else this.glCapabilities.setBackFace()
+        if (isDoubleSide) {
+            this.glCapabilities.cullFace = true
+            this.glCapabilities.setBackFace()
+        } else if (glObject.frontCullFace) {
+            this.glCapabilities.cullFace = true
+            this.glCapabilities.setFrontFace()
+        } else if (glObject.backCullFace) {
+            this.glCapabilities.cullFace = true
+            this.glCapabilities.setBackFace()
+        } else {
+            this.glCapabilities.cullFace = false
         }
 
         const glProgram = this.getGlProgram(glObject.glProgram)
@@ -271,6 +278,7 @@ export class GlContextRenderer {
             }
         }
 
+
         if (glObject.glProgram.glTransformFeedback) {
             glProgram.bindTransformFeedback()
             this.gl.beginTransformFeedback(WebGL2RenderingContext.POINTS)
@@ -278,8 +286,16 @@ export class GlContextRenderer {
             this.gl.endTransformFeedback()
         } else if (glVao && glVao.indicesType !== -1) {
             this.gl.drawElements(glObject.drawMode, glObject.count, glVao.indicesType, glObject.offset)
+            if (isDoubleSide) {
+                this.glCapabilities.setFrontFace()
+                this.gl.drawElements(glObject.drawMode, glObject.count, glVao.indicesType, glObject.offset)
+            }
         } else {
             this.gl.drawArrays(glObject.drawMode, glObject.offset, glObject.count)
+            if (isDoubleSide) {
+                this.glCapabilities.setFrontFace()
+                this.gl.drawArrays(glObject.drawMode, glObject.offset, glObject.count)
+            }
         }
     }
 

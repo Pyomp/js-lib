@@ -1,10 +1,12 @@
 
 
 
-export function optimizeRanges(/** @type {number[][]} */ ranges) {
+export function optimizeRanges(/** @type {[number, number][]} */ ranges) {
     const result = []
 
     while (ranges.length > 0) {
+        /** @type {[number, number]} */
+        // @ts-ignore
         const a = ranges.pop()
 
         let isMerged = false
@@ -19,7 +21,7 @@ export function optimizeRanges(/** @type {number[][]} */ ranges) {
                 break
             }
         }
-        
+
         if (!isMerged) result.push(a)
     }
 
@@ -31,9 +33,12 @@ export class GlArrayBuffer {
     // startToUpdate = Infinity
     // endToUpdate = 0
 
-    updateRanges = []
+    /** @type {[number, number][]} */ updateRanges = []
 
-    setNeedsUpdate(start, end) {
+    setNeedsUpdate(
+        /** @type {number} */ start,
+        /** @type {number} */ end
+    ) {
         this.updateRanges.push([start, end])
         this.version++
     }
