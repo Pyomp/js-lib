@@ -21,6 +21,8 @@ export class ThirdControls {
     target = new Vector3()
     enabled = true
 
+    #isModeFollow = true
+
     spherical = new Spherical(MaxDistCam, 0.8, 0.8)
     #wantedSpherical = new Spherical().copy(this.spherical)
 
@@ -80,6 +82,11 @@ export class ThirdControls {
 
         this.spherical.copy(this.#wantedSpherical)
 
+        if (this.#isModeFollow === true) {
+            this.#direction.subVectors(this.#cameraPosition, this.#targetOffset)
+            this.spherical.theta = Math.atan2(this.#direction.x, this.#direction.z)
+        }
+
         this.#direction.setFromSpherical(this.spherical)
 
         this.#cameraPosition.addVectors(this.#targetOffset, this.#direction)
@@ -106,6 +113,7 @@ export class ThirdControls {
         const onPointerdown = (e) => {
             if (p1 === undefined) {
                 this.#wantedSpherical.copy(this.spherical)
+                this.#isModeFollow = false
                 domElement.setPointerCapture(e.pointerId)
                 p1 = e.pointerId; p1X = e.clientX; p1Y = e.clientY
             } else if (p2 === undefined) {
@@ -123,6 +131,7 @@ export class ThirdControls {
                 p1X = p2X
                 p1Y = p2Y
                 p2 = undefined
+                this.#isModeFollow = !p1
             } else if (p2 === id) {
                 p2 = undefined
             }
@@ -163,41 +172,39 @@ export class ThirdControls {
         }
     }
 
-    #initComputerEvent(
-        /** @type {HTMLElement} */ domElement
-    ) {
+    #initComputerEvent(domElement) {
         const onWheel = (e) => {
             if (e.target !== domElement) return
 
             const delta = (-e.wheelDelta * this.spherical.radius) / 1000
 
+            this.#wantedSpherical.phi = this.spherical.phi
+            this.#wantedSpherical.theta = this.spherical.theta
             this.#wantedSpherical.radius = clamp(this.#wantedSpherical.radius + delta, MinDistCam, MaxDistCam)
 
             this.spherical.radius = this.#wantedSpherical.radius
         }
 
         const onPointermove = (e) => {
+
             this.#dx += e.movementX
             this.#dy += e.movementY
         }
 
-        domElement.addEventListener('pointerdown', async (e) => {
-            try {
-                await domElement.requestPointerLock({ unadjustedMovement: true })
-            } catch {
-                domElement.requestPointerLock()
-            }
+        domElement.addEventListener('pointerdown', (e) => {
+            domElement.requestPointerLock()
         })
 
         const lockChangeAlert = () => {
             domElement.focus()
             if (document.pointerLockElement === null) {
                 domElement.removeEventListener('mousemove', onPointermove)
-                this.#dx = 0
-                this.#dy = 0
+                this.#isModeFollow = true
             } else {
                 if (!this.enabled) return
                 domElement.addEventListener('mousemove', onPointermove)
+                this.#wantedSpherical.copy(this.spherical)
+                this.#isModeFollow = false
             }
         }
 

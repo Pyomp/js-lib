@@ -1,3 +1,4 @@
+
 import { StylesVar } from "./StylesVar.js"
 import { EventSet } from "../../utils/EventSet.js"
 import { CssClass } from "./CssClass.js"
@@ -75,7 +76,7 @@ body {
 }
 
 body {
-    font-family: courier, sans-serif;
+    font-family: Terminal, Monospace;
     -webkit-user-drag: none;
     background: ${styles.vars["--background1"]};
     color: ${styles.vars["--color1"]};
