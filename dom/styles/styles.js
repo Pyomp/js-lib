@@ -76,7 +76,7 @@ body {
 }
 
 body {
-    font-family: Terminal, Monospace;
+    font-family: monospace;
     -webkit-user-drag: none;
     background: ${styles.vars["--background1"]};
     color: ${styles.vars["--color1"]};
