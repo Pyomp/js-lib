@@ -160,7 +160,7 @@ export class HairSystem {
         /** @type {Vector3} */ position,
         /** @type {Vector3} */ velocity,
     ) {
-        const sphere = new Sphere(new Vector3(0, 0.8, 0), 0.13)
+        const sphere = new Sphere(new Vector3(0, 0.75, 0), 0.10)
         sphere.center.applyMatrix4(this.#preMatrix)
 
         _vector3.subVectors(position, sphere.center)
