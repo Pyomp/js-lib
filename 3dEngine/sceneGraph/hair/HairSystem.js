@@ -214,10 +214,11 @@ export class HairSystem {
 
             // elasticity
             const elasticity = Math.min(1, this.#elasticities[i - 1] * PHYSICS_DT)
-            velocity.add(_vector3.subVectors(this.#solidPositions[i], this.#positions[i]).multiplyScalar(elasticity))
+            const a = _vector3.subVectors(this.#solidPositions[i], this.#positions[i]).normalize()
+            velocity.add(a.multiplyScalar(0.1))
 
             // gravity
-            velocity.y -= 0.1
+            velocity.y -= 4
         }
     }
 
@@ -236,7 +237,7 @@ export class HairSystem {
     update() {
         this.#physicsPrepare()
         this.#physicsUpdate()
-        this.#updatePositions()
+        // this.#updatePositions()
         this.#updateMatrices()
     }
 }
