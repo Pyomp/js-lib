@@ -25,7 +25,7 @@ class Matrix4 {
         /** @type {number} */ n41,
         /** @type {number} */ n42,
         /** @type {number} */ n43,
-        /** @type {number} */ n44
+        /** @type {number} */ n44,
     ) {
 
         const te = this.elements
