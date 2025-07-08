@@ -72,7 +72,10 @@ async function getTraduction(i18nKey, dictionaries) {
     }
 }
 
-async function register(htmlElement, str) {
+async function register(
+    /** @type {HTMLElement} */ htmlElement,
+    /** @type {string} */ str
+) {
     _elementMap.set(htmlElement, str)
     htmlElement.textContent = await getTraduction(str)
     return () => { unregisterDeep(htmlElement) }
