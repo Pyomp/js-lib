@@ -1,17 +1,22 @@
-export const createSeparationBar = (parent) => {
+export const createSeparationBar = (
+    /** @type {HTMLElement | undefined} */ parent
+) => {
     const separationBar = document.createElement('div')
     {
         const s = separationBar.style
         s.width = '80%'
+        s.maxWidth = '80%'
         s.margin = '3px auto'
         s.height = '1px'
         s.background = '#444444'
     }
-    parent.appendChild(separationBar)
+    parent?.appendChild(separationBar)
     return separationBar
 }
 
-export const createSeparationBarNoMargin = (parent) => {
+export const createSeparationBarNoMargin = (
+    /** @type {HTMLElement | undefined} */ parent
+) => {
     const separationBar = document.createElement('div')
     {
         const s = separationBar.style
@@ -20,6 +25,6 @@ export const createSeparationBarNoMargin = (parent) => {
         s.height = '1px'
         s.background = '#444444'
     }
-    parent.appendChild(separationBar)
+    parent?.appendChild(separationBar)
     return separationBar
 }
