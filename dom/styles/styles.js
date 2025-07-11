@@ -11,8 +11,8 @@ const darkStyle = {
     '--background-transparent03': 'rgba(0, 0, 0, 0.3)',
     '--background-transparent05': 'rgba(0, 0, 0, 0.5)',
     '--background-transparent07': 'rgba(0, 0, 0, 0.7)',
-    '--themeColor': 'hsl(200, 100%, 50%)',
-    '--themeColorWhiter': 'hsl(200, 100%, 70%)',
+    '--themeColor': 'hsl(30, 100%, 50%)',
+    '--themeColorWhiter': 'hsl(30, 100.00%, 70.00%)',
 
     '--color1': 'hsl(0, 0%, 95%)',
     '--color2': 'hsl(0, 0%, 85%)',
@@ -145,8 +145,9 @@ label {
 }
 
 input {
-    border-radius: 5px;
-    border: solid 1px var(--themeColorWhiter);
+    border-radius: 10px;
+    height: 25px;
+    border: 3px inset grey;
 
     padding: 5px;
 
@@ -154,7 +155,12 @@ input {
     outline: none;
 
     font: inherit;
-    color: inherit;
+    color: inherit; 
+}
+
+input[type=range]{
+    border: none;
+    padding: 0;
 }
 
 input[type=number]{
