@@ -14,7 +14,7 @@ const MaxDistCam = 70
 const MinDistCamToGround = 0.5
 
 export class ThirdControls {
-    offsetY = 0.5
+    offsetY = 0.6
     sensitivity = 5
 
     #targetOffset = new Vector3()
@@ -76,7 +76,10 @@ export class ThirdControls {
         }
 
         this.#targetOffset.copy(this.target)
-        this.#targetOffset.y += this.offsetY + this.#wantedSpherical.radius * 0.1
+        const a = this.#wantedSpherical.radius ** 0.5
+        this.#targetOffset.y += this.offsetY * a
+        this.#targetOffset.x += 0.1 * Math.cos(this.#wantedSpherical.theta) * a
+        this.#targetOffset.z += 0.1 * -Math.sin(this.#wantedSpherical.theta) * a
 
         this.spherical.copy(this.#wantedSpherical)
 
@@ -90,6 +93,7 @@ export class ThirdControls {
                 this.#cameraPosition.y = groundHeight + MinDistCamToGround
             }
         }
+
 
         this.#camera.target.copy(this.#targetOffset)
 
