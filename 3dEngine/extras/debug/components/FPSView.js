@@ -11,6 +11,8 @@ export class FPSView {
         this.htmlElement.style.position = 'fixed'
         this.htmlElement.style.bottom = '5px'
         this.htmlElement.style.left = '5px'
+        this.htmlElement.style.userSelect = 'none'
+        this.htmlElement.style.pointerEvents = 'none'
     }
 
     update() {

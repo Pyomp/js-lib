@@ -93,7 +93,7 @@ export class Vector3 {
     }
 
     copy(
-        /** @type {Vector3} */ v
+        /** @type {{readonly x: number, readonly y: number, readonly z: number}} */ v
     ) {
 
         this.x = v.x
@@ -337,16 +337,17 @@ export class Vector3 {
 
     }
 
-    project(camera) {
+    project(
+        /** @type {{viewMatrix: Matrix4; projectionMatrix: Matrix4}} */ camera
+    ) {
 
         return this.applyMatrix4(camera.viewMatrix).applyMatrix4(camera.projectionMatrix)
-
     }
 
-    unproject(camera) {
-
+    unproject(
+        /** @type {{projectionMatrixInverse: Matrix4; matrixWorld: Matrix4}} */ camera
+    ) {
         return this.applyMatrix4(camera.projectionMatrixInverse).applyMatrix4(camera.matrixWorld)
-
     }
 
     transformDirection(m) {
