@@ -8,9 +8,9 @@ export class FPSView {
     #last = performance.now() / 1000
 
     constructor() {
-        this.htmlElement.style.position = 'fixed'
+        this.htmlElement.style.position = 'absolute'
         this.htmlElement.style.bottom = '5px'
-        this.htmlElement.style.left = '5px'
+        this.htmlElement.style.right = '5px'
         this.htmlElement.style.userSelect = 'none'
         this.htmlElement.style.pointerEvents = 'none'
     }

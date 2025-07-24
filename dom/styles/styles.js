@@ -88,9 +88,8 @@ body {
     font-size: 14px;
 
     -webkit-tap-highlight-color: transparent;
-    scrollbar-color: var(--background3) var(--background1);
-    scrollbar-width: thin;
 }
+
 
 select,
 option {
@@ -123,18 +122,19 @@ h3 {
 }
 
 ::-webkit-scrollbar {
-    width: initial;
-    color: var(--color-scroll-bar);
-    background-color: var(--color-background-scroll-bar);
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--background-transparent03); 
 }
 
 ::-webkit-scrollbar-thumb {
-    background-color: var(--color-scroll-bar);
+    background: var(--background-transparent05);
 }
 
-.margin_bottom_scrollbar::-webkit-scrollbar-track {
-    margin-bottom: 30px;
-    background-color: var(--color-background-scroll-bar);
+::-webkit-scrollbar-thumb:hover {
+    background: var(--background-transparent07);
 }
 
 label {
