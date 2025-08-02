@@ -112,13 +112,16 @@ h1 {
 h2 {
     font-size: x-large;
     padding: 10px;
-    text-align: center;
+    // text-align: center;
 }
 
 h3 {
     font-size: larger;
     padding: 10px;
     text-align: center;
+}
+li {
+  list-style-position: inside;
 }
 
 ::-webkit-scrollbar {
@@ -198,6 +201,7 @@ textarea:focus {
 
 button {
     cursor: pointer;
+    user-select: none;
 
     padding: 5px;
     --padding-button: 5px;
@@ -211,9 +215,9 @@ button {
     display: flex;
     align-items: center;
     justify-content: center;
-
+            
     font: inherit;
-    color: inherit;
+    color: var(--color1);
     background: none;
 
     -webkit-tap-highlight-color: transparent;
@@ -284,5 +288,9 @@ input[type="color"]::-webkit-color-swatch-wrapper {
     border: none;
     border-radius: 10px;
     padding: 0;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 `

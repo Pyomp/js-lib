@@ -2,87 +2,125 @@ import { visibility } from "../visibility.js"
 
 const FADE = 0.5
 const MAX_INFO = 5
-const TIME_ALIVE = 2_000
+const TIME_ALIVE = 5_000
 
-const elements = []
+/** @type {SVGTextElement[]} */
+const texts = []
 
-const model = document.createElement('div')
+const xmlns = "http://www.w3.org/2000/svg"
 
-const STROKE_COLOR = '#000'
-const STROKE_SIZE = 1
+const svg = document.createElementNS(xmlns, "svg")
+svg.setAttribute("width", '100%')
+svg.setAttribute("height", '100%')
+svg.style.position = 'fixed'
+svg.style.zIndex = '9999'
+svg.style.overflow = 'hidden'
+svg.style.pointerEvents = 'none'
+svg.style.userSelect = 'none'
 
-const s = model.style
-s.fontWeight = '600'
-s.fontSize = 'large'
-s.wordBreak = 'break-all'
-s.maxWidth = '350px'
-s.pointerEvents = 'none'
-s.textShadow = `-1px -1px ${STROKE_SIZE}px ${STROKE_COLOR},
-                 0   -1px ${STROKE_SIZE}px ${STROKE_COLOR},
-                 1px -1px ${STROKE_SIZE}px ${STROKE_COLOR},
-                 1px  0   ${STROKE_SIZE}px ${STROKE_COLOR},
-                 1px  1px ${STROKE_SIZE}px ${STROKE_COLOR},
-                 0    1px ${STROKE_SIZE}px ${STROKE_COLOR},
-                -1px  1px ${STROKE_SIZE}px ${STROKE_COLOR},
-                -1px  0   ${STROKE_SIZE}px ${STROKE_COLOR}`
-s.position = 'fixed'
-s.zIndex = '888'
-s.transition = `opacity ${FADE}s, bottom ${FADE}s`
-s.pointerEvents = 'none'
-s.userSelect = 'none'
+function createNotificationText() {
+    const text = document.createElementNS(xmlns, 'text')
+
+    text.setAttribute('font-weight', '500')
+    text.setAttribute("x", "50%")
+    text.setAttribute("y", "15%")
+    text.setAttribute('stroke', 'black')
+    text.setAttribute('stroke-width', '4')
+    text.setAttribute('stroke-linecap', 'round')
+    text.setAttribute('stroke-linejoin', 'round')
+    text.setAttribute('paint-order', "stroke")
+    text.setAttribute("text-anchor", "middle")
+    text.setAttribute("dominant-baseline", "text-after-edge")
+    text.style.transition = `opacity ${FADE}s, transform ${FADE}s`
+    text.style.opacity = '0'
+
+    svg.appendChild(text)
+
+    return text
+}
+
 
 let baseBottom = 0
 function computeBaseBottom() {
-    baseBottom = Math.floor(window.innerHeight - window.innerHeight / 5)
+    baseBottom = Math.floor(window.innerHeight * 0.85)
 }
 computeBaseBottom()
 window.addEventListener('resize', computeBaseBottom)
 
+const loadingSpinner = document.createElement('div')
+
+loadingSpinner.style.position = 'fixed'
+loadingSpinner.style.top = '5px'
+loadingSpinner.style.right = '5px'
+loadingSpinner.style.zIndex = '999'
+loadingSpinner.style.width = '20px'
+loadingSpinner.style.height = '20px'
+loadingSpinner.style.border = '5px solid hsl(250, 100%, 70%)'
+loadingSpinner.style.borderTopColor = 'hsl(250, 100%, 85%)'
+loadingSpinner.style.borderRadius = '50%'
+loadingSpinner.style.animation = 'spin 0.8s linear infinite'
+
+let loadingRequestCount = 0
+
 export const notification = {
-    push(str, color = 'hsl(10, 100%, 60%)') {
+    htmlElement: svg,
+    displayLoadingSpinner() {
+        loadingRequestCount++
+        document.body.appendChild(loadingSpinner)
+    },
+    removeLoadingSpinner() {
+        loadingRequestCount--
+        if (loadingRequestCount == 0) loadingSpinner.remove()
+    },
+    push(
+        /** @type {string} */ str,
+        /** @type {string} */ color = 'hsl(200, 100%, 60%)'
+    ) {
         if (!visibility.isVisible) return
-        const clone = model.cloneNode()
-        document.body.appendChild(clone)
-        elements.unshift(clone)
+        /** @type {SVGTextElement} */
+        const text = createNotificationText()
+
+        texts.unshift(text)
 
         function onEnd() {
-            if (clone.style.opacity === '0') {
-                clone.remove()
+            if (text.style.opacity === '0') {
+                text.remove()
+                const index = texts.indexOf(text)
+                if (index !== -1) texts.splice(index, 1)
             }
         }
-        clone.ontransitionend = onEnd
-        clone.ontransitioncancel = onEnd
+        text.ontransitionend = onEnd
+        text.ontransitioncancel = onEnd
 
         setTimeout(() => {
-            if (clone.style.opacity !== '0') {
-                clone.style.bottom = `${+clone.style.bottom.slice(0, -2) + clone.scrollHeight}px`
-                clone.style.opacity = '0'
+            if (text.style.opacity !== '0') {
+                text.style.transform += ' translateY(-40px)'
+                text.style.opacity = '0'
             }
         }, TIME_ALIVE)
 
-        clone.style.color = color
-
-        clone.textContent = str
-
-        clone.style.opacity = 0
-        clone.style.bottom = `${baseBottom - 30}px`
+        text.setAttribute('fill', color)
+        text.textContent = str
+        text.style.transform = `translateY(-${text.getBBox().height})`
 
         requestAnimationFrame(() => {
-            clone.style.transform = `translateX(${window.innerWidth / 2 - clone.scrollWidth / 2}px)`
-            clone.style.opacity = '0.8'
+            text.style.opacity = '1'
             let height = 0
             for (let i = 0; i < MAX_INFO; i++) {
-                const element = elements[i]
+                const element = texts[i]
                 if (!element) break
-                element.style.bottom = `${baseBottom + height}px`
-                height += element.scrollHeight
+                element.style.transform = `translateY(${height}px)`
+                height -= element.getBBox().height
             }
 
-            while (elements.length > MAX_INFO) {
-                const element = elements.pop()
-                element.style.bottom = `${baseBottom + height}px`
-                height += element.scrollHeight
-                element.style.opacity = '0'
+            while (texts.length > MAX_INFO) {
+                const element = texts.pop()
+                if (element) {
+                    element.style.transform = `translateY(${height}px)`
+                    height -= element.getBBox().height
+                    element.style.opacity = '0'
+                    console.log(element.textContent, text.style.transform)
+                }
             }
         })
     }
