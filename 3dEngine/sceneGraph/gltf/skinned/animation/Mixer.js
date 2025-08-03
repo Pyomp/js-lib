@@ -6,6 +6,7 @@ import { Bone } from "./Bone.js"
 import { loopRaf } from "../../../../../utils/loopRaf.js"
 import { KeyFrame } from "./KeyFrame.js"
 import { GLSL_SKINNED } from "../../../../programs/chunks/glslSkinnedChunk.js"
+import { EventSet } from "../../../../../utils/EventSet.js"
 
 export class Mixer {
     rootBone
@@ -23,8 +24,12 @@ export class Mixer {
     fadeSpeed = 15
 
     #animation
+    /** @type {string | number} */
     #currentAnimationName = ''
     #uniforms = []
+
+    /** @type {EventSet<(animation: string | number, time: number)=>void>} */
+    onUpdate = new EventSet()
 
     /**
      * @param {Animation} animation
@@ -49,6 +54,7 @@ export class Mixer {
 
     dispose() {
         this.jointsTexture.needsDelete = true
+        this.onUpdate.emit(-1, -1)
     }
 
     #initCurrentTrack() {
@@ -136,11 +142,15 @@ export class Mixer {
             this.#saveCurrentPose()
             this.#currentAnimationName = animationName
             this.#currentTrack = track
+
+            this.onUpdate.emit(this.#currentAnimationName, this.#time)
         }
 
         if (this.#currentTrack.loop === LoopOnce) {
             this.#time = timeUpdate
         }
+
+        this.onUpdate.emit(this.#currentAnimationName, timeUpdate)
     }
 
     clone() {
