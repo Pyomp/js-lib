@@ -76,10 +76,10 @@ export class ThirdControls {
         }
 
         this.#targetOffset.copy(this.target)
-        const a = this.#wantedSpherical.radius ** 0.5
-        this.#targetOffset.y += this.offsetY * a
-        this.#targetOffset.x += 0.1 * Math.cos(this.#wantedSpherical.theta) * a
-        this.#targetOffset.z += 0.1 * -Math.sin(this.#wantedSpherical.theta) * a
+        const rootRadius = this.#wantedSpherical.radius ** 0.5
+        this.#targetOffset.y += this.offsetY * rootRadius
+        // this.#targetOffset.x += 0.1 * Math.cos(this.#wantedSpherical.theta) * rootRadius
+        // this.#targetOffset.z += 0.1 * -Math.sin(this.#wantedSpherical.theta) * rootRadius
 
         this.spherical.copy(this.#wantedSpherical)
 
