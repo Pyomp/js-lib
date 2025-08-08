@@ -12,7 +12,7 @@ addEventListener('pointerdown', () => {
  * 
  * @returns {() => void} delete event listeners
  */
-export const addPointerMoveListener = (element, onMove, onDown, onUp) => {
+export function addPointerMoveListener(element, onMove, onDown, onUp) {
     let lastX, lastY
     element.style.userSelect = 'none'
     element.style.touchAction = 'none'
@@ -52,7 +52,7 @@ export const addPointerMoveListener = (element, onMove, onDown, onUp) => {
     }
 }
 
-export const repeatClick = (element, callback, timeBeforeSecondTickMs = 500, repeatTimeMs = 100) => {
+export function repeatClick(element, callback, timeBeforeSecondTickMs = 500, repeatTimeMs = 100) {
     element.style.userSelect = 'none'
     element.style.touchAction = 'none'
 

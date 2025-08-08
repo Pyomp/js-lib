@@ -1,4 +1,4 @@
-import { i18n } from '../i18n.js'
+import { i18n } from '../I18n.js'
 
 describe('dictionary registry', () => {
     it('should add a dictionary to a specific language', async () => {
