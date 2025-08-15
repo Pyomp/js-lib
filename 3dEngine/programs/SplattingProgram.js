@@ -85,7 +85,7 @@ void main() {
     outColor = ${GLSL_SPLATTING.getColor('v_uv', 'splatting')}.rgb;
     vec3 normal = ${GLSL_SPLATTING.getNormal('v_normal', 'v_tangent', 'v_bitangent', 'v_uv', 'splatting')};
     outNormal = ivec4(normalize(normal) * INT_RANGE, 1);
-    outPosition = ivec4(v_position * 1000., v_depth);
+    outPosition = ivec4(v_position * 1000., gl_FragCoord.z * INT_RANGE);
 }`
 }
 

@@ -95,7 +95,6 @@ export class I18n {
         return markdown
             .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
             .replace(/\*(.+?)\*/g, '<em>$1</em>')
-            .replace(/!\[(.*?)\]\((.+?)\)/g, '<img width="30px" height="30px" style="vertical-align: middle;" src="$2" alt="$1">')
     }
 
     #renderElement(

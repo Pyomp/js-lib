@@ -5,7 +5,7 @@ const linearizeDepth = Object.freeze({
     float ndc = depth * 2.0 - 1.0;
     return (2.0 * ${cameraNear} * ${cameraFar}) / (${cameraFar} + ${cameraNear} - ndc * (${cameraFar} - ${cameraNear}));	
 }`},
-    call(depth) { return `linearizeDepth(${depth})` }
+    call(/** @type {string} */ depth) { return `linearizeDepth(${depth})` }
 })
 
 const linearDepthToGl = Object.freeze({

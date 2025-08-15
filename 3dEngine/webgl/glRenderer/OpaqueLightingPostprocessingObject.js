@@ -10,6 +10,7 @@ import { GLSL_AMBIENT_LIGHT } from "../../programs/chunks/glslAmbient.js"
 import { GLSL_POINT_LIGHT } from "../../programs/chunks/glslPointLight.js"
 import { GlRenderer } from "./GlRenderer.js"
 import { GlNoiseTexture } from "../../textures/NoiseTexture.js"
+import { GLSL_WINDOW } from "../../programs/chunks/glslWindow.js"
 
 export class OpaqueLightingPostprocessingObject extends GlObject {
 
@@ -103,10 +104,13 @@ export class OpaqueLightingPostprocessingObject extends GlObject {
                     ${GLSL_AMBIENT_LIGHT.fragmentDeclaration}
                     ${GLSL_POINT_LIGHT.uboDeclaration(renderer.pointLightCount)}
                     ${GLSL_UTILS.linearizeDepth.declaration(GLSL_CAMERA.near, GLSL_CAMERA.far)}
+                    ${GLSL_WINDOW.declaration}
 
                     float getScreenDepth(vec2 uv) {
-                        float depth = (float(texture(inPositionTexture, uv).w) / INT_RANGE) + 0.5;
-                        return depth;
+                        // float depth = (float(texture(inPositionTexture, uv).w) / INT_RANGE) + 0.5;
+                        float depth = float(texture(inPositionTexture, uv).w) / INT_RANGE;
+                        // depth = ${GLSL_UTILS.linearizeDepth.call('depth')};
+                        return depth;                         
                     }
                     
                     vec3 getPosition(vec2 uv){
@@ -192,6 +196,33 @@ export class OpaqueLightingPostprocessingObject extends GlObject {
                         return clamp(occlusion / 16.0, 0.0, 1.0);
                     }
 
+                    #define EDL_RADIUS 2.5
+                    #define EDL_STRENGTH 10.
+
+                    float computeEDL(vec2 uv, float currentDepth)
+                    {
+                        float sum = 0.0;
+
+                        vec2 offsets[4] = vec2[](
+                            vec2(0.0,  EDL_RADIUS / ${GLSL_WINDOW.resolution}.y),
+                            vec2(0.0, -EDL_RADIUS / ${GLSL_WINDOW.resolution}.y),
+                            vec2( EDL_RADIUS / ${GLSL_WINDOW.resolution}.x, 0.0),
+                            vec2(-EDL_RADIUS / ${GLSL_WINDOW.resolution}.x, 0.0)
+                        );
+
+                        for (int i = 0; i < 4; ++i) {
+                            float neighborDepth = getScreenDepth(uv + offsets[i]);
+                            float diff = max(0., currentDepth - neighborDepth);
+                            sum += diff;
+                        }
+
+                        // Apply exponential falloff
+                        // float shade = exp(-EDL_STRENGTH * sum);
+                        float shade = sum > 0.001 ? 0.0 : 1.0;
+
+                        return clamp(shade, 0.0, 1.0);
+                    }
+                    
                     void main() {
                         vec2 uv = v_uv;
 
@@ -201,7 +232,6 @@ export class OpaqueLightingPostprocessingObject extends GlObject {
                         float currentPixelDepth = getScreenDepth(uv);
 
                         outColor.rgb = currentPixelColor;
-
                      
                         // lights
                         PointLight pointLight = PointLight(vec3(1.,1.,1.), 0.5, vec3(1.,1.,1.), 10.);
@@ -213,7 +243,9 @@ export class OpaqueLightingPostprocessingObject extends GlObject {
 
                         outColor.rgb *= ${GLSL_AMBIENT_LIGHT.color} + pointLightColor;
 
-                        
+                        float edlShade = computeEDL(uv, currentPixelDepth);
+                        outColor.rgb *= edlShade;
+
                         // outColor.rgb *= 1. - getOcclusion(currentPixelPosition, currentPixelDepth, currentPixelNormal, ivec2(gl_FragCoord.xy));
                         // outColor.rgb = getPosition(uv) / 10.;
                         // outColor.rgb = getNormal(uv);

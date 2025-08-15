@@ -1,5 +1,5 @@
 export const createSeparationBar = (
-    /** @type {HTMLElement | undefined} */ parent
+    /** @type {HTMLElement | undefined} */ parent = undefined
 ) => {
     const separationBar = document.createElement('div')
     {
@@ -15,7 +15,7 @@ export const createSeparationBar = (
 }
 
 export const createSeparationBarNoMargin = (
-    /** @type {HTMLElement | undefined} */ parent
+    /** @type {HTMLElement | undefined} */ parent = undefined
 ) => {
     const separationBar = document.createElement('div')
     {

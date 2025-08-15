@@ -26,7 +26,7 @@ export function getMiddle3DPosition(worldCameraMatrix, node3D, target) {
         _vector2
     )
 
-    const minDistance = distanceRayNode(_ray, node3D)
+    const { minDistance } = distanceRayNode(_ray, node3D)
 
     console.log(minDistance)
 
@@ -43,7 +43,7 @@ export function getPointer3DPosition(clientX, clientY, htmlElement, worldCameraM
         _vector2
     )
 
-    const minDistance = distanceRayNode(_ray, node3D)
+    const { minDistance } = distanceRayNode(_ray, node3D)
 
     console.log(minDistance)
 
@@ -54,13 +54,19 @@ export function getPointer3DPosition(clientX, clientY, htmlElement, worldCameraM
  * 
  * @param {Ray} ray 
  * @param {Node3D} node
- * @returns 
+ * @returns {{
+ *      minDistance: number
+ *      minDistanceNode: Node3D | null
+ * }}
  */
 export function distanceRayNode(
     ray,
     node,
 ) {
     let minDistance = Infinity
+
+    /** @type {Node3D | null} */
+    let minDistanceNode = null
 
     node.traverse((childNode) => {
         for (const object of childNode.objects) {
@@ -70,11 +76,16 @@ export function distanceRayNode(
                     const positionArray = positionAttribute.glArrayBuffer.arrayBuffer
                     const indices = object.glVao.indicesUintArray
                     if (indices) {
+                        let distance = Infinity
                         if (object.frontCullFace) {
-                            minDistance = Math.min(minDistance, distanceRayMesh(ray, indices, positionArray, object.glVao.boundingBox, undefined, childNode.worldMatrix, true))
+                            distance = distanceRayMesh(ray, indices, positionArray, object.glVao.boundingBox, undefined, childNode.worldMatrix, true)
                         }
                         if (object.backCullFace) {
-                            minDistance = Math.min(minDistance, distanceRayMesh(ray, indices, positionArray, object.glVao.boundingBox, undefined, childNode.worldMatrix, false))
+                            distance = distanceRayMesh(ray, indices, positionArray, object.glVao.boundingBox, undefined, childNode.worldMatrix, false)
+                        }
+                        if (minDistance > distance) {
+                            minDistance = distance
+                            minDistanceNode = childNode
                         }
                     }
                 }
@@ -82,7 +93,7 @@ export function distanceRayNode(
         }
     })
 
-    return minDistance
+    return { minDistance, minDistanceNode }
 }
 
 /**

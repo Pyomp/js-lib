@@ -86,7 +86,7 @@ function fragmentShader({
         vec4 color = texture(${GLSL_COMMON.baseTexture}, v_uv);
         if(color.a < ${GLSL_COMMON.alphaTest}) discard;
         outColor = color.xyz;
-        outPosition = ivec4(v_position * 1000., v_depth);
+        outPosition = ivec4(v_position * 1000., gl_FragCoord.z * INT_RANGE);
         outNormal = ivec4(normalize(v_normal) * INT_RANGE, 1);
         outDepth = gl_FragCoord.z;
         outStencil = 0;
