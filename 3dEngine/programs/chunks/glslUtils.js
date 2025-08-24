@@ -1,3 +1,5 @@
+import { GLSL_CAMERA } from "./glslCamera.js"
+
 const linearizeDepth = Object.freeze({
     declaration(cameraNear, cameraFar) {
         return `float linearizeDepth(float depth) 
@@ -9,15 +11,24 @@ const linearizeDepth = Object.freeze({
 })
 
 const linearDepthToGl = Object.freeze({
-    declaration(cameraNear, cameraFar) {
-        return `float linearDepthToGl(float linearDepth) 
-{
-    float nonLinearDepth = (${cameraFar} + ${cameraNear} - 2.0 * ${cameraNear} * ${cameraFar} / linearDepth) / (${cameraFar} - ${cameraNear});
-    nonLinearDepth = (nonLinearDepth + 1.0) / 2.0;
-    return nonLinearDepth;
-}`
+    declaration(
+        /** @type {string} */ cameraNear = GLSL_CAMERA.near,
+        /** @type {string} */ cameraFar = GLSL_CAMERA.far,
+    ) {
+        return `
+float linearDepthToGl(float linearDepth) {
+    float near = ${cameraNear};
+    float far = ${cameraFar};
+    return (far / (far - near)) - (far * near) / ((far - near) * linearDepth);
+    
+
+    // float nonLinearDepth = (${cameraFar} + ${cameraNear} - 2.0 * ${cameraNear} * ${cameraFar} / linearDepth) / (${cameraFar} - ${cameraNear});
+    // nonLinearDepth = (nonLinearDepth + 1.0) / 2.0;
+    // return nonLinearDepth;
+}
+`
     },
-    call(depth) { return `linearDepthToGl(${depth})` }
+    call(/** @type {string} */ depth) { return `linearDepthToGl(${depth})` }
 })
 
 

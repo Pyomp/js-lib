@@ -1,5 +1,6 @@
 import { loopRaf } from "../../../utils/loopRaf.js"
 import { GLSL_CAMERA } from "../../programs/chunks/glslCamera.js"
+import { GLSL_DEFERRED } from "../../programs/chunks/glslDeferred.js"
 import { GLSL_POINT_LIGHT } from "../../programs/chunks/glslPointLight.js"
 import { GLSL_UTILS } from "../../programs/chunks/glslUtils.js"
 import { GLSL_WINDOW } from "../../programs/chunks/glslWindow.js"
@@ -43,6 +44,7 @@ in vec3 velocity;
 in float time;
 
 ${GLSL_CAMERA.declaration}
+${GLSL_WINDOW.declaration}
 
 uniform sampler2D keyframesTexture;
 uniform float dt;
@@ -71,6 +73,8 @@ void main() {
         keyframe = texelFetch(keyframesTexture, ivec2(widthIndex, 0), 0);
     }
 
+    float pointFactor = ${GLSL_WINDOW.resolution}.y * 0.5;
+
     if(widthIndex >= ${KEYFRAMES_PIXEL_LENGTH}) {
         v_color.w = 0.;
         gl_PointSize = 1.;
@@ -78,21 +82,22 @@ void main() {
         gl_Position.w = 1.;
     } else if( widthIndex == 0 ) {
         v_color = texelFetch(keyframesTexture, ivec2(1, 0), 0);
-        gl_PointSize = keyframe[1] * size * ATTENUATION / gl_Position.z;        
+        gl_PointSize = keyframe[1] * size * pointFactor / gl_Position.z;        
     } else {
         float alpha = getAlpha(previousKeyframe[0], keyframe[0], time);
         vec4 previousKeyframeColor = texelFetch(keyframesTexture, ivec2(widthIndex - ${KEYFRAME_PIXEL_LENGTH} + ${KEYFRAME_COLOR_PIXEL_OFFSET}, 0), 0);
         vec4 keyframeColor = texelFetch(keyframesTexture, ivec2(widthIndex + ${KEYFRAME_COLOR_PIXEL_OFFSET}, 0), 0);
         v_color = mix(previousKeyframeColor, keyframeColor, alpha);
-        gl_PointSize = mix(previousKeyframe[1], keyframe[1], alpha) * size * ATTENUATION / gl_Position.z;
+        gl_PointSize = mix(previousKeyframe[1], keyframe[1], alpha) * size * pointFactor / gl_Position.z;
     }
 
-    v_size = size;
+    v_size = gl_PointSize / ${GLSL_WINDOW.resolution}.y;
 }
 `,
     () => `#version 300 es
 precision highp float;
 precision highp sampler2D;
+precision highp isampler2D;
 
 in vec4 v_color;
 in float v_size;
@@ -105,24 +110,64 @@ ${GLSL_WINDOW.declaration}
 ${GLSL_UTILS.linearizeDepth.declaration(GLSL_CAMERA.near, GLSL_CAMERA.far)}
 ${GLSL_UTILS.linearDepthToGl.declaration(GLSL_CAMERA.near, GLSL_CAMERA.far)}
 
+${GLSL_DEFERRED.fragmentUserDeclaration}
+
 out vec4 color;
 
 void main(){
-    color = texture(bumpTexture, gl_PointCoord.xy) * v_color;
+    // 1. Circle mask inside the point
+    vec2 uv = gl_PointCoord * 2.0 - 1.0;
+    float r2 = dot(uv, uv);
+    if (r2 > 1.0) discard;
 
-    vec2 uv = gl_FragCoord.xy / ${GLSL_WINDOW.resolution};
-    float screenDepth = float(texture(depthTexture, uv).x);
-        
+    // 2. Sphere z displacement from circle equation: x^2 + y^2 + z^2 = r^2
+    float zDisp = sqrt(max(0.0, 1.0 - r2)); // normalized hemisphere depth
+
+    // 3. Add displacement to current depth
+    //    Here gl_FragCoord.z is window-space depth [0,1].
+    float pointDepthLinear = ${GLSL_UTILS.linearizeDepth.call('gl_FragCoord.z')};
+    pointDepthLinear -= (zDisp * v_size);
+    float sphereDepth = pointDepthLinear;
+    // float sphereDepth = gl_FragCoord.z - (zDisp * v_size);
+
+    // 4. Scene depth from depth texture
+
+    float sceneDepthLinear = ${GLSL_DEFERRED.getDeferredPositionDepth('uv')}.w;
+
+    vec2 screenUv = gl_FragCoord.xy / ${GLSL_WINDOW.resolution};
+    float sceneDepth = float(texture(depthTexture, screenUv).x);
+
+    // 5. Depth difference → attenuation
+    float delta = sphereDepth - sceneDepth;
+    float fade = mix(1.0, 0.0,
+                     smoothstep(0.0, v_size, max(0.0, delta)));
+
+  
+    // 6. Opacity also depends on distance from center (strongest at center)
+    float radial = sqrt(1.0 - r2);  
+
     float particleDepthLinear = ${GLSL_UTILS.linearizeDepth.call('gl_FragCoord.z')};
 
-    float de = length(gl_PointCoord * 2. - 1.);
-    float sphereDepth = 1. - de * de;
-    particleDepthLinear -= sphereDepth * v_size * 0.038;
+    float alpha = radial;
+    // float alpha = radial * fade;
 
-    float l = abs(${GLSL_UTILS.linearizeDepth.call('screenDepth')} - particleDepthLinear);
-    color.a *= clamp(l * 5., 0., 1.);
+    // float de = length(gl_PointCoord * 2. - 1.);
+    // float sphereDepth = 1. - de * de;
+    // particleDepthLinear -= sphereDepth * v_size * 0.038;
 
-    gl_FragDepth = ${GLSL_UTILS.linearDepthToGl.call('particleDepthLinear')};
+    // float l = abs(${GLSL_UTILS.linearizeDepth.call('screenDepth')} - particleDepthLinear);
+
+    
+    // color = texture(bumpTexture, gl_PointCoord.xy) * v_color;
+    // color = texture(bumpTexture, gl_PointCoord.xy);
+
+    color = vec4(1.0, 0.6, 0.2, 1.0);
+    color *= alpha;
+    color = vec4(zDisp,zDisp,zDisp, 1.0);
+
+    // 8. Update depth buffer with our displaced depth
+    // gl_FragDepth = sphereDepth;
+    gl_FragDepth = ${GLSL_UTILS.linearDepthToGl.call('pointDepthLinear')};
 }
 `)
 
@@ -178,8 +223,12 @@ export class ParticleSystemObject extends GlObject {
          *      emitDeltaTime: number
          *      particleLifeTime: number
          *      emitterPosition: Vector3
+         *      opaquePositionDepthTexture: GlTexture
          *      depthTexture: GlTexture
          *      keyframes: ParticleKeyframe[]
+         *      inDeferredColorTexture: GlTexture
+         *      inDeferredPositionTexture: GlTexture
+         *      inDeferredNormalTexture: GlTexture
          * }}
         */
         {
@@ -187,8 +236,12 @@ export class ParticleSystemObject extends GlObject {
             emitDeltaTime,
             particleLifeTime,
             emitterPosition,
+            opaquePositionDepthTexture,
             depthTexture,
-            keyframes
+            keyframes,
+            inDeferredColorTexture,
+            inDeferredPositionTexture,
+            inDeferredNormalTexture
         }
     ) {
         const particleCount = Math.ceil(particleLifeTime / emitDeltaTime)
@@ -235,10 +288,12 @@ export class ParticleSystemObject extends GlObject {
             uniforms: {
                 dt: 0,
                 keyframesTexture: createKeyFrameTexture(keyframes),
+                opaquePositionDepthTexture,
                 bumpTexture: new GlTexture({
                     data: createSparkleCanvas()
                 }),
-                depthTexture
+                depthTexture,
+                ...GLSL_DEFERRED.createUserUniform(inDeferredColorTexture, inDeferredPositionTexture, inDeferredNormalTexture)
             }
         })
 
@@ -250,8 +305,10 @@ export class ParticleSystemObject extends GlObject {
         this.#initVelocity = initVelocity
         this.#emitterPosition = emitterPosition
 
+        this.glVao?.boundingBox.makeInfinity()
         setTimeout(() => {
             this.glVao?.computeBoundingBox()
+            this.glVao?.boundingBox.expandByScalar(1.5)
         }, particleLifeTime * 1000 + 1000)
     }
 

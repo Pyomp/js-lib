@@ -6,6 +6,7 @@ const projectionViewMatrixInverse = 'projectionViewMatrixInverse'
 const position = 'cameraPosition'
 const near = 'near'
 const far = 'far'
+const fovTanHalf = 'fovTanHalf'
 
 const declaration = `
 layout(std140) uniform ${uboName} {
@@ -16,6 +17,7 @@ layout(std140) uniform ${uboName} {
     vec3 ${position};
     float ${near};
     float ${far};
+    float ${fovTanHalf};
 };`
 
 const uboOffset = {
@@ -26,6 +28,7 @@ const uboOffset = {
     position: 64,
     near: 67,
     far: 68,
+    fovTanHalf: 69,
 }
 
 const uboByteLength = 72 * 4
@@ -41,5 +44,6 @@ export const GLSL_CAMERA = Object.freeze({
     position,
     near,
     far,
+    fovTanHalf,
     declaration
 })

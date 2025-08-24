@@ -1,6 +1,7 @@
 import { Camera } from "../../sceneGraph/Camera.js"
 import { GlUbo } from "../glDescriptors/GlUbo.js"
 import { GLSL_CAMERA } from '../../programs/chunks/glslCamera.js'
+import { degToRad } from "../../../math/MathUtils.js"
 
 export class GlCameraUbo {
     #version = 0
@@ -28,6 +29,7 @@ export class GlCameraUbo {
             this.#camera.position.toArray(this.#uboF32a, GLSL_CAMERA.uboOffset.position)
             this.#uboF32a[GLSL_CAMERA.uboOffset.near] = this.#camera.near
             this.#uboF32a[GLSL_CAMERA.uboOffset.far] = this.#camera.far
+            this.#uboF32a[GLSL_CAMERA.uboOffset.fovTanHalf] = Math.tan(degToRad(this.#camera.fov * 0.5))
 
             this.glUboData.version++
         }

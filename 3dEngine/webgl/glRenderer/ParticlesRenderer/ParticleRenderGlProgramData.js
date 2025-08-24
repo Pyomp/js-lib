@@ -246,7 +246,7 @@ void main(){
         
     float particleDepthLinear = ${GLSL_UTILS.linearizeDepth.call('gl_FragCoord.z')};
 
-    float de  = length(gl_PointCoord * 2. - 1.);
+    float de = length(gl_PointCoord * 2. - 1.);
     float sphereDepth = 1. - de * de;
     particleDepthLinear -= sphereDepth * v_size * 0.038;
 

@@ -2,34 +2,45 @@ import { GlProgram } from "../webgl/glDescriptors/GlProgram.js"
 import { GLSL_CAMERA } from "./chunks/glslCamera.js"
 import { GLSL_COMMON } from "./chunks/glslCommon.js"
 import { GLSL_DEFERRED } from "./chunks/glslDeferred.js"
+import { GLSL_MORPH_TARGET } from "./chunks/glslMorphTarget.js"
 import { GLSL_SKINNED } from "./chunks/glslSkinnedChunk.js"
 
-function vertexShader() {
+function vertexShader(
+    /** @type {boolean} */ isSkinned,
+    /** @type {string[]} */ morphs = []
+) {
+    const isMorph = morphs.length > 0
+
     return `#version 300 es
 precision highp float;
 precision highp int;
 
 ${GLSL_COMMON.vertexDeclaration}
-${GLSL_SKINNED.declaration}
+${isSkinned ? GLSL_SKINNED.declaration : ''}
+${isMorph ? GLSL_MORPH_TARGET.declaration(morphs) : ''}
 ${GLSL_CAMERA.declaration}
 ${GLSL_DEFERRED.vertexDeferredDeclaration}
 
 out vec2 v_uv;
 out vec3 v_normal;
 
-
 void main() {
-    ${GLSL_SKINNED.computeSkinMatrix}
+    ${isSkinned ? GLSL_SKINNED.computeSkinMatrix : ''}
 
-    // already multiplied by world matrix in JS
-    vec4 worldPosition = ${GLSL_SKINNED.skinMatrix} * vec4(${GLSL_COMMON.positionAttribute}, 1.0);    
+    vec4 worldPosition = ${GLSL_COMMON.getWorldPosition(
+        isMorph ? GLSL_MORPH_TARGET.getMorphTargetPosition : GLSL_COMMON.positionAttribute,
+        isSkinned ? GLSL_SKINNED.skinMatrix : ''
+    )};
 
     gl_Position = ${GLSL_CAMERA.projectionViewMatrix} * worldPosition;
 
-    v_normal = mat3(${GLSL_SKINNED.skinMatrix}) * ${GLSL_COMMON.normalAttribute};
-    
-    v_uv = uv;
+    v_normal = ${GLSL_COMMON.getWorldNormal(
+        isMorph ? GLSL_MORPH_TARGET.getMorphTargetNormal : GLSL_COMMON.normalAttribute,
+        isSkinned ? GLSL_SKINNED.skinMatrix : ''
+    )};
 
+    v_uv = uv;
+    
     ${GLSL_DEFERRED.setVertexDeferredOutputs('worldPosition')}
 }`
 }
@@ -49,7 +60,7 @@ function fragmentShader() {
     uniform float ${GLSL_COMMON.alphaTest};
 
     ${GLSL_DEFERRED.fragmentDeferredDeclaration}
-
+    
     void main() {
         vec4 color = texture(${GLSL_COMMON.baseTexture}, v_uv);
         if(color.a < ${GLSL_COMMON.alphaTest}) discard;
@@ -58,11 +69,17 @@ function fragmentShader() {
     }`
 }
 
-export class HairDeferredProgram extends GlProgram {
-    constructor() {
+export class CommonDeferredProgram extends GlProgram {
+    constructor(
+        /** @type {boolean} */ isSkinned = false,
+        /** @type {string[]} */ morphs = [],
+    ) {
         super(
-            vertexShader,
-            fragmentShader
+            () => vertexShader(
+                isSkinned,
+                morphs
+            ),
+            () => fragmentShader()
         )
     }
 }

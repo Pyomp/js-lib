@@ -116,7 +116,7 @@ function getGlObjectData(
     }
 
     for (const key of targetNames) {
-        uniforms[GLSL_MORPH_TARGET.influanceUniformPrefix + key] = 0
+        uniforms[GLSL_MORPH_TARGET.influenceUniformPrefix + key] = 0
     }
 
     const attributesData = getAttribute(primitive.attributes)

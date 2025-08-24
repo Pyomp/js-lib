@@ -81,7 +81,7 @@ export class Animation {
         const morphLength = morphTargets.names.length
 
         for (let i = 0; i < morphLength; i++) {
-            const uniformName = GLSL_MORPH_TARGET.influanceUniformPrefix + morphTargets.names[i]
+            const uniformName = GLSL_MORPH_TARGET.influenceUniformPrefix + morphTargets.names[i]
             const keyFrame = morphTargets.keyframes[i]
             this.#morphTargetUniformNames.push(uniformName)
 

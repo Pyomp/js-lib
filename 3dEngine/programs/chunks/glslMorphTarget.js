@@ -2,7 +2,7 @@ import { GLSL_COMMON } from "./glslCommon.js"
 
 const positionPrefix = 'positionMorphTarget'
 const normalPrefix = 'normalMorphTarget'
-const influanceUniformPrefix = 'morphInfluance'
+const influenceUniformPrefix = 'morphInfluance'
 
 function declaration(/** @type {string[]} */ morphs) {
     let glsl = ''
@@ -10,7 +10,7 @@ function declaration(/** @type {string[]} */ morphs) {
     for (const name of morphs) {
         glsl += `in vec3 ${positionPrefix}${name};\n`
         glsl += `in vec3 ${normalPrefix}${name};\n`
-        glsl += `uniform float ${influanceUniformPrefix}${name};\n`
+        glsl += `uniform float ${influenceUniformPrefix}${name};\n`
     }
     
     {
@@ -19,7 +19,7 @@ function declaration(/** @type {string[]} */ morphs) {
         glsl += `vec3 result = ${GLSL_COMMON.positionAttribute};\n`
 
         for (const name of morphs) {
-            glsl += `result += ${positionPrefix}${name} * ${influanceUniformPrefix}${name};\n`
+            glsl += `result += ${positionPrefix}${name} * ${influenceUniformPrefix}${name};\n`
         }
 
         glsl += 'return result;}\n'
@@ -30,7 +30,7 @@ function declaration(/** @type {string[]} */ morphs) {
         glsl += `vec3 result = ${GLSL_COMMON.normalAttribute};\n`
 
         for (const name of morphs) {
-            glsl += `result += ${normalPrefix}${name} * ${influanceUniformPrefix}${name};\n`
+            glsl += `result += ${normalPrefix}${name} * ${influenceUniformPrefix}${name};\n`
         }
 
         glsl += 'return result;}\n'
@@ -44,7 +44,7 @@ const getMorphTargetNormal = `getMorphTargetNormal()`
 export const GLSL_MORPH_TARGET = Object.freeze({
     positionPrefix,
     normalPrefix,
-    influanceUniformPrefix,
+    influenceUniformPrefix,
     declaration,
     getMorphTargetPosition,
     getMorphTargetNormal,

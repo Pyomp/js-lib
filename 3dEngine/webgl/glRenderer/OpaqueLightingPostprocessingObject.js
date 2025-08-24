@@ -11,6 +11,7 @@ import { GLSL_POINT_LIGHT } from "../../programs/chunks/glslPointLight.js"
 import { GlRenderer } from "./GlRenderer.js"
 import { GlNoiseTexture } from "../../textures/NoiseTexture.js"
 import { GLSL_WINDOW } from "../../programs/chunks/glslWindow.js"
+import { GLSL_DEFERRED } from "../../programs/chunks/glslDeferred.js"
 
 export class OpaqueLightingPostprocessingObject extends GlObject {
 
@@ -45,7 +46,8 @@ export class OpaqueLightingPostprocessingObject extends GlObject {
                 inColorTexture,
                 inPositionTexture,
                 inNormalTexture,
-                noiseTexture: new GlNoiseTexture()
+                noiseTexture: new GlNoiseTexture(),
+                ...GLSL_DEFERRED.createUserUniform(inColorTexture, inPositionTexture, inNormalTexture)
             },
             glVao: new GlVao([
                 new GlAttribute({
@@ -105,28 +107,7 @@ export class OpaqueLightingPostprocessingObject extends GlObject {
                     ${GLSL_POINT_LIGHT.uboDeclaration(renderer.pointLightCount)}
                     ${GLSL_UTILS.linearizeDepth.declaration(GLSL_CAMERA.near, GLSL_CAMERA.far)}
                     ${GLSL_WINDOW.declaration}
-
-                    float getScreenDepth(vec2 uv) {
-                        // float depth = (float(texture(inPositionTexture, uv).w) / INT_RANGE) + 0.5;
-                        float depth = float(texture(inPositionTexture, uv).w) / INT_RANGE;
-                        // depth = ${GLSL_UTILS.linearizeDepth.call('depth')};
-                        return depth;                         
-                    }
-                    
-                    vec3 getPosition(vec2 uv){
-                        return vec3(texture(inPositionTexture, uv).xyz) / 1000.;   
-                    }
-
-                    vec3 getNormal(vec2 uv){
-                        return normalize(vec3(texture(inNormalTexture, uv).xyz) / INT_RANGE);
-                    }
-
-                    vec3 getScreenPosition(vec3 position){
-                        vec4 pos = vec4(position, 1.);
-                        pos = ${GLSL_CAMERA.projectionViewMatrix} * pos;
-                        vec3 ndcPosition = pos.xyz / pos.w;
-                        return vec3((ndcPosition.xy + 1.) / 2., ndcPosition.z);
-                    }
+                    ${GLSL_DEFERRED.fragmentUserDeclaration}
 
                     void calcPointLight(in vec3 position, in vec3 normal, out vec3 color, out float specular){
                         for (int i = 0; i < ${renderer.pointLightCount}; i++) {
@@ -196,29 +177,46 @@ export class OpaqueLightingPostprocessingObject extends GlObject {
                         return clamp(occlusion / 16.0, 0.0, 1.0);
                     }
 
-                    #define EDL_RADIUS 2.5
+                    #define EDL_RADIUS 1.
                     #define EDL_STRENGTH 10.
 
                     float computeEDL(vec2 uv, float currentDepth)
                     {
+                        float factor = 1.-currentDepth;
+                        factor = factor*factor;
+                        factor = factor*factor;
+                        factor = factor*factor;
+                        factor = factor*factor;
+                        factor = factor*factor;
+                        factor = factor*factor;
+                        factor = factor*factor;
+
                         float sum = 0.0;
 
-                        vec2 offsets[4] = vec2[](
-                            vec2(0.0,  EDL_RADIUS / ${GLSL_WINDOW.resolution}.y),
-                            vec2(0.0, -EDL_RADIUS / ${GLSL_WINDOW.resolution}.y),
-                            vec2( EDL_RADIUS / ${GLSL_WINDOW.resolution}.x, 0.0),
-                            vec2(-EDL_RADIUS / ${GLSL_WINDOW.resolution}.x, 0.0)
+                        float radius = 1. + EDL_RADIUS * factor;
+                        vec2 radiusStep = radius / ${GLSL_WINDOW.resolution};
+
+                        const int checkNumber = 4;
+
+                        vec2 offsets[checkNumber] = vec2[](
+                            vec2( 0. * radiusStep.x,  1. * radiusStep.y),
+                            vec2( 0. * radiusStep.x, -1. * radiusStep.y),
+                            vec2( 1. * radiusStep.x,  0. * radiusStep.y),
+                            vec2(-1. * radiusStep.x,  0. * radiusStep.y)
                         );
 
-                        for (int i = 0; i < 4; ++i) {
-                            float neighborDepth = getScreenDepth(uv + offsets[i]);
-                            float diff = max(0., currentDepth - neighborDepth);
+                        for (int i = 0; i < checkNumber; ++i) {
+                            float neighborDepth = ${GLSL_DEFERRED.getDeferredPositionDepth('uv + offsets[i]')}.w;
+                            float diff =  currentDepth - neighborDepth;
                             sum += diff;
                         }
 
+                        sum = abs(sum);
+
                         // Apply exponential falloff
                         // float shade = exp(-EDL_STRENGTH * sum);
-                        float shade = sum > 0.001 ? 0.0 : 1.0;
+          
+                        float shade = (sum *( 0.01 + 10. * factor)) > 0.0001 ? 0.0 : 1.0;
 
                         return clamp(shade, 0.0, 1.0);
                     }
@@ -226,10 +224,12 @@ export class OpaqueLightingPostprocessingObject extends GlObject {
                     void main() {
                         vec2 uv = v_uv;
 
-                        vec3 currentPixelColor = texture(inColorTexture, uv).xyz;
-                        vec3 currentPixelPosition = getPosition(uv);
-                        vec3 currentPixelNormal = normalize(vec3(texture(inNormalTexture, uv).xyz)/1000000.);
-                        float currentPixelDepth = getScreenDepth(uv);
+                        vec3 currentPixelColor;
+                        vec3 currentPixelPosition;
+                        vec3 currentPixelNormal;
+                        float currentPixelDepth;
+
+                        ${GLSL_DEFERRED.computeDeferredPixel('uv', 'currentPixelColor', 'currentPixelPosition', 'currentPixelDepth', 'currentPixelNormal')}
 
                         outColor.rgb = currentPixelColor;
                      
@@ -247,8 +247,7 @@ export class OpaqueLightingPostprocessingObject extends GlObject {
                         outColor.rgb *= edlShade;
 
                         // outColor.rgb *= 1. - getOcclusion(currentPixelPosition, currentPixelDepth, currentPixelNormal, ivec2(gl_FragCoord.xy));
-                        // outColor.rgb = getPosition(uv) / 10.;
-                        // outColor.rgb = getNormal(uv);
+                        // outColor.rgb = vec3(1.-currentPixelDepth);
                         outColor.a = 1.;
                     }`
             )

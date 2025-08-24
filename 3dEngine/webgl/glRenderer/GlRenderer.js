@@ -56,7 +56,7 @@ export class GlRenderer {
         needsMipmap: false
     })
 
-    opaquePositionTexture = new GlTexture({
+    opaquePositionDepthTexture = new GlTexture({
         name: 'objectPositionTexture',
         wrapS: 'CLAMP_TO_EDGE', wrapT: 'CLAMP_TO_EDGE',
         minFilter: 'NEAREST', magFilter: 'NEAREST',
@@ -96,7 +96,7 @@ export class GlRenderer {
 
     opaqueFrameBuffer = new GlFrameBuffer({
         [WebGL2RenderingContext.COLOR_ATTACHMENT0]: this.opaqueColorTexture,
-        [WebGL2RenderingContext.COLOR_ATTACHMENT1]: this.opaquePositionTexture,
+        [WebGL2RenderingContext.COLOR_ATTACHMENT1]: this.opaquePositionDepthTexture,
         [WebGL2RenderingContext.COLOR_ATTACHMENT2]: this.opaqueNormalTexture,
         [WebGL2RenderingContext.DEPTH_ATTACHMENT]: this.depthTexture
     })
@@ -104,7 +104,7 @@ export class GlRenderer {
     opaqueLightingPostprocessingObject = new OpaqueLightingPostprocessingObject({
         renderer: this,
         inColorTexture: this.opaqueColorTexture,
-        inPositionTexture: this.opaquePositionTexture,
+        inPositionTexture: this.opaquePositionDepthTexture,
         inNormalTexture: this.opaqueNormalTexture
     })
 
@@ -166,7 +166,7 @@ export class GlRenderer {
         this.depthTexture.resize(width, height)
 
         this.opaqueColorTexture.resize(width, height)
-        this.opaquePositionTexture.resize(width, height)
+        this.opaquePositionDepthTexture.resize(width, height)
         this.opaqueNormalTexture.resize(width, height)
         this.objectDepthTexture.resize(width, height)
         this.opaqueLightingPostprocessingObject.resize(width, height)
