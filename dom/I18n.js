@@ -85,7 +85,7 @@ export class I18n {
         if (this.#notImplemented.has(i18nKey) === false) {
             this.#notImplemented.add(i18nKey)
             const trad = (i18nKey[0]?.toUpperCase() + i18nKey.substring(1)).replaceAll('_', ' ')
-            console.warn(`'${i18nKey}': \`${trad}\`,`)
+            console.log(`"${i18nKey}": "${trad}",`)
         }
     }
 

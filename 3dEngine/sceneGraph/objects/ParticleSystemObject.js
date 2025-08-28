@@ -1,7 +1,9 @@
+import { Box3 } from "../../../math/Box3.js"
+import { Vector3 } from "../../../math/Vector3.js"
 import { loopRaf } from "../../../utils/loopRaf.js"
 import { GLSL_CAMERA } from "../../programs/chunks/glslCamera.js"
 import { GLSL_DEFERRED } from "../../programs/chunks/glslDeferred.js"
-import { GLSL_POINT_LIGHT } from "../../programs/chunks/glslPointLight.js"
+import { GLSL_POINT } from "../../programs/chunks/glslPoint.js"
 import { GLSL_UTILS } from "../../programs/chunks/glslUtils.js"
 import { GLSL_WINDOW } from "../../programs/chunks/glslWindow.js"
 import { createSparkleCanvas } from "../../textures/sparkle.js"
@@ -11,6 +13,7 @@ import { GlObject } from "../../webgl/glDescriptors/GlObject.js"
 import { GlProgram } from "../../webgl/glDescriptors/GlProgram.js"
 import { GlTexture } from "../../webgl/glDescriptors/GlTexture.js"
 import { GlVao } from "../../webgl/glDescriptors/GlVao.js"
+import { GlRenderer } from "../../webgl/glRenderer/GlRenderer.js"
 import { ParticleKeyframe } from "../particle/ParticleKeyframe.js"
 
 const FLOAT_32_ELEMENT_COUNT = 7
@@ -35,7 +38,7 @@ const KEYFRAME_ALPHA_OFFSET = 7
 
 const PHYSICS_DT = 0.1
 
-const glProgram = new GlProgram(() => `#version 300 es
+const glProgram = new GlProgram(() => /* glsl */`#version 300 es
 #define PHYSICS_DT ${PHYSICS_DT}
 #define ATTENUATION 100.0
 
@@ -45,6 +48,7 @@ in float time;
 
 ${GLSL_CAMERA.declaration}
 ${GLSL_WINDOW.declaration}
+${GLSL_POINT.vertexDeclaration}
 
 uniform sampler2D keyframesTexture;
 uniform float dt;
@@ -54,26 +58,27 @@ float getAlpha(float start, float end, float current){
 }
 
 out vec4 v_color;
-out float v_size;
+out float v_radius;
+out vec3 v_modelViewPosition;
 
 void main() {
-    float size = 5.;
+    vec4 modelViewPosition = ${GLSL_CAMERA.viewMatrix} * vec4(position + velocity * dt, 1.);
 
-    vec3 mvPosition = position + velocity * dt;
+    v_modelViewPosition = modelViewPosition.xyz;
 
-    gl_Position = ${GLSL_CAMERA.projectionViewMatrix} * vec4(mvPosition, 1.);
+    gl_Position = ${GLSL_CAMERA.projectionMatrix} * modelViewPosition;
     
     int widthIndex = 0;
     vec4 previousKeyframe;
     vec4 keyframe = texelFetch(keyframesTexture, ivec2(widthIndex, 0), 0);
 
-    while(keyframe[0] < time && widthIndex < ${KEYFRAMES_PIXEL_LENGTH}) {
+    float actualTime = time + dt;
+
+    while(keyframe[0] < actualTime && widthIndex < ${KEYFRAMES_PIXEL_LENGTH}) {
         widthIndex += ${KEYFRAME_PIXEL_LENGTH};
         previousKeyframe = keyframe;
         keyframe = texelFetch(keyframesTexture, ivec2(widthIndex, 0), 0);
     }
-
-    float pointFactor = ${GLSL_WINDOW.resolution}.y * 0.5;
 
     if(widthIndex >= ${KEYFRAMES_PIXEL_LENGTH}) {
         v_color.w = 0.;
@@ -82,16 +87,21 @@ void main() {
         gl_Position.w = 1.;
     } else if( widthIndex == 0 ) {
         v_color = texelFetch(keyframesTexture, ivec2(1, 0), 0);
-        gl_PointSize = keyframe[1] * size * pointFactor / gl_Position.z;        
+
+        float computedSize = keyframe[1];
+        v_radius = computedSize / 2.;
+        gl_PointSize = ${GLSL_POINT.getPixelDiameter('computedSize', 'modelViewPosition.z')};
     } else {
-        float alpha = getAlpha(previousKeyframe[0], keyframe[0], time);
+        float alpha = getAlpha(previousKeyframe[0], keyframe[0], actualTime);
+        
         vec4 previousKeyframeColor = texelFetch(keyframesTexture, ivec2(widthIndex - ${KEYFRAME_PIXEL_LENGTH} + ${KEYFRAME_COLOR_PIXEL_OFFSET}, 0), 0);
         vec4 keyframeColor = texelFetch(keyframesTexture, ivec2(widthIndex + ${KEYFRAME_COLOR_PIXEL_OFFSET}, 0), 0);
         v_color = mix(previousKeyframeColor, keyframeColor, alpha);
-        gl_PointSize = mix(previousKeyframe[1], keyframe[1], alpha) * size * pointFactor / gl_Position.z;
-    }
 
-    v_size = gl_PointSize / ${GLSL_WINDOW.resolution}.y;
+        float computedSize = mix(previousKeyframe[1], keyframe[1], alpha);
+        v_radius = computedSize / 2.;
+        gl_PointSize = ${GLSL_POINT.getPixelDiameter('computedSize', 'modelViewPosition.z')};
+    }
 }
 `,
     () => `#version 300 es
@@ -100,7 +110,8 @@ precision highp sampler2D;
 precision highp isampler2D;
 
 in vec4 v_color;
-in float v_size;
+in float v_radius;
+in vec3 v_modelViewPosition;
 
 uniform sampler2D bumpTexture;
 uniform sampler2D depthTexture;
@@ -109,65 +120,30 @@ ${GLSL_CAMERA.declaration}
 ${GLSL_WINDOW.declaration}
 ${GLSL_UTILS.linearizeDepth.declaration(GLSL_CAMERA.near, GLSL_CAMERA.far)}
 ${GLSL_UTILS.linearDepthToGl.declaration(GLSL_CAMERA.near, GLSL_CAMERA.far)}
-
 ${GLSL_DEFERRED.fragmentUserDeclaration}
+${GLSL_POINT.fragmentDeclaration}
 
 out vec4 color;
 
 void main(){
-    // 1. Circle mask inside the point
-    vec2 uv = gl_PointCoord * 2.0 - 1.0;
-    float r2 = dot(uv, uv);
-    if (r2 > 1.0) discard;
+    vec3 sphereNormal = ${GLSL_POINT.getDiscardAndGetSphereNormal()};
 
-    // 2. Sphere z displacement from circle equation: x^2 + y^2 + z^2 = r^2
-    float zDisp = sqrt(max(0.0, 1.0 - r2)); // normalized hemisphere depth
+    vec3 fragViewPos = v_modelViewPosition + v_radius * sphereNormal;
 
-    // 3. Add displacement to current depth
-    //    Here gl_FragCoord.z is window-space depth [0,1].
-    float pointDepthLinear = ${GLSL_UTILS.linearizeDepth.call('gl_FragCoord.z')};
-    pointDepthLinear -= (zDisp * v_size);
-    float sphereDepth = pointDepthLinear;
-    // float sphereDepth = gl_FragCoord.z - (zDisp * v_size);
-
-    // 4. Scene depth from depth texture
-
-    float sceneDepthLinear = ${GLSL_DEFERRED.getDeferredPositionDepth('uv')}.w;
-
-    vec2 screenUv = gl_FragCoord.xy / ${GLSL_WINDOW.resolution};
-    float sceneDepth = float(texture(depthTexture, screenUv).x);
-
-    // 5. Depth difference → attenuation
-    float delta = sphereDepth - sceneDepth;
-    float fade = mix(1.0, 0.0,
-                     smoothstep(0.0, v_size, max(0.0, delta)));
-
-  
-    // 6. Opacity also depends on distance from center (strongest at center)
-    float radial = sqrt(1.0 - r2);  
-
-    float particleDepthLinear = ${GLSL_UTILS.linearizeDepth.call('gl_FragCoord.z')};
-
-    float alpha = radial;
-    // float alpha = radial * fade;
-
-    // float de = length(gl_PointCoord * 2. - 1.);
-    // float sphereDepth = 1. - de * de;
-    // particleDepthLinear -= sphereDepth * v_size * 0.038;
-
-    // float l = abs(${GLSL_UTILS.linearizeDepth.call('screenDepth')} - particleDepthLinear);
-
+    ${GLSL_POINT.computeFragDepth('fragViewPos.z')};
     
-    // color = texture(bumpTexture, gl_PointCoord.xy) * v_color;
-    // color = texture(bumpTexture, gl_PointCoord.xy);
+    vec2 screenUv = ${GLSL_POINT.getScreenUV()};
+    ivec2 screenTexelCoord = ${GLSL_DEFERRED.getTexelCoord('screenUv')};
+    float opaqueDepth = ${GLSL_DEFERRED.getDeferredPositionDepth('screenTexelCoord')}.w;
 
-    color = vec4(1.0, 0.6, 0.2, 1.0);
+    float l = ${GLSL_POINT.getDeltaDepth('opaqueDepth', 'fragViewPos.z', 'v_radius')};
+
+    float softAlpha = ${GLSL_POINT.getSoftAlpha('l')};
+
+    float alpha = softAlpha;
+    alpha *=  sphereNormal.z;
+    color = texture(bumpTexture, gl_PointCoord.xy) * v_color;
     color *= alpha;
-    color = vec4(zDisp,zDisp,zDisp, 1.0);
-
-    // 8. Update depth buffer with our displaced depth
-    // gl_FragDepth = sphereDepth;
-    gl_FragDepth = ${GLSL_UTILS.linearDepthToGl.call('pointDepthLinear')};
 }
 `)
 
@@ -206,6 +182,8 @@ function createKeyFrameTexture(
     })
 }
 
+const _box3 = new Box3()
+const _vector3 = new Vector3()
 
 export class ParticleSystemObject extends GlObject {
     #positionVelocityTime
@@ -213,35 +191,38 @@ export class ParticleSystemObject extends GlObject {
     #emitDeltaTime
     #particleCount
     #glArrayBuffer
-    #emitterPosition
+    emitterPosition
     #initVelocity
+    #maxPointSize = new Vector3()
 
     constructor(
         /** 
          * @type {{
-         *      initVelocity: (array: Float32Array, offset: number) => void
+         *      initVelocity?: (array: Float32Array, offset: number) => void
          *      emitDeltaTime: number
          *      particleLifeTime: number
-         *      emitterPosition: Vector3
-         *      opaquePositionDepthTexture: GlTexture
-         *      depthTexture: GlTexture
+         *      emitterPosition?: Vector3
+         *      additiveBlending?: boolean
+         *      normalBlending?: boolean
          *      keyframes: ParticleKeyframe[]
-         *      inDeferredColorTexture: GlTexture
-         *      inDeferredPositionTexture: GlTexture
-         *      inDeferredNormalTexture: GlTexture
+         *      deferredTextures: GlRenderer['deferredTextures']
+         *      maxVelocity?: number
          * }}
         */
         {
-            initVelocity,
+            initVelocity = (velocity, offset) => {
+                velocity[offset] = 0
+                velocity[offset + 1] = 0
+                velocity[offset + 2] = 0
+            },
             emitDeltaTime,
             particleLifeTime,
-            emitterPosition,
-            opaquePositionDepthTexture,
-            depthTexture,
+            emitterPosition = new Vector3(),
+            additiveBlending = true,
+            normalBlending = false,
             keyframes,
-            inDeferredColorTexture,
-            inDeferredPositionTexture,
-            inDeferredNormalTexture
+            deferredTextures,
+            maxVelocity
         }
     ) {
         const particleCount = Math.ceil(particleLifeTime / emitDeltaTime)
@@ -280,7 +261,8 @@ export class ParticleSystemObject extends GlObject {
 
         super({
             drawMode: 'POINTS',
-            additiveBlending: true,
+            additiveBlending,
+            normalBlending,
             depthWrite: false,
             count: particleCount,
             glVao,
@@ -288,12 +270,10 @@ export class ParticleSystemObject extends GlObject {
             uniforms: {
                 dt: 0,
                 keyframesTexture: createKeyFrameTexture(keyframes),
-                opaquePositionDepthTexture,
                 bumpTexture: new GlTexture({
                     data: createSparkleCanvas()
                 }),
-                depthTexture,
-                ...GLSL_DEFERRED.createUserUniform(inDeferredColorTexture, inDeferredPositionTexture, inDeferredNormalTexture)
+                ...GLSL_DEFERRED.createUserUniform(deferredTextures)
             }
         })
 
@@ -303,13 +283,22 @@ export class ParticleSystemObject extends GlObject {
         this.#emitDeltaTime = emitDeltaTime
         this.#particleLifeTime = particleLifeTime
         this.#initVelocity = initVelocity
-        this.#emitterPosition = emitterPosition
+        this.emitterPosition = emitterPosition
 
-        this.glVao?.boundingBox.makeInfinity()
-        setTimeout(() => {
-            this.glVao?.computeBoundingBox()
-            this.glVao?.boundingBox.expandByScalar(1.5)
-        }, particleLifeTime * 1000 + 1000)
+
+        for (const keyframe of keyframes) {
+            if (this.#maxPointSize.x < keyframe.size) this.#maxPointSize.setScalar(keyframe.size)
+        }
+
+        if (maxVelocity === undefined) {
+            const velocity = new Float32Array(3)
+            initVelocity(velocity, 0)
+            this.#maxPointSize.add(_vector3.fromArray(velocity.map((v) => Math.abs(v))).multiplyScalar(2))
+        } else {
+            this.#maxPointSize.addScalar(maxVelocity * 2)
+        }
+
+        this.glVao.boundingBox.makeEmpty()
     }
 
     #emitterTime = 0
@@ -330,9 +319,16 @@ export class ParticleSystemObject extends GlObject {
         this.#currentAddIndex = (this.#currentAddIndex + 1) % this.#particleCount
         const start = FLOAT_32_ELEMENT_COUNT * this.#currentAddIndex
 
-        this.#emitterPosition.toArray(this.#positionVelocityTime, start)
+        this.emitterPosition.toArray(this.#positionVelocityTime, start)
         this.#initVelocity(this.#positionVelocityTime, start + 3)
 
+        _box3.setFromCenterAndSize(
+            this.emitterPosition,
+            this.#maxPointSize
+        )
+
+        this.glVao.boundingBox.union(_box3)
+        
         return this.#currentAddIndex
     }
 
@@ -341,10 +337,6 @@ export class ParticleSystemObject extends GlObject {
 
         this.#physicsTime += dt
         this.#emitterTime += dt
-
-        for (let i = 0; i < this.#particleCount; i++) {
-            this.#positionVelocityTime[i * FLOAT_32_ELEMENT_COUNT + 6] += dt
-        }
 
         while (this.#emitterTime > this.#emitDeltaTime) {
             this.#emitterTime -= this.#emitDeltaTime
@@ -355,17 +347,18 @@ export class ParticleSystemObject extends GlObject {
                 rest -= PHYSICS_DT
                 this.#updatePhysics(index)
             }
+            this.#glArrayBuffer.version++
         }
 
         while (this.#physicsTime > PHYSICS_DT) {
             this.#physicsTime -= PHYSICS_DT
             for (let i = 0; i < this.#particleCount; i++) {
+                this.#positionVelocityTime[i * FLOAT_32_ELEMENT_COUNT + 6] += PHYSICS_DT
                 this.#updatePhysics(i)
             }
+            this.#glArrayBuffer.version++
         }
 
         this.uniforms.dt = this.#physicsTime
-
-        this.#glArrayBuffer.version++
     }
 }

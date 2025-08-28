@@ -9,6 +9,7 @@ import { AmbientLight } from "../../sceneGraph/AmbientLight.js"
 import { Camera } from "../../sceneGraph/Camera.js"
 import { Node3D } from "../../sceneGraph/Node3D.js"
 import { PointLight } from "../../sceneGraph/PointLight.js"
+import { ParticleSystemObject } from "../../sceneGraph/objects/ParticleSystemObject.js"
 import { Particle } from "../../sceneGraph/particle/Particle.js"
 import { GlDepthTextureData } from "../../textures/DepthTexture.js"
 import { GlContextRenderer } from "../glContext/GlContextRenderer.js"
@@ -20,7 +21,6 @@ import { GlCameraUbo } from "./GlCameraUbo.js"
 import { GlPointLightRenderer } from "./GlPointLightRenderer.js"
 import { GlWindowInfo } from "./GlWindowInfo.js"
 import { OpaqueLightingPostprocessingObject } from "./OpaqueLightingPostprocessingObject.js"
-import { GlParticleRenderer } from "./ParticlesRenderer/GlParticleRenderer.js"
 
 const _box3 = new Box3()
 const _vector3 = new Vector3()
@@ -29,8 +29,6 @@ export class GlRenderer {
     htmlElement = document.createElement('div')
 
     /** @type {GlContextRenderer} */ glContext
-
-    /** @type {GlParticleRenderer} */ particleRenderer
 
     scene = new Node3D()
 
@@ -45,67 +43,48 @@ export class GlRenderer {
 
     ambientLightRenderer = new GlAmbientLightRenderer()
 
-    opaqueColorTexture = new GlTexture({
-        name: 'objectColorTexture',
-        wrapS: 'CLAMP_TO_EDGE', wrapT: 'CLAMP_TO_EDGE',
-        minFilter: 'NEAREST', magFilter: 'NEAREST',
-        internalformat: 'RGB8',
-        width: 1, height: 1, border: 0,
-        format: 'RGB', type: 'UNSIGNED_BYTE',
-        data: null,
-        needsMipmap: false
-    })
-
-    opaquePositionDepthTexture = new GlTexture({
-        name: 'objectPositionTexture',
-        wrapS: 'CLAMP_TO_EDGE', wrapT: 'CLAMP_TO_EDGE',
-        minFilter: 'NEAREST', magFilter: 'NEAREST',
-        internalformat: 'RGBA32I',
-        width: 1, height: 1, border: 0,
-        format: 'RGBA_INTEGER', type: 'INT',
-        data: null,
-        needsMipmap: false
-    })
-
-    opaqueNormalTexture = new GlTexture({
-        name: 'objectPositionTexture',
-        wrapS: 'CLAMP_TO_EDGE', wrapT: 'CLAMP_TO_EDGE',
-        minFilter: 'NEAREST', magFilter: 'NEAREST',
-        internalformat: 'RGBA32I',
-        width: 1, height: 1, border: 0,
-        format: 'RGBA_INTEGER', type: 'INT',
-        data: null,
-        needsMipmap: false
-    })
-
-    objectDepthTexture = new GlTexture({
-        name: 'Renderer Depth Texture',
-        wrapS: 'CLAMP_TO_EDGE',
-        wrapT: 'CLAMP_TO_EDGE',
-        minFilter: 'NEAREST',
-        magFilter: 'NEAREST',
-        internalformat: 'DEPTH_COMPONENT24',
-        width: 1,
-        height: 1,
-        border: 0,
-        format: 'DEPTH_COMPONENT',
-        type: 'UNSIGNED_INT',
-        data: null,
-        needsMipmap: false
-    })
+    deferredTextures = {
+        color: new GlTexture({
+            name: 'objectColorTexture',
+            wrapS: 'CLAMP_TO_EDGE', wrapT: 'CLAMP_TO_EDGE',
+            minFilter: 'NEAREST', magFilter: 'NEAREST',
+            internalformat: 'RGB8',
+            width: 1, height: 1, border: 0,
+            format: 'RGB', type: 'UNSIGNED_BYTE',
+            data: null,
+            needsMipmap: false
+        }),
+        positionDepth: new GlTexture({
+            name: 'objectPositionTexture',
+            wrapS: 'CLAMP_TO_EDGE', wrapT: 'CLAMP_TO_EDGE',
+            minFilter: 'NEAREST', magFilter: 'NEAREST',
+            internalformat: 'RGBA32I',
+            width: 1, height: 1, border: 0,
+            format: 'RGBA_INTEGER', type: 'INT',
+            data: null,
+            needsMipmap: false
+        }),
+        normal: new GlTexture({
+            name: 'objectPositionTexture',
+            wrapS: 'CLAMP_TO_EDGE', wrapT: 'CLAMP_TO_EDGE',
+            minFilter: 'NEAREST', magFilter: 'NEAREST',
+            internalformat: 'RGBA32I',
+            width: 1, height: 1, border: 0,
+            format: 'RGBA_INTEGER', type: 'INT',
+            data: null,
+            needsMipmap: false
+        })
+    }
 
     opaqueFrameBuffer = new GlFrameBuffer({
-        [WebGL2RenderingContext.COLOR_ATTACHMENT0]: this.opaqueColorTexture,
-        [WebGL2RenderingContext.COLOR_ATTACHMENT1]: this.opaquePositionDepthTexture,
-        [WebGL2RenderingContext.COLOR_ATTACHMENT2]: this.opaqueNormalTexture,
+        [WebGL2RenderingContext.COLOR_ATTACHMENT0]: this.deferredTextures.color,
+        [WebGL2RenderingContext.COLOR_ATTACHMENT1]: this.deferredTextures.positionDepth,
+        [WebGL2RenderingContext.COLOR_ATTACHMENT2]: this.deferredTextures.normal,
         [WebGL2RenderingContext.DEPTH_ATTACHMENT]: this.depthTexture
     })
 
     opaqueLightingPostprocessingObject = new OpaqueLightingPostprocessingObject({
         renderer: this,
-        inColorTexture: this.opaqueColorTexture,
-        inPositionTexture: this.opaquePositionDepthTexture,
-        inNormalTexture: this.opaqueNormalTexture
     })
 
     constructor() {
@@ -153,7 +132,6 @@ export class GlRenderer {
         // TODO dispose previous windowInfo 
         this.windowInfo.initGl(this.glContext)
 
-        this.particleRenderer = new GlParticleRenderer({ glContext: this.glContext, glDepthTextureData: this.depthTexture, maxParticleCount: 100_000 })
         this.glContext.resizeListeners.add(this.onResize.bind(this))
     }
 
@@ -165,10 +143,10 @@ export class GlRenderer {
 
         this.depthTexture.resize(width, height)
 
-        this.opaqueColorTexture.resize(width, height)
-        this.opaquePositionDepthTexture.resize(width, height)
-        this.opaqueNormalTexture.resize(width, height)
-        this.objectDepthTexture.resize(width, height)
+        this.deferredTextures.color.resize(width, height)
+        this.deferredTextures.positionDepth.resize(width, height)
+        this.deferredTextures.normal.resize(width, height)
+
         this.opaqueLightingPostprocessingObject.resize(width, height)
     }
 
@@ -214,9 +192,6 @@ export class GlRenderer {
                     pointLights.push(object)
                 } else if (object instanceof AmbientLight) {
                     ambientLights.push(object)
-                } else if (object instanceof Particle) {
-                    this.particleRenderer.addParticle(object)
-                    node.objects.delete(object)
                 } else if (object instanceof GlObject) {
                     if (object.glProgram.glTransformFeedback) {
                         gpgpuObjects.push(object)
@@ -233,17 +208,15 @@ export class GlRenderer {
         this.glContext.updateGlobalUbos()
 
         // # GPGPU
+        if (gpgpuObjects.length > 0) {
+            this.glContext.discardRasterizer()
 
-        this.glContext.discardRasterizer()
+            for (const object of gpgpuObjects) {
+                this.glContext.drawObject(object)
+            }
 
-        this.particleRenderer.update()
-
-        this.glContext.drawObject(this.particleRenderer.particlePhysicsGlObject)
-
-        for (const object of gpgpuObjects) {
-            this.glContext.drawObject(object)
+            this.glContext.enableRasterizer()
         }
-        this.glContext.enableRasterizer()
 
         // # Render
 
@@ -321,8 +294,6 @@ export class GlRenderer {
         for (const object of transparentObjects) {
             this.glContext.drawObject(object)
         }
-
-        this.glContext.drawObject(this.particleRenderer.particleRenderObject)
     }
 
     #lastProgramId = 0
@@ -431,7 +402,7 @@ function getObjectsInFrustum(
     const result = []
 
     for (const node of nodes) {
-        result.push(...getObjectsInFrustumFromNode(node))
+        result.push(...getObjectsInFrustumFromNode(node, frustum))
     }
 
     return result
@@ -451,8 +422,8 @@ function getObjectsInFrustumFromNode(
 
                 if (
                     boundingBox.isEmpty()
-                    || frustum.intersectsBox(
-                        _box3.copy(boundingBox).applyMatrix4(node.worldMatrix))
+                    || (object instanceof ParticleSystemObject && frustum.intersectsBox(_box3.copy(boundingBox)))
+                    || frustum.intersectsBox(_box3.copy(boundingBox).applyMatrix4(node.worldMatrix))
                 ) {
                     result.push(object)
                 }

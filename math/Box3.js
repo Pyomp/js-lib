@@ -98,7 +98,10 @@ class Box3 {
 
 	}
 
-	setFromCenterAndSize(center, size) {
+	setFromCenterAndSize(
+		/** @type {Vector3} */ center,
+		/** @type {Vector3} */ size
+	) {
 
 		const halfSize = _vector.copy(size).multiplyScalar(0.5)
 

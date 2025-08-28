@@ -1,5 +1,6 @@
 import { GlTexture } from "../../webgl/glDescriptors/GlTexture.js"
 import { GLSL_CAMERA } from "./glslCamera.js"
+import { GLSL_WINDOW } from "./glslWindow.js"
 
 const vertexDeferredDeclaration = `
 #define INT_RANGE 2147483647.0
@@ -53,79 +54,93 @@ outStencil = 0;
 const fragmentUserDeclaration = `
 #define INT_RANGE 2147483647.0
 
-uniform sampler2D inDeferredColorTexture;
-uniform isampler2D inDeferredPositionTexture;
-uniform isampler2D inDeferredNormalTexture;
+uniform sampler2D deferredColorTexture;
+uniform isampler2D deferredPositionDepthTexture;
+uniform isampler2D deferredNormalTexture;
 
-vec3 getDeferredColor(vec2 uv){
-    return texture(inDeferredColorTexture, uv).xyz;
+vec3 getDeferredColor(ivec2 texelCoord){
+    return texelFetch(deferredColorTexture, texelCoord, 0).xyz;
 }
 
-vec4 getDeferredPositionDepth(vec2 uv){
-    vec4 deferredPositionDepth = vec4(texture(inDeferredPositionTexture, uv));
+vec4 getDeferredPositionDepth(ivec2 texelCoord){
+    vec4 deferredPositionDepth = vec4(texelFetch(deferredPositionDepthTexture, texelCoord, 0));
     deferredPositionDepth.xyz /= 1000.;
     deferredPositionDepth.w = (float(deferredPositionDepth.w) / INT_RANGE) + 0.5;
     return deferredPositionDepth;
 }
 
-vec3 getDeferredNormal(vec2 uv){
-    return normalize(vec3(texture(inDeferredNormalTexture, uv).xyz) / INT_RANGE);
+vec3 getDeferredNormal(ivec2 texelCoord){
+    return normalize(vec3(texelFetch(deferredNormalTexture, texelCoord, 0).xyz) / INT_RANGE);
 }
 
 void computeDeferredPixel(
-    in vec2 uv,
+    ivec2 texelCoord,
     out vec3 outColor,
     out vec3 outWorldPosition,
     out float outLinearDepth,
     out vec3 outNormal
 ){
-    vec4 deferredPositionDepth = getDeferredPositionDepth(uv);
+    vec4 deferredPositionDepth = getDeferredPositionDepth(texelCoord);
 
-    outColor = getDeferredColor(uv);
+    outColor = getDeferredColor(texelCoord);
     outWorldPosition = deferredPositionDepth.xyz;
     outLinearDepth = deferredPositionDepth.w;
-    outNormal = getDeferredNormal(uv);
+    outNormal = getDeferredNormal(texelCoord);
+}
+
+ivec2 getTexelCoord(vec2 uv, vec2 resolution){
+    return ivec2(uv * resolution);
 }
 `
 
 function computeDeferredPixel(
-    /** @type {string} */ uv,
+    /** @type {string} */ texelCoord,
     /** @type {string} */ outColor,
     /** @type {string} */ outWorldPosition,
     /** @type {string} */ outLinearDepth,
     /** @type {string} */ outNormal,
 ) {
-    return `computeDeferredPixel(${uv}, ${outColor}, ${outWorldPosition}, ${outLinearDepth}, ${outNormal});`
+    return `computeDeferredPixel(${texelCoord}, ${outColor}, ${outWorldPosition}, ${outLinearDepth}, ${outNormal});`
 }
 
 function getDeferredColor(
-    /** @type {string} */ uv,
+    /** @type {string} */ texelCoord,
 ) {
-    return `getDeferredColor(${uv})`
+    return `getDeferredColor(${texelCoord})`
 }
 
 function getDeferredPositionDepth(
-    /** @type {string} */ uv,
+    /** @type {string} */ texelCoord,
 ) {
-    return `getDeferredPositionDepth(${uv})`
+    return `getDeferredPositionDepth(${texelCoord})`
 }
 
 function getDeferredNormal(
-    /** @type {string} */ uv,
+    /** @type {string} */ texelCoord,
 ) {
-    return `getDeferredNormal(${uv})`
+    return `getDeferredNormal(${texelCoord})`
 }
 
-function createUserUniform(
-    /** @type {GlTexture} */ inDeferredColorTexture,
-    /** @type {GlTexture} */ inDeferredPositionTexture,
-    /** @type {GlTexture} */ inDeferredNormalTexture,
-) {
+/**
+ * @param {{
+ *      color: GlTexture,
+ *      positionDepth: GlTexture,
+ *      normal: GlTexture,
+ * }} deferredTextures
+*/
+function createUserUniform({ color, positionDepth, normal, }) {
     return {
-        inDeferredColorTexture,
-        inDeferredPositionTexture,
-        inDeferredNormalTexture
+        deferredColorTexture: color,
+        deferredPositionDepthTexture: positionDepth,
+        deferredNormalTexture: normal
     }
+}
+
+function getTexelCoord(
+    /** @type {string} */ uv,
+    /** @type {string} */ resolution = GLSL_WINDOW.resolution,
+){
+    return `getTexelCoord(${uv}, ${resolution})`
 }
 
 export const GLSL_DEFERRED = Object.freeze({
@@ -135,7 +150,9 @@ export const GLSL_DEFERRED = Object.freeze({
     setFragmentDeferredOutputs,
 
     createUserUniform,
+
     fragmentUserDeclaration,
+    getTexelCoord,
     computeDeferredPixel,
     getDeferredColor,
     getDeferredPositionDepth,
