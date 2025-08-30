@@ -27,8 +27,6 @@ export class PointsNode3D extends Node3D {
             deferredTextures
         })
 
-        this.localMatrixNeedsUpdate
-
         this.objects.add(pointsObject)
     }
 }

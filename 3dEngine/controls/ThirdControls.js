@@ -90,10 +90,9 @@ export class ThirdControls {
         for (const geometry of this.groundGeometries) {
             const groundHeight = this.#rayDown.origin.y - distanceRayMesh(this.#rayDown, geometry.indices, geometry.positions)
             if (this.#cameraPosition.y < groundHeight + MinDistCamToGround) {
-                this.#cameraPosition.y = groundHeight + MinDistCamToGround
+                // this.#cameraPosition.y = groundHeight + MinDistCamToGround
             }
         }
-
 
         this.#camera.target.copy(this.#targetOffset)
 

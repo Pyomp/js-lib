@@ -230,7 +230,10 @@ class Quaternion {
         return this
     }
 
-    setFromAxisAngle(axis, angle) {
+    setFromAxisAngle(
+        /** @type {Vector3} */ axis,
+        /** @type {number} */ angle
+    ) {
 
         // http://www.euclideanspace.com/maths/geometry/rotations/conversions/angleToQuaternion/index.htm
 
@@ -307,7 +310,10 @@ class Quaternion {
 
     }
 
-    setFromUnitVectors(vFrom, vTo) {
+    setFromUnitVectors(
+        /** @type {Vector3} */ vFrom,
+        /** @type {Vector3} */ vTo
+    ) {
 
         // assumes direction vectors vFrom and vTo are normalized
 
