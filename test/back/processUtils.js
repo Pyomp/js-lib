@@ -17,7 +17,10 @@ export const processUtils = {
 
 function getArgs() {
     const valuableArgs = process.argv.filter((arg) => arg.startsWith('--'))
+
+    /** @type {{[key: string]: any}} */
     const result = {}
+
     for (const arg of valuableArgs) {
         const [key, value] = arg.split('=', 2)
         result[key] = value ?? true

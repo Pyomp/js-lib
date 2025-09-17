@@ -31,14 +31,16 @@ const server = app.listen(port, async () => {
         await chrome.init()
 
         const testIndexUrl = new URL('../front/index.html', import.meta.url)
-        
+
         await chrome.openNewTab(`http://localhost:${port}/${path.relative('.', testIndexUrl.pathname)}`)
 
         consoleUtils.log('headless chrome ready')
     }
 
     let busy = false
-    const runFileTest = (url) => {
+    const runFileTest = (
+        /** @type {string} */ url
+    ) => {
         if (busy) return
         return new Promise((resolve) => {
             if (wsTestServer.client?.OPEN !== WebSocket.OPEN) {
@@ -46,13 +48,21 @@ const server = app.listen(port, async () => {
                 return
             }
             busy = true
+
+            const client = wsTestServer.client
+
             const t0 = performance.now()
-            wsTestServer.client.send(JSON.stringify({ command: 'runUnit', data: url }))
-            wsTestServer.client.onmessage = (event) => {
+
+            /** @type {UnitTestWsMessage} */
+            const message = { command: 'runUnit', data: url }
+            client.send(JSON.stringify(message))
+
+            client.onmessage = (event) => {
                 try {
+                    /** @type {UnitTestWsMessage} */
                     const result = JSON.parse(event.data.toString())
                     if (result.command !== 'result') return
-                    wsTestServer.client.onmessage = null
+                    client.onmessage = null
                     busy = false
                     resolve(result)
                     consoleUtils.pprintResult(url, result.data, t0)
@@ -68,6 +78,7 @@ const server = app.listen(port, async () => {
     wsTestServer.dispatcher['print'] = (data) => { consoleUtils.log(`client console.${data.type}: `, data.args) }
 
     consoleUtils.stdinDispatcher['exit'] = () => { process.exit() }
+    
     consoleUtils.stdinDispatcher['test'] = (filename) => {
         const filenameLowerCase = filename.toLowerCase()
         const testFilePaths = fileUtils.getTestFiles('.', config.foldersToBeIgnored)
@@ -88,6 +99,7 @@ const server = app.listen(port, async () => {
 })
 
 wsTestServer.init(server)
+
 wsTestServer.connectionListeners.add(() => {
     consoleUtils.log('websocket new connection')
     consoleUtils.log('ready to test')

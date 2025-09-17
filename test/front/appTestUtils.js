@@ -1,20 +1,24 @@
 export const appTestUtils = {
-    get DESCRIBE() { return 'describe' },
-    get END_DESCRIBE() { return 'end_describe' },
-    get TEST() { return 'test' },
-    async getTestTree(url) {
-        const iframe = document.createElement('iframe')
-
+    async getTestTree(
+        /** @type {string} */ url
+    ) {
+        /** @type {UnitTestWebsocketNode[]} */
         const tree = []
-        const describe = (title, callback) => {
-            tree.push({ type: this.DESCRIBE, title })
+
+        const describe = (
+            /** @type {string} */ title,
+            /** @type {()=>void} */ callback
+        ) => {
+            tree.push({ type: 'describe', title })
             callback()
-            tree.push({ type: this.END_DESCRIBE })
+            tree.push({ type: 'end_describe' })
         }
         window.describe = describe
 
-        const test = (title) => {
-            tree.push({ type: this.TEST, title })
+        const test = (
+            /** @type {string} */ title
+        ) => {
+            tree.push({ type: 'test', title })
         }
         window.it = test
         window.test = test
@@ -23,17 +27,28 @@ export const appTestUtils = {
 
         return tree
     },
-    getTests(tree) {
-        return tree.filter((value) => value.type === appTestUtils.TEST)
+    getTests(
+        /** @type {  UnitTestWebsocketNode[] } */ tree
+    ) {
+        return tree.filter((value) => value.type === 'test')
     },
-    async getTestCallbacks(url) {
+    async getTestCallbacks(
+        /** @type {string} */ url
+    ) {
+        /** @type {(()=>void)[]} */
         const callbacks = []
-        const describe = (title, callback) => {
+        const describe = (
+            /** @type {string} */ title,
+            /** @type {()=>void} */ callback
+        ) => {
             callback()
         }
         window.describe = describe
 
-        const test = (title, callback) => {
+        const test = (
+            /** @type {string} */ title,
+            /** @type {()=>void} */ callback
+        ) => {
             callbacks.push(callback)
         }
         window.it = test
@@ -43,10 +58,12 @@ export const appTestUtils = {
 
         return callbacks
     },
-    pprint(tree) {
+    pprint(
+        /** @type { UnitTestWebsocketNode[] } */ tree
+    ) {
         for (const line of tree) {
-            if (line.type === this.DESCRIBE) console.group(line.title)
-            if (line.type === this.TEST) {
+            if (line.type === 'describe') console.group(line.title)
+            if (line.type === 'test') {
                 const result = line.result
                 if (result.success === true) {
                     console.log(`✅ ${line.title} (${result.time.toFixed(1)} ms)`)
@@ -56,10 +73,14 @@ export const appTestUtils = {
                     console.log(result.error)
                 }
             }
-            if (line.type === this.END_DESCRIBE) console.groupEnd()
+            if (line.type === 'end_describe') console.groupEnd()
         }
     },
-    async runIframeFunction(url, functionName, ...args) {
+    async runIframeFunction(
+        /** @type {string} */ url,
+        /** @type {string} */ functionName,
+        ...args
+    ) {
         const iframe = document.createElement('iframe')
         iframe.src = url
         iframe.allow = "display-capture"
@@ -72,11 +93,11 @@ export const appTestUtils = {
             if (!iframe.contentWindow[functionName]) {
                 setTimeout(() => { resolve(waitForRunTestLoaded()) })
             } else {
-                resolve()
+                resolve(undefined)
             }
         })
 
-        const waitForLoad = () => new Promise(resolve => { iframe.contentWindow.onload = resolve })
+        const waitForLoad = () => new Promise(resolve => { if (iframe.contentWindow) iframe.contentWindow.onload = resolve })
 
 
         await waitForLoad()

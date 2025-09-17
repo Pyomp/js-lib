@@ -2,19 +2,11 @@ import path, { relative, resolve } from 'path'
 import fs from 'fs'
 import fsPromises from 'node:fs/promises'
 
-function hasDirectoryToIgnore(url, foldersToBeIgnored) {
-    const pathSplits = url.split(path.sep)
-
-    for (const ignoredFolder of foldersToBeIgnored) {
-        if (pathSplits.includes(ignoredFolder)) {
-            return true
-        }
-    }
-
-    return false
-}
-
-function getTestFiles(rootPath, foldersToBeIgnored) {
+function getTestFiles(
+    /** @type { string } */ rootPath,
+    /** @type { string[] } */ foldersToBeIgnored
+) {
+    /** @type { string[] } */
     const result = []
     const dirs = fs.readdirSync(rootPath, { encoding: 'utf-8' })
     for (const name of dirs) {
@@ -31,17 +23,23 @@ function getTestFiles(rootPath, foldersToBeIgnored) {
 }
 
 export const fileUtils = {
-    getTestFiles(rootPath, foldersToBeIgnored) {
-        return getTestFiles(rootPath, foldersToBeIgnored)
-    },
+    getTestFiles,
+
     currentUrlWatched: '',
-    watchFiles(rootPath, foldersToBeIgnored, /** @type {(url: string)=>void} */ callbackOnFileChange) {
+
+    watchFiles(
+        /** @type {string} */ rootPath,
+        /** @type {string[]} */ foldersToBeIgnored,
+        /** @type {(url: string)=>void} */ callbackOnFileChange
+    ) {
+        /** @type {import('fs').FSWatcher[]} */
         const currentImportFileWatchers = []
+        /** @type {import('fs').FSWatcher[]} */
         const fileTestsWatchers = []
 
         let disposed = false
 
-        const fileUrls = fileUtils.getTestFiles(rootPath, foldersToBeIgnored)
+        const fileUrls = getTestFiles(rootPath, foldersToBeIgnored)
         for (const url of fileUrls) {
             const callback = () => { callbackOnFileChange(url) }
             fileTestsWatchers.push(
@@ -73,7 +71,11 @@ export const fileUtils = {
 
         return dispose
     },
-    async getImportedFileUrls(fileUrl, result = []) {
+
+    async getImportedFileUrls(
+        /** @type { string } */ fileUrl,
+        /** @type { string[] } */ result = []
+    ) {
         const testFile = await fsPromises.open(fileUrl)
 
         for await (const line of testFile.readLines()) {

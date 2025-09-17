@@ -2,6 +2,7 @@
 
 import { appTestUtils } from "./appTestUtils.js"
 
+/** @type {WebSocket} */
 let ws
 
 function initWebsocket() {
@@ -28,7 +29,7 @@ function initWebsocket() {
 
     ws.onmessage = async (event) => {
         try {
-            /** @type {WsRequest} */
+            /** @type {UnitTestWsMessage} */
             const request = JSON.parse(event.data)
             if (request.command === 'runUnit') {
                 const testFileUrl = request.data

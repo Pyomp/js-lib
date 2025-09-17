@@ -2,9 +2,13 @@ import { WebSocketServer } from "ws"
 
 export const wsTestServer = {
     connectionListeners: new Set(),
-    dispatcher: {    },
-    /** @type {import('ws').WebSocket} */ client: null,
-    init(server) {
+    /** @type {{[command: string]: (message: any) => void}} */
+    dispatcher: {},
+    /** @type {import('ws').WebSocket | null} */
+    client: null,
+    init(
+        /** @type {import('http').Server} */ server
+    ) {
         const wss = new WebSocketServer({ noServer: true })
 
         wss.on('connection', (ws, request) => {

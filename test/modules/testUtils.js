@@ -1,12 +1,14 @@
 import fakeTimer from "./fakeTimer.js"
 
 export const testUtils = {
-    mock(object) {
+    mock(
+        /** @type {{[key: string]: any}} */ object
+    ) {
         for (const key in object) {
             if (typeof object[key] === 'function') {
                 try {
                     const initialFunction = object[key].bind(object)
-                    object[key] = function (...args) {
+                    object[key] = function (/** @type {any[]} */ ...args) {
                         object[key].callArgs.push(structuredClone(args))
 
                         initialFunction(...args)

@@ -14,9 +14,34 @@ declare type TestConfig = {
   maxUnitTestDuration: number;
   maxSimultaneousRunningTest: number;
   foldersToBeIgnored: string[];
+  port?: string
 };
 
-declare type WsRequest = {
-  command: string;
-  data: any;
-};
+declare type UnitTestWsMessage =
+  | {
+    command: 'runUnit'
+    data: string
+  }
+  | {
+    command: 'result'
+    data: UnitTestWebsocketNode[]
+  }
+
+declare type UnitTestWebsocketNode =
+  | {
+    type: 'describe',
+    title: string
+  }
+  | {
+    type: 'end_describe',
+  }
+  | {
+    type: 'test',
+    title: string
+    result?: {
+      success: boolean,
+      time: number,
+      console: string,
+      error: string
+    }
+  }

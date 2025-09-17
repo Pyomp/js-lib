@@ -3,12 +3,16 @@ import { appTestUtils } from "../front/appTestUtils.js"
 let stdinBusy = false
 
 export const consoleUtils = {
-    pprintResult(testFileUrl, result, t0) {
+    pprintResult(
+        /** @type {string} */ testFileUrl,
+        /** @type { UnitTestWebsocketNode[] } */ result,
+        /** @type {number} */ t0
+    ) {
         // consoleUtils.clearStdout()
         const time = performance.now() - t0
         console.group(`${testFileUrl} (${time.toFixed()} ms)`)
         for (const line of result) {
-            if (line.result?.error) {
+            if (line.type === 'test') {
                 line.result.error = line.result.error.replaceAll(/http:\/\/localhost:\d*\//gm, './')
             }
         }
@@ -18,6 +22,7 @@ export const consoleUtils = {
     clearStdout() {
         process.stdout.write('\x1Bc')
     },
+    /** @type {{[command: string]: (args: string) => Promise<void> | void}} */
     stdinDispatcher: {
         ['clear']: () => { console.clear(); consoleUtils.displayInput() }
     },
@@ -36,7 +41,9 @@ export const consoleUtils = {
     displayInput() {
         process.stdout.write('> ')
     },
-    log(...args) {
+    log(
+        /** @type {string[]} */ ...args
+    ) {
         process.stdout.clearLine(0)
         process.stdout.cursorTo(0)
         console.log(...args)
