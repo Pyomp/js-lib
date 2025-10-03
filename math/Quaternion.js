@@ -448,26 +448,24 @@ class Quaternion {
 
     }
 
-    multiply(q, p) {
-
-        if (p !== undefined) {
-
-            console.warn('THREE.Quaternion: .multiply() now only accepts one argument. Use .multiplyQuaternions( a, b ) instead.')
-            return this.multiplyQuaternions(q, p)
-
-        }
-
+    multiply(
+        /** @type {Quaternion} */ q
+    ) {
         return this.multiplyQuaternions(this, q)
-
     }
 
-    premultiply(q) {
+    premultiply(
+        /** @type {Quaternion} */ q
+    ) {
 
         return this.multiplyQuaternions(q, this)
 
     }
 
-    multiplyQuaternions(a, b) {
+    multiplyQuaternions(
+        /** @type {Quaternion} */ a,
+        /** @type {Quaternion} */ b
+    ) {
 
         // from http://www.euclideanspace.com/maths/algebra/realNormedAlgebra/quaternions/code/index.htm
 

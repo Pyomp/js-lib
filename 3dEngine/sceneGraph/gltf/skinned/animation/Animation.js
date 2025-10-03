@@ -55,6 +55,14 @@ export function morphFromGltf(
 
 const EmptyMorph = Object.freeze({ indices: [0, 0, 0, 0], values: [0, 0, 0, 0] })
 
+const QuaternionIdentity = new Quaternion().identity()
+
+const boneRelativeResult = {
+    position: new Vector3(),
+    quaternion: new Quaternion(),
+    scale: new Vector3(),
+}
+
 export class Animation {
     static vs_pars = vs_pars
     static vs_main = vs_main
@@ -196,6 +204,61 @@ export class Animation {
             const gltfAnimation = gltfAnimations[animationName]
             const loop = this.#extractLoopFromName(animationName)
             this.tracks[key] = new Track(gltfAnimation, loop)
+        }
+    }
+
+    getBoneDelta(
+        /** @type {number} */ time,
+        /** @type {string | number} */ animationKey,
+        /** @type {string} */ boneName
+    ) {
+        const boneTransformation = this.tracks[animationKey]?.bones[boneName]
+        const initialBone = this.initialPose[boneName]
+
+        if (boneTransformation?.position) {
+            const absolute = getBonePosition(time, boneTransformation.position)
+            boneRelativeResult.position.copy(absolute).sub(initialBone.position)
+        } else {
+            boneRelativeResult.position.set(0, 0, 0)
+        }
+
+        if (boneTransformation?.quaternion) {
+            const absolute = getBoneQuaternion(time, boneTransformation.quaternion)
+            boneRelativeResult.quaternion.copy(initialBone.quaternion).invert().multiply(absolute)
+        } else {
+            boneRelativeResult.quaternion.identity()
+        }
+
+        if (boneTransformation?.scale) {
+            const absolute = getBoneScale(time, boneTransformation.scale)
+            boneRelativeResult.scale.copy(absolute).sub(initialBone.scale)
+        } else {
+            boneRelativeResult.scale.set(0, 0, 0)
+        }
+
+        return boneRelativeResult
+    }
+
+
+
+    addBoneTransformation(
+        /** @type {{time: number, weight: number, animationKey: string | number}[]} */ animations,
+        /** @type {Bone} */ boneTarget,
+    ) {
+        const initialBone = this.initialPose[boneTarget.name]
+        boneTarget.position.copy(initialBone.position)
+        boneTarget.quaternion.copy(initialBone.quaternion)
+        boneTarget.scale.copy(initialBone.scale)
+
+        for (const { time, weight, animationKey } of animations) {
+            const boneRelativeTransformation = this.getBoneDelta(time, animationKey, boneTarget.name)
+            boneTarget.position.add(boneRelativeTransformation.position.multiplyScalar(weight))
+            boneTarget.quaternion.multiply(
+                weight < 1 ?
+                    boneRelativeTransformation.quaternion.slerp(QuaternionIdentity, 1 - weight)
+                    : boneRelativeTransformation.quaternion
+            )
+            boneTarget.scale.add(boneRelativeTransformation.scale.multiplyScalar(weight))
         }
     }
 
@@ -421,13 +484,10 @@ function cubicQuaternion(
     return _quaternion
 }
 
-/**
- * @param { number } time
- * @param { KeyFrame<Quaternion[]> } quaternionKeyFrame
- */
-function getBoneQuaternion(time, quaternionKeyFrame) {
-    if (!quaternionKeyFrame) return null
-
+function getBoneQuaternion(
+    /** @type {number} */ time,
+    /** @type {KeyFrame<Quaternion[]>} */ quaternionKeyFrame
+) {
     const keys = quaternionKeyFrame.key
     const frames = quaternionKeyFrame.frame
 
