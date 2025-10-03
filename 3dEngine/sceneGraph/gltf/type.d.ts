@@ -1,5 +1,6 @@
 declare type GltfPrimitive = {
   attributes: GltfAttributes;
+  targets?: GltfTarget[]
   indices?: { // GltfBuffer without Float32Array
     buffer: Uint8Array | Uint16Array | Uint32Array;
     count: number;
@@ -19,6 +20,12 @@ declare type GltfNode = {
   scale?: [number, number, number];
   morph?: GltfKeyFrame
 };
+
+declare type GltfTarget = {
+  POSITION?: GltfBuffer<Float32Array>;
+  NORMAL?: GltfBuffer<Float32Array>;
+  TANGENT?: GltfBuffer<Float32Array>;
+}
 
 declare type GltfAttributes = {
   JOINTS_0?: GltfBuffer<Uint8Array>;
@@ -57,12 +64,12 @@ declare type GltfMesh = {
   primitives: [GltfPrimitive];
 };
 
-declare type GltfAnimation = { [boneName: string]: GltfBoneAnimation };
-declare type GltfBoneAnimations = { [animationName: string]: GltfBoneAnimation };
+declare type GltfAnimation = { [targetName: string]: GltfBoneAnimation | GltfMorphsAnimation };
+declare type GltfAnimations = { [animationName: string]: GltfAnimation };
 declare type GltfSkin = {
   name?: string;
-  inverseBindMatrices?: GltfBuffer;
-  animations?: GltfBoneAnimations;
+  inverseBindMatrices?: GltfBuffer<Float32Array>;
+  animations?: GltfAnimations;
   rootBones: GltfBone[];
   bonesCount: number;
 };
@@ -107,6 +114,10 @@ declare type GltfBoneAnimation = {
   translation?: GltfKeyFrame;
   rotation?: GltfKeyFrame;
   scale?: GltfKeyFrame;
+};
+
+declare type GltfMorphsAnimation = {
+  weights: GltfKeyFrame;
 };
 
 declare type GltfBone = {

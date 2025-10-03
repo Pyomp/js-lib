@@ -540,7 +540,7 @@ class Color {
 
     /**
      * 
-     * @param {Array | ArrayBufferLike =} array 
+     * @param {Array<number> | Float32Array} array 
      * @param {*} offset 
      * @returns 
      */

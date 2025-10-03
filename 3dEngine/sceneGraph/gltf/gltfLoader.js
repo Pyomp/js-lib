@@ -150,13 +150,9 @@ export async function parseGltf(gltf) {
 
                     for (const key in target) {
                         const accessorID = target[key]
-                        const attributeName = key + '_TARGET_' + name
-                        attributes[attributeName] = accessors[accessorID]
+                        target[key] = accessors[accessorID]
                     }
                 }
-
-
-                delete primitive.targets
             }
 
             primitive.indices = accessors[primitive.indices]

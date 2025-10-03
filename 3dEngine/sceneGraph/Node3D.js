@@ -40,6 +40,9 @@ export class Node3D {
     /** @type {HairSkin[]} */
     hairSkins = []
 
+    /** @type {Object} */
+    userData = {}
+
     /** @param {Node3D} node */
     addNode3D(node) {
         node.parent?.removeNode3D(node)
@@ -111,7 +114,7 @@ export class Node3D {
 
     dispose() {
         this.traverse((child) => {
-            if (child.mixer) child.mixer.jointsTexture.needsDelete = true
+            if (child.mixer) child.mixer.dispose()
             if (child.parent)
                 child.parent.removeNode3D(this)
         })

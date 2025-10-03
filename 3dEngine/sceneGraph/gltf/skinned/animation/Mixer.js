@@ -4,9 +4,9 @@ import { Track } from "./Track.js"
 import { Animation, LoopOnce, LoopPingpong } from "./Animation.js"
 import { Bone } from "./Bone.js"
 import { loopRaf } from "../../../../../utils/loopRaf.js"
-import { KeyFrame } from "./KeyFrame.js"
 import { GLSL_SKINNED } from "../../../../programs/chunks/glslSkinnedChunk.js"
 import { EventSet } from "../../../../../utils/EventSet.js"
+import { MorphController } from "./MorphController.js"
 
 export class Mixer {
     rootBone
@@ -26,15 +26,13 @@ export class Mixer {
     #animation
     /** @type {string | number} */
     #currentAnimationName = ''
-    #uniforms = []
 
     /** @type {EventSet<(animation: string | number, time: number)=>void>} */
     onUpdate = new EventSet()
 
-    /**
-     * @param {Animation} animation
-     */
-    constructor(animation) {
+    constructor(
+        /** @type {Animation} */animation
+    ) {
         this.#animation = animation
         this.#tracks = animation.tracks
 
@@ -46,15 +44,13 @@ export class Mixer {
         this.#initCurrentTrack()
         this.rootBone.updateMatrix()
     }
-
-    bindUniform(uniforms) {
-        uniforms[GLSL_SKINNED.jointsTexture] = this.jointsTexture
-        this.#uniforms.push(uniforms)
-    }
-
+    
     dispose() {
         this.jointsTexture.needsDelete = true
         this.onUpdate.emit(-1, -1)
+        for (const morphController of this.#morphControllers) {
+            this.removeMorphController(morphController)
+        }
     }
 
     #initCurrentTrack() {
@@ -81,7 +77,7 @@ export class Mixer {
      * @param {Bone} bone
      */
     #applyTransformationToBone(bone) {
-        this.#animation.applyBoneTransformation(this.#time, this.#currentAnimationName, bone, this.#uniforms)
+        this.#animation.applyBoneTransformation(this.#time, this.#currentAnimationName, bone)
         if (this.#fadeTime > 0) {
             const saved = this.#poseSaved[bone.name]
             bone.position.lerp(saved.position, this.#fadeTime)
@@ -128,7 +124,7 @@ export class Mixer {
     }
 
     play(
-        /** @type {string} */ animationName,
+        /** @type {string | number} */ animationName,
         timeUpdate = 0
     ) {
         const track = this.#tracks[animationName]
@@ -151,6 +147,30 @@ export class Mixer {
         }
 
         this.onUpdate.emit(this.#currentAnimationName, timeUpdate)
+    }
+
+    /** @type {Set<MorphController>} */
+    #morphControllers = new Set()
+    createMorphController(
+        /** @type {string} */ name
+    ) {
+        const morphController = this.#animation.createMorphController(name)
+        this.#morphControllers.add(morphController)
+        return morphController
+    }
+
+    removeMorphController(
+       /** @type {MorphController} */ morphController
+    ) {
+        morphController.dispose()
+        this.#morphControllers.delete(morphController)
+    }
+
+    updateMorphs() {
+        for (const morphController of this.#morphControllers) {
+            const { indices, values } = this.#animation.getMorphs(this.#time, this.#currentAnimationName, morphController.name)
+            morphController.update(indices, values)
+        }
     }
 
     clone() {

@@ -1,11 +1,11 @@
-import { GlVao } from "../webgl/glDescriptors/GlVao.js"
-import { GlObject } from "../webgl/glDescriptors/GlObject.js"
-import { GlProgram } from "../webgl/glDescriptors/GlProgram.js"
-import { GlAttribute } from "../webgl/glDescriptors/GlAttribute.js"
-import { GlArrayBuffer } from "../webgl/glDescriptors/GlArrayBuffer.js"
-import { GlTexture } from "../webgl/glDescriptors/GlTexture.js"
+import { GlVao } from "../../webgl/glDescriptors/GlVao.js"
+import { GlObject } from "../../webgl/glDescriptors/GlObject.js"
+import { GlProgram } from "../../webgl/glDescriptors/GlProgram.js"
+import { GlAttribute } from "../../webgl/glDescriptors/GlAttribute.js"
+import { GlArrayBuffer } from "../../webgl/glDescriptors/GlArrayBuffer.js"
+import { GlTexture } from "../../webgl/glDescriptors/GlTexture.js"
 
-export class TextureObject extends GlObject {
+export class TextureGlObject extends GlObject {
     /**
      * 
      * @param {GlTexture} texture 

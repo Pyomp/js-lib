@@ -44,8 +44,12 @@ export class EventSet extends Set {
  * @template T
 */
 export class EventValue {
-    /** @type {T} */ #value
+    /** @type {T} */
+    #value
+
+    /** @type {EventSet<()=>void>} */
     onChange = new EventSet()
+
     get value() { return this.#value }
     set value(v) { if (this.#value !== v) { this.#value = v; this.onChange.emit() } }
 

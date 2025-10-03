@@ -1,6 +1,14 @@
 import * as MathUtils from './MathUtils.js'
 import { Quaternion } from './Quaternion.js'
 
+/**
+ * @typedef {{
+ *      readonly x: number
+ *      readonly y: number
+ *      readonly z: number
+ * }} Vector3Like
+*/
+
 export class Vector3 {
 
     constructor(x = 0, y = 0, z = 0) {
@@ -520,7 +528,10 @@ export class Vector3 {
 
     }
 
-    lerp(v, alpha) {
+    lerp(
+        /** @type {Vector3Like} */ v,
+        /** @type {number} */ alpha
+    ) {
 
         this.x += (v.x - this.x) * alpha
         this.y += (v.y - this.y) * alpha
@@ -530,7 +541,11 @@ export class Vector3 {
 
     }
 
-    lerpVectors(v1, v2, alpha) {
+    lerpVectors(
+        /** @type {Vector3Like} */ v1,
+        /** @type {Vector3Like} */ v2,
+        /** @type {number} */ alpha
+    ) {
 
         this.x = v1.x + (v2.x - v1.x) * alpha
         this.y = v1.y + (v2.y - v1.y) * alpha

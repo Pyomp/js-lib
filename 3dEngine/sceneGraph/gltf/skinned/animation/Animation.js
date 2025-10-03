@@ -1,9 +1,12 @@
 import { Quaternion } from '../../../../../math/Quaternion.js'
 import { Vector3 } from '../../../../../math/Vector3.js'
+import { Vector4 } from '../../../../../math/Vector4.js'
 import { GLSL_MORPH_TARGET } from '../../../../programs/chunks/glslMorphTarget.js'
 import { GlTexture } from '../../../../webgl/glDescriptors/GlTexture.js'
+import { GlTextureFloatRGB } from '../../../textures/GlTextureFloatRGB.js'
 import { Bone } from './Bone.js'
 import { KeyFrame } from './KeyFrame.js'
+import { MorphController } from './MorphController.js'
 import { Track } from './Track.js'
 
 const vs_pars = () => `
@@ -35,65 +38,94 @@ export const LoopOnce = 0
 export const LoopRepeat = 1
 export const LoopPingpong = 2
 
+export function morphFromGltf(
+    /** @type {GltfTarget[]} */ targets
+) {
+    /** @type {Float32Array[]} */ const position = []
+    /** @type {Float32Array[]} */ const normal = []
+    /** @type {Float32Array[]} */ const tangent = []
+
+    for (const target of targets) {
+        if (target.POSITION?.buffer) position.push(target.POSITION.buffer)
+        if (target.NORMAL?.buffer) normal.push(target.NORMAL.buffer)
+        if (target.TANGENT?.buffer) tangent.push(target.TANGENT.buffer)
+    }
+    return { position, normal, tangent }
+}
+
+const EmptyMorph = Object.freeze({ indices: [0, 0, 0, 0], values: [0, 0, 0, 0] })
+
 export class Animation {
     static vs_pars = vs_pars
     static vs_main = vs_main
+    static morphFromGltf = morphFromGltf
 
+    /** 
+     * @type {{[boneName: string]: {
+     *      position: Vector3
+     *      quaternion: Quaternion
+     *      scale: Vector3
+     * }}}
+     */
     initialPose = {}
 
     /** @type {{[trackName: string]: Track}} */
     tracks = {}
 
+    #morphs
+
     #bonesCount
     #gltfSkinRootBone
     #inverseBindMatrices
-    /** @type {string[]}} */ #morphTargetUniformNames = []
-    /** @type {{[name: string]: KeyFrame}}} */ morphKeyFrames = {}
-    #animationMorphBind
 
     /**
      * @param {{
      *      gltfSkin: GltfSkin
-     *      animationDictionary: {[gltfAnimationName: string]: string | number}
-     *      morphTargets?: {names: string[], keyframes: GltfKeyFrame[]}
-     *      animationMorphBind?: {[animationKey: string | number]: string}
+     *      animationDictionary?: {[gltfAnimationName: string]: string | number}
+     *      readonly morphs?: {
+     *          readonly [morphTarget: string]:{
+     *              readonly position: Float32Array[]
+     *              readonly normal: Float32Array[]
+     *          }
+     *      }
      *  }} gltfSkin
      */
     constructor({
         gltfSkin,
         animationDictionary = {},
-        morphTargets = { names: [], keyframes: [] },
-        animationMorphBind = {}
+        morphs = {}
     }) {
+        if (!gltfSkin.animations || !gltfSkin.inverseBindMatrices)
+            throw new Error('no animation data in gltf')
+
         this.name = gltfSkin.name
         this.#bonesCount = gltfSkin.bonesCount
         this.#gltfSkinRootBone = gltfSkin.rootBones[0]
         this.#inverseBindMatrices = gltfSkin.inverseBindMatrices.buffer
-
+        this.#morphs = morphs
 
         this.#initInitialPose(gltfSkin.rootBones[0])
         this.#initTracks(gltfSkin.animations, animationDictionary)
-        this.#initMorphs(morphTargets)
-        this.#animationMorphBind = animationMorphBind
     }
 
-    #initMorphs(/** @type {{names: string[], keyframes: GltfKeyFrame[]}} */ morphTargets) {
-        const morphLength = morphTargets.names.length
+    // NOT NEEDED ? TO BE DELETE NEXT TIME YOU SEE IT
+    // createMorphs() {
+    //     /** @type {{[targetName: string]: {activeMorphsTarget: Int32Array, morphWeightsTarget: Float32Array}}} */
+    //     const morphs = {}
 
-        for (let i = 0; i < morphLength; i++) {
-            const uniformName = GLSL_MORPH_TARGET.influenceUniformPrefix + morphTargets.names[i]
-            const keyFrame = morphTargets.keyframes[i]
-            this.#morphTargetUniformNames.push(uniformName)
+    //     for (const track of Object.values(this.tracks)) {
+    //         for (const key in track.morphs) {
+    //             if (!morphs[key]) {
+    //                 morphs[key] = {
+    //                     activeMorphsTarget: new Int32Array(4),
+    //                     morphWeightsTarget: new Float32Array(4)
+    //                 }
+    //             }
+    //         }
+    //     }
 
-            const keyFrameNumbers = []
-            const frame = keyFrame.frame.buffer
-            for (let i = 0; i < frame.length; i += morphLength) {
-                keyFrameNumbers.push(frame.slice(i, i + morphLength))
-            }
-
-            this.morphKeyFrames[morphTargets.names[i]] = new KeyFrame(keyFrame.key.buffer, keyFrameNumbers, true)
-        }
-    }
+    //     return morphs
+    // }
 
     createArmature() {
         const buffer = new Float32Array(16 * this.#bonesCount)
@@ -143,7 +175,9 @@ export class Animation {
         }
     }
 
-    #extractLoopFromName(animationName) {
+    #extractLoopFromName(
+        /** @type {string} */ animationName
+    ) {
         if (animationName.includes('pingpong')) {
             return LoopPingpong
         } else if (animationName.includes('repeat')) {
@@ -153,23 +187,23 @@ export class Animation {
         }
     }
 
-    #initTracks(gltfAnimations, animationDictionary) {
+    #initTracks(
+        /** @type {{[animationName: string]: GltfAnimation}} */ gltfAnimations,
+        /** @type {{[gltfAnimationName: string]: string | number}} */ animationDictionary
+    ) {
         for (const animationName in gltfAnimations) {
-            const reference = animationDictionary[animationName] ?? animationName
+            const key = animationDictionary[animationName] ?? animationName
             const gltfAnimation = gltfAnimations[animationName]
             const loop = this.#extractLoopFromName(animationName)
-            this.tracks[reference] = new Track(gltfAnimation, loop)
+            this.tracks[key] = new Track(gltfAnimation, loop)
         }
     }
 
-    /**
-     * @param {number} time 
-     * @param {string | number} animationKey
-     * @param {Bone} boneTarget 
-     * @param {{[name: string]: WebGl.UniformData | GlTexture}[]} uniformsTarget 
-     * @returns 
-     */
-    applyBoneTransformation(time, animationKey, boneTarget, uniformsTarget) {
+    applyBoneTransformation(
+        /** @type {number} */ time,
+        /** @type {string | number} */ animationKey,
+        /** @type {Bone} */ boneTarget,
+    ) {
         const track = this.tracks[animationKey]
 
         if (!track) return
@@ -179,61 +213,55 @@ export class Animation {
         boneTarget.position.copy(boneTransformation?.position ? getBonePosition(time, boneTransformation.position) : initialBone.position)
         boneTarget.quaternion.copy(boneTransformation?.quaternion ? getBoneQuaternion(time, boneTransformation.quaternion) : initialBone.quaternion)
         boneTarget.scale.copy(boneTransformation?.scale ? getBoneScale(time, boneTransformation.scale) : initialBone.scale)
-
-        const morphName = this.#animationMorphBind[animationKey]
-        if (morphName) {
-            const keyframe = this.morphKeyFrames[morphName]
-            for (const uniforms of uniformsTarget) {
-                this.applyMorphs(time, keyframe, uniforms)
-            }
-        }
     }
 
-    /**
-     * @param {number} time 
-     * @param {KeyFrame} keyframe 
-     * @param {{[name: string]: WebGl.UniformData | GlTexture}} uniformTarget
-     * @returns 
-     */
-    applyMorphs(time, keyframe, uniformTarget) {
-        const keys = keyframe.key
-        const frames = keyframe.frame
+    createMorphController(/** @type { string } */ targetName) {
+        return new MorphController(this.#morphs[targetName], targetName)
+    }
 
-        const index = getIndexFromKeysTime(time, keys)
-        const result = lerpNumbers(time, index, keys, frames)
+    getMorphs(
+        /** @type {number} */ time,
+        /** @type {string | number} */ animationKey,
+        /** @type { string } */ targetName,
+    ) {
+        const track = this.tracks[animationKey]
 
-        for (let i = 0; i < this.#morphTargetUniformNames.length; i++) {
-            if (uniformTarget[this.#morphTargetUniformNames[i]]) uniformTarget[this.#morphTargetUniformNames[i]] = result[i]
-        }
+        if (!track) return EmptyMorph
+
+        const morphs = track.morphs[targetName]
+
+        if (!morphs) return EmptyMorph
+
+        const weights = morphs.weights
+        const result = getMorphWeights(time, weights.key, weights.frame)
+
+        return top4Indices(result)
     }
 }
 
-/**
- * @param {number} time 
- * @param {number} index 
- * @param {number[]} keys 
- */
-function getAlpha(time, index, keys) {
+function getAlpha(
+   /** @type {number} */ time,
+   /** @type {number} */ index,
+   /** @type {number[] | Float32Array} */ keys
+) {
     return (time - keys[index - 1]) / (keys[index] - keys[index - 1])
 }
 
-/**
- * @param {number} time
- * @param {number[]} keys 
- */
-function getIndexFromKeysTime(time, keys) {
+function getIndexFromKeysTime(
+    /** @type {number} */ time,
+    /** @type {number[] | Float32Array} */ keys
+) {
     let i = 0
     while (time > keys[i]) i++
     return i
 }
 
-/**
- * @param {number} time
- * @param {number} index 
- * @param {number[]} keys 
- * @param {Vector3[]} frames 
- */
-function lerpVector3(time, index, keys, frames) {
+function lerpVector3(
+  /** @type {number} */ time,
+  /** @type {number} */ index,
+  /** @type {number[] | Float32Array} */ keys,
+  /** @type {Vector3[]} */ frames
+) {
     if (index === 0) {
         _vector3.copy(frames[0])
     } else if (index >= keys.length) {
@@ -245,14 +273,13 @@ function lerpVector3(time, index, keys, frames) {
     return _vector3
 }
 
+function getMorphWeights(
+   /** @type {number} */ time,
+   /** @type {number[] | Float32Array} */ keys,
+   /** @type {Float32Array[]} */ frames
+) {
+    const index = getIndexFromKeysTime(time, keys)
 
-/**
- * @param {number} time
- * @param {number} index 
- * @param {number[]} keys 
- * @param {number[][]} frames 
- */
-function lerpNumbers(time, index, keys, frames) {
     if (index === 0) {
         return frames[0]
     } else if (index >= keys.length) {
@@ -265,13 +292,48 @@ function lerpNumbers(time, index, keys, frames) {
     }
 }
 
-/**
-* @param {number} time
-* @param {number} index 
-* @param {number[]} keys 
-* @param {Vector3[]} frames 
-*/
-function cubicVector3Interpolation(time, index, keys, frames) {
+const _indices = [0, 0, 0, 0]
+const _values = [0, 0, 0, 0]
+/** @type {{readonly indices: number[], readonly values: number[]}} */
+const _top4IndicesResult = { indices: _indices, values: _values }
+function top4Indices(
+    /** @type {number[] | Float32Array} */ array
+) {
+    _indices.fill(0)
+    _values.fill(0)
+
+    function eachCallback(
+        /** @type {number} */ v,
+        /** @type {number} */ i
+    ) {
+        if (v > _values[0]) {
+            _values[3] = _values[2]; _indices[2] = _indices[2]
+            _values[2] = _values[1]; _indices[2] = _indices[1]
+            _values[1] = _values[0]; _indices[1] = _indices[0]
+            _values[0] = v; _indices[0] = i
+        } else if (v > _values[1]) {
+            _values[3] = _values[2]; _indices[3] = _indices[2]
+            _values[2] = _values[1]; _indices[2] = _indices[1]
+            _values[1] = v; _indices[1] = i
+        } else if (v > _values[2]) {
+            _values[3] = _values[2]; _indices[3] = _indices[2]
+            _values[2] = v; _indices[2] = i
+        } else if (v > _values[3]) {
+            _values[3] = v; _indices[3] = i
+        }
+    }
+
+    array.forEach(eachCallback)
+
+    return _top4IndicesResult
+}
+
+function cubicVector3Interpolation(
+    /** @type {number} */ time,
+    /** @type {number} */ index,
+    /** @type {number[] | Float32Array} */ keys,
+    /** @type {Vector3[]} f*/ frames
+) {
     if (index === 0) {
         _vector3.copy(frames[0])
     } else if (index >= keys.length) {
@@ -288,13 +350,10 @@ function cubicVector3Interpolation(time, index, keys, frames) {
     return _vector3
 }
 
-/** 
- * @param { number } time
- * @param { KeyFrame } bonePositionKeyFrame
- */
-function getBonePosition(time, bonePositionKeyFrame) {
-    if (!bonePositionKeyFrame) return null
-
+function getBonePosition(
+    /** @type {number} */ time,
+    /** @type {KeyFrame<Vector3[]>} */ bonePositionKeyFrame
+) {
     const keys = bonePositionKeyFrame.key
     const frames = bonePositionKeyFrame.frame
 
@@ -309,11 +368,9 @@ function getBonePosition(time, bonePositionKeyFrame) {
 
 /**
  * @param { number } time
- * @param { KeyFrame } boneScaleKeyFrame
+ * @param { KeyFrame<Vector3[]> } boneScaleKeyFrame
  */
 function getBoneScale(time, boneScaleKeyFrame) {
-    if (!boneScaleKeyFrame) return null
-
     const keys = boneScaleKeyFrame.key
     const frames = boneScaleKeyFrame.frame
 
@@ -326,13 +383,12 @@ function getBoneScale(time, boneScaleKeyFrame) {
     }
 }
 
-/**
- * @param {number} time 
- * @param {number} index 
- * @param {number[]} keys 
- * @param {Quaternion[]} frames 
- */
-function slerpQuaternion(time, index, keys, frames) {
+function slerpQuaternion(
+   /** @type {number} */ time,
+   /** @type {number} */ index,
+   /** @type {number[] | Float32Array} */ keys,
+   /** @type {Quaternion[]} */ frames
+) {
     if (index === 0) {
         _quaternion.copy(frames[0])
     } else if (index >= frames.length) {
@@ -344,13 +400,12 @@ function slerpQuaternion(time, index, keys, frames) {
     return _quaternion
 }
 
-/**
- * @param {number} time 
- * @param {number} index 
- * @param {number[]} keys 
- * @param {Quaternion[]} frames 
- */
-function cubicQuaternion(time, index, keys, frames) {
+function cubicQuaternion(
+    /** @type {number} */ time,
+    /** @type {number} */ index,
+    /** @type {number[] | Float32Array} */ keys,
+    /** @type {Quaternion[]} */ frames
+) {
     if (index === 0) {
         _quaternion.copy(frames[1])
     } else if (index >= frames.length) {
@@ -368,7 +423,7 @@ function cubicQuaternion(time, index, keys, frames) {
 
 /**
  * @param { number } time
- * @param { KeyFrame } quaternionKeyFrame
+ * @param { KeyFrame<Quaternion[]> } quaternionKeyFrame
  */
 function getBoneQuaternion(time, quaternionKeyFrame) {
     if (!quaternionKeyFrame) return null

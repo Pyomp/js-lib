@@ -10,19 +10,10 @@ import { GlProgram } from "../../webgl/glDescriptors/GlProgram.js"
 import { GlTexture } from "../../webgl/glDescriptors/GlTexture.js"
 import { GlVao } from "../../webgl/glDescriptors/GlVao.js"
 import { Node3D } from "../Node3D.js"
+import { getGlTextureData } from "./gltfUtils.js"
 import { Animation } from "./skinned/animation/Animation.js"
 import { Mixer } from "./skinned/animation/Mixer.js"
 
-function getGlTextureData(/** @type {GltfTexture} */ gltfTexture) {
-    return new GlTexture({
-        name: gltfTexture.name,
-        data: gltfTexture.source.htmlImageElement,
-        minFilter: gltfTexture.sampler.minFilter,
-        magFilter: gltfTexture.sampler.magFilter,
-        wrapS: gltfTexture.sampler.wrapS,
-        wrapT: gltfTexture.sampler.wrapT
-    })
-}
 
 /**
  * @param {GltfAttributes} attributes
@@ -103,7 +94,7 @@ function getGlObjectData(
         uniforms[GLSL_COMMON.alphaTest] = material.alphaMode === 'MASK' ? 0.1 : 0
         const pbrMetallicRoughness = material.pbrMetallicRoughness
         if (pbrMetallicRoughness) {
-            if (pbrMetallicRoughness.baseColorFactor) uniforms[GLSL_COMMON.baseColor] = new Color(pbrMetallicRoughness.baseColorFactor)
+            if (pbrMetallicRoughness.baseColorFactor) uniforms[GLSL_COMMON.baseColor] = new Color(...pbrMetallicRoughness.baseColorFactor)
             if (pbrMetallicRoughness.baseColorTexture) uniforms[GLSL_COMMON.baseTexture] = getGlTextureData(pbrMetallicRoughness.baseColorTexture)
             if (pbrMetallicRoughness.metallicFactor) uniforms[GLSL_PBR.metallic] = pbrMetallicRoughness.metallicFactor
             if (pbrMetallicRoughness.metallicRoughnessTexture) uniforms[GLSL_PBR.metallicRoughnessTexture] = getGlTextureData(pbrMetallicRoughness.metallicRoughnessTexture)
@@ -116,7 +107,7 @@ function getGlObjectData(
     }
 
     for (const key of targetNames) {
-        uniforms[GLSL_MORPH_TARGET.influenceUniformPrefix + key] = 0
+        uniforms[GLSL_MORPH_TARGET.morphWeightsUniform + key] = 0
     }
 
     const attributesData = getAttribute(primitive.attributes)

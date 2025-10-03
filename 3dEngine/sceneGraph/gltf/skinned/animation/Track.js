@@ -1,4 +1,5 @@
 import { BoneAnimation } from './BoneAnimation.js'
+import { MorphsAnimation } from './MorphsAnimation.js'
 
 export class Track {
     end = 0
@@ -7,20 +8,39 @@ export class Track {
     /** @type { {[boneName: string]: BoneAnimation} } */
     bones = {}
 
-    /**
-     * @param {GltfAnimation} gltfAnimation 
-     */
-    constructor(gltfAnimation, loop = 0) {
-        for (const boneName in gltfAnimation) {
-            const gltfBone = gltfAnimation[boneName]
-            this.#addBoneFromGltfBone(boneName, gltfBone)
+    /** @type { {[boneName: string]: MorphsAnimation} } */
+    morphs = {}
+
+    constructor(
+        /** @type {GltfAnimation} */ gltfAnimation,
+        /** @type {number} */ loop = 0
+    ) {
+        for (const targetName in gltfAnimation) {
+            const gltfTargetAnimation = gltfAnimation[targetName]
+            if ('weights' in gltfTargetAnimation) {
+                this.#addBoneFromGltfMorph(targetName, gltfTargetAnimation)
+            } else {
+                this.#addBoneFromGltfBone(targetName, gltfTargetAnimation)
+            }
             this.loop = loop
         }
     }
 
-    #addBoneFromGltfBone(boneName, gltfBone) {
+    #addBoneFromGltfMorph(
+        /** @type {string} */ targetName,
+        /** @type {GltfMorphsAnimation} */ gltfMorphsAnimation
+    ) {
+        const morphsAnimation = new MorphsAnimation(gltfMorphsAnimation)
+        this.morphs[targetName] = morphsAnimation
+        this.end = Math.max(this.end, morphsAnimation.getMaxTime())
+    }
+
+    #addBoneFromGltfBone(
+        /** @type {string} */ targetName,
+        /** @type {GltfBoneAnimation} */ gltfBone
+    ) {
         const boneAnimation = new BoneAnimation(gltfBone)
-        this.bones[boneName] = boneAnimation
+        this.bones[targetName] = boneAnimation
         this.end = Math.max(this.end, boneAnimation.getMaxTime())
     }
 }

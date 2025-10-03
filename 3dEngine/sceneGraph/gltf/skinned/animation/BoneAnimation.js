@@ -12,9 +12,9 @@ const GltfInterpolationCubic = 'CUBICSPLINE'
 const _euler = new Euler()
 
 export class BoneAnimation {
-    /** @type {KeyFrame | undefined} */ position
-    /** @type {KeyFrame | undefined} */ quaternion
-    /** @type {KeyFrame | undefined} */ scale
+    /** @type {KeyFrame<Vector3[]> | undefined} */ position
+    /** @type {KeyFrame<Quaternion[]> | undefined} */ quaternion
+    /** @type {KeyFrame<Vector3[]> | undefined} */ scale
 
     /** 
      * @param {GltfBoneAnimation} gltfBoneAnimation
@@ -28,7 +28,9 @@ export class BoneAnimation {
             this.#initScale(gltfBoneAnimation.scale)
     }
 
-    #getVector3Frame(frame) {
+    #getVector3Frame(
+        /** @type {Float32Array} */ frame
+    ) {
         let result = []
         const l = frame.length / 3
         for (let i = 0; i < l; i++) {
@@ -59,7 +61,10 @@ export class BoneAnimation {
         this.scale = new KeyFrame(key, frame, isLinear)
     }
 
-    #getQuaternionFrame(frame, isEuler) {
+    #getQuaternionFrame(
+        /** @type {Float32Array} */ frame, 
+        /** @type {boolean} */ isEuler
+    ) {
         let result = []
         const size = isEuler === true ? 3 : 4
         const l = frame.length / size

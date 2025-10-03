@@ -77,7 +77,7 @@ export class SkyBoxGlObject extends GlObject {
             uniforms,
             count: 6,
             drawMode: WebGL2RenderingContext.TRIANGLES,
-            depthFunc: WebGL2RenderingContext.LEQUAL
+            depthFunc: WebGL2RenderingContext.LEQUAL,
         })
     }
 }

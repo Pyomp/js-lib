@@ -100,4 +100,12 @@ export function getImage(url) {
     return waitForImageComplete(image)
 }
 
-//
+/**
+ * @template T
+*/
+export function getDefinedOrThrow(
+    /** @type {T | undefined} */ data
+) {
+    if (data === undefined) throw new Error('not defined data')
+    return data
+}

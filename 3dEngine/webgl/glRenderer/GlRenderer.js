@@ -222,7 +222,10 @@ export class GlRenderer {
 
         const nodesInFrustum = getNodesInFrustum(node3Ds, this.camera.frustum)
         for (const node of nodesInFrustum) {
-            if (node.mixer) node.mixer.updateJointsTexture()
+            if (node.mixer) {
+                node.mixer.updateJointsTexture()
+                node.mixer.updateMorphs()
+            }
             for (const hairSystem of node.hairSkins) {
                 hairSystem.update()
             }
@@ -237,7 +240,11 @@ export class GlRenderer {
                 for (const object of objectsToDraw) {
 
 
-                    if (object.normalBlending || object.additiveBlending || object.multiplyBlending) {
+                    if (
+                        object.normalBlending ||
+                        object.additiveBlending ||
+                        object.multiplyBlending
+                    ) {
                         transparentObjects.push(object)
 
                         if (object.glVao) {
