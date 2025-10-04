@@ -4,7 +4,7 @@ import { GlTextureFloatRGB } from "../../../textures/GlTextureFloatRGB.js"
 const MorphCount = 4
 
 export class MorphController {
-    indices = new Uint32Array(4)
+    indices = new Uint32Array(4).fill(99999)
     #weight = new Float32Array(4)
     weight = new Vector4()
     /** @readonly */ name

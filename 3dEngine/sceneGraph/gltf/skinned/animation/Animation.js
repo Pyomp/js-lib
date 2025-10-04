@@ -37,6 +37,7 @@ const _quaternion = new Quaternion()
 export const LoopOnce = 0
 export const LoopRepeat = 1
 export const LoopPingpong = 2
+export const LoopPongOnce = 3
 
 export function morphFromGltf(
     /** @type {GltfTarget[]} */ targets
@@ -50,6 +51,7 @@ export function morphFromGltf(
         if (target.NORMAL?.buffer) normal.push(target.NORMAL.buffer)
         if (target.TANGENT?.buffer) tangent.push(target.TANGENT.buffer)
     }
+
     return { position, normal, tangent }
 }
 
@@ -190,6 +192,8 @@ export class Animation {
             return LoopPingpong
         } else if (animationName.includes('repeat')) {
             return LoopRepeat
+        } else if (animationName.includes('pongonce')){
+            return LoopPongOnce
         } else {
             return LoopOnce
         }
@@ -241,7 +245,7 @@ export class Animation {
 
 
 
-    addBoneTransformation(
+    applyBoneTransformation(
         /** @type {{time: number, weight: number, animationKey: string | number}[]} */ animations,
         /** @type {Bone} */ boneTarget,
     ) {
@@ -262,43 +266,37 @@ export class Animation {
         }
     }
 
-    applyBoneTransformation(
-        /** @type {number} */ time,
-        /** @type {string | number} */ animationKey,
-        /** @type {Bone} */ boneTarget,
-    ) {
-        const track = this.tracks[animationKey]
-
-        if (!track) return
-
-        const boneTransformation = track.bones[boneTarget.name]
-        const initialBone = this.initialPose[boneTarget.name]
-        boneTarget.position.copy(boneTransformation?.position ? getBonePosition(time, boneTransformation.position) : initialBone.position)
-        boneTarget.quaternion.copy(boneTransformation?.quaternion ? getBoneQuaternion(time, boneTransformation.quaternion) : initialBone.quaternion)
-        boneTarget.scale.copy(boneTransformation?.scale ? getBoneScale(time, boneTransformation.scale) : initialBone.scale)
-    }
-
     createMorphController(/** @type { string } */ targetName) {
         return new MorphController(this.#morphs[targetName], targetName)
     }
 
     getMorphs(
-        /** @type {number} */ time,
-        /** @type {string | number} */ animationKey,
+        /** @type {{time: number, weight: number, animationKey: string | number}[]} */ animations,
         /** @type { string } */ targetName,
     ) {
-        const track = this.tracks[animationKey]
+        /** @type {number[]} */
+        const accumulator = []
 
-        if (!track) return EmptyMorph
+        for (const { animationKey, time, weight } of animations) {
+            const track = this.tracks[animationKey]
+            if (!track) continue
+            const morphs = track.morphs[targetName]
+            if (!morphs) continue
+            const weights = morphs.weights
 
-        const morphs = track.morphs[targetName]
+            const result = getMorphWeights(time, weights.key, weights.frame)
 
-        if (!morphs) return EmptyMorph
+            if (accumulator.length < result.length) {
+                accumulator.length = result.length
+                accumulator.fill(0, accumulator.length - result.length)
+            }
 
-        const weights = morphs.weights
-        const result = getMorphWeights(time, weights.key, weights.frame)
+            for (let i = 0; i < result.length; i++) {
+                accumulator[i] += result[i] * weight
+            }
+        }
 
-        return top4Indices(result)
+        return top4Indices(accumulator)
     }
 }
 

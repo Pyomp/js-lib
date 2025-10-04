@@ -1,7 +1,7 @@
 import { Quaternion } from "../../../../../math/Quaternion.js"
 import { Vector3 } from "../../../../../math/Vector3.js"
 import { Track } from "./Track.js"
-import { Animation, LoopOnce, LoopPingpong } from "./Animation.js"
+import { Animation, LoopOnce, LoopPingpong, LoopPongOnce } from "./Animation.js"
 import { Bone } from "./Bone.js"
 import { loopRaf } from "../../../../../utils/loopRaf.js"
 import { GLSL_SKINNED } from "../../../../programs/chunks/glslSkinnedChunk.js"
@@ -10,13 +10,14 @@ import { MorphController } from "./MorphController.js"
 
 function applyLoopToTime(
     /** @type {Track} */ track,
-    /** @type {{time: number, timeDirection: number}} */ target,
+    /** @type {{time: number, timeDirection: number, requestStop: boolean}} */ target,
 ) {
     if (target.time > track.end) {
-        if (track.loop === LoopPingpong) {
+        if (track.loop === LoopPingpong || track.loop === LoopPongOnce) {
             target.timeDirection = -1
-            target.time = track.end
+            target.time = track.end - (target.time - track.end)
         } else if (track.loop === LoopOnce) {
+            target.requestStop = true
             return
         } else {
             target.time %= track.end
@@ -24,6 +25,7 @@ function applyLoopToTime(
     } else if (target.time < 0) {
         target.time = -target.time
         if (track.loop === LoopPingpong) target.timeDirection = 1
+        else if (track.loop === LoopPongOnce) target.requestStop = true
     }
 }
 
@@ -45,14 +47,11 @@ export class Mixer {
      */
     #currentAnimations = {}
 
-    #time = 0
     speed = 1
 
     fadeSpeed = 15
 
     #animation
-    /** @type {string | number} */
-    #currentAnimationName = ''
 
     constructor(
         /** @type {Animation} */animation
@@ -92,7 +91,7 @@ export class Mixer {
 
     updateJointsTexture() {
         this.rootBone.traverse((/** @type {Bone} */ bone) => {
-            this.#animation.addBoneTransformation(Object.values(this.#currentAnimations), bone)
+            this.#animation.applyBoneTransformation(Object.values(this.#currentAnimations), bone)
         })
         this.rootBone.updateMatrix()
         this.jointsTexture.dataVersion++
@@ -147,7 +146,7 @@ export class Mixer {
 
     updateMorphs() {
         for (const morphController of this.#morphControllers) {
-            const { indices, values } = this.#animation.getMorphs(this.#time, this.#currentAnimationName, morphController.name)
+            const { indices, values } = this.#animation.getMorphs(Object.values(this.#currentAnimations), morphController.name)
             morphController.update(indices, values)
         }
     }
