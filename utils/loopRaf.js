@@ -2,8 +2,8 @@ const MAX_DT = 100
 
 let dateNowMs = Date.now()
 let dateNowSecond = dateNowMs / 1000
-let perfNowMs = 0
-let perfNowSecond = 0
+let perfNowMs = performance.now()
+let perfNowSecond = perfNowMs / 1000
 let deltatimeMs = 10
 let deltatimeSecond = 0.01
 
