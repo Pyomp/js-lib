@@ -15,7 +15,6 @@ ${GLSL_CAMERA.declaration}
 ${GLSL_DEFERRED.vertexDeferredDeclaration}
 
 uniform mat4 ${GLSL_COMMON.worldMatrix};
-uniform mat3 ${GLSL_COMMON.normalMatrix};
 
 out vec2 v_uv;
 out vec3 v_normal;
@@ -61,7 +60,13 @@ void main() {
 }`
 }
 
-export class GlSplattingProgram extends GlProgram {
+export class SplattingDeferredGlProgram extends GlProgram {
+    static createUniforms(
+        /** @type {Parameters<typeof GLSL_SPLATTING.createUniforms>} */ splattingData,
+    ) {
+        return GLSL_SPLATTING.createUniforms(...splattingData)
+    }
+
     constructor() {
         super(
             () => vertexShader(),

@@ -1,3 +1,8 @@
+import { Vector2 } from "../../../math/Vector2.js"
+import { GlArrayBuffer } from "../../webgl/glDescriptors/GlArrayBuffer.js"
+import { GlAttribute } from "../../webgl/glDescriptors/GlAttribute.js"
+import { GlTexture } from "../../webgl/glDescriptors/GlTexture.js"
+
 const splattingTexture = 'splattingTexture'
 const textureColor1 = 'splattingColorTexture1'
 const textureNormal1 = 'splattingNormalTexture1'
@@ -60,15 +65,60 @@ vec3 getSplattingNormal(vec3 inNormal, vec3 viewTangent, vec3 viewBitangent, vec
 }
 `
 
-function getSplatting(uv) {
+/** 
+ * @typedef {{
+ *      textureColorUrl: URL
+ *      textureNormalUrl: URL
+ *      scale: Vector2
+ * }} splattingTextureParameters
+ */
+
+function createUniforms(
+    /** @type {URL} */ splattingTextureUrl,
+    /** @type {splattingTextureParameters} */ splatting1,
+    /** @type {splattingTextureParameters} */ splatting2,
+    /** @type {splattingTextureParameters} */ splatting3,
+    /** @type {splattingTextureParameters} */ splatting4,
+) {
+    return {
+        [splattingTexture]: new GlTexture({ data: splattingTextureUrl }),
+
+        [textureColor1]: new GlTexture({ data: splatting1.textureColorUrl, wrapS: 'REPEAT', wrapT: 'REPEAT' }),
+        [textureNormal1]: new GlTexture({ data: splatting1.textureNormalUrl, wrapS: 'REPEAT', wrapT: 'REPEAT' }),
+        [textureScale1]: splatting1.scale,
+
+        [textureColor2]: new GlTexture({ data: splatting2.textureColorUrl, wrapS: 'REPEAT', wrapT: 'REPEAT' }),
+        [textureNormal2]: new GlTexture({ data: splatting2.textureNormalUrl, wrapS: 'REPEAT', wrapT: 'REPEAT' }),
+        [textureScale2]: splatting2.scale,
+
+        [textureColor3]: new GlTexture({ data: splatting3.textureColorUrl, wrapS: 'REPEAT', wrapT: 'REPEAT' }),
+        [textureNormal3]: new GlTexture({ data: splatting3.textureNormalUrl, wrapS: 'REPEAT', wrapT: 'REPEAT' }),
+        [textureScale3]: splatting3.scale,
+
+        [textureColor4]: new GlTexture({ data: splatting4.textureColorUrl, wrapS: 'REPEAT', wrapT: 'REPEAT' }),
+        [textureNormal4]: new GlTexture({ data: splatting4.textureNormalUrl, wrapS: 'REPEAT', wrapT: 'REPEAT' }),
+        [textureScale4]: splatting4.scale,
+    }
+}
+
+function getSplatting(/** @type {string} */ uv) {
     return `getSplatting(${uv})`
 }
 
-function getColor(uv, splatting) {
+function getColor(
+    /** @type {string} */ uv,
+    /** @type {string} */ splatting
+) {
     return `getSplattingColor(${uv}, ${splatting})`
 }
 
-function getNormal(normal, viewTangent, viewBitangent, uv, splatting) {
+function getNormal(
+    /** @type {string} */ normal,
+    /** @type {string} */ viewTangent,
+    /** @type {string} */ viewBitangent,
+    /** @type {string} */ uv,
+    /** @type {string} */ splatting
+) {
     return `getSplattingNormal(${normal}, ${viewTangent}, ${viewBitangent}, ${uv}, ${splatting})`
 }
 
@@ -90,4 +140,5 @@ export const GLSL_SPLATTING = Object.freeze({
     textureColor4,
     textureNormal4,
     textureScale4,
+    createUniforms,
 })

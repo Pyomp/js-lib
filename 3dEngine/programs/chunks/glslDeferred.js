@@ -37,8 +37,6 @@ layout(location = 3) out float outDepth; // not used
 layout(location = 4) out int outStencil; // not used
 `
 
-
-
 function setFragmentDeferredOutputs(
     /** @type {string} */ color,
     /** @type {string} */ normal,

@@ -9,7 +9,6 @@ const normalAttribute = 'normal'
 const tangentAttribute = 'tangent'
 const worldMatrix = 'worldMatrix'
 const baseTexture = 'baseTexture'
-const normalMatrix = 'normalMatrix'
 const alphaTest = 'alphaTest'
 
 const vertexDeclaration = `
@@ -25,15 +24,24 @@ uniform sampler2D ${baseTexture};
 `
 
 const createAttributes = (
-    /** @type {Float32Array} */ position,
-    /** @type {Float32Array} */ uv,
-    /** @type {Float32Array} */ normal
-) => [
-        new GlAttribute({ glArrayBuffer: new GlArrayBuffer(position), name: GLSL_COMMON.positionAttribute, size: 3, type: WebGL2RenderingContext.FLOAT }),
-        new GlAttribute({ glArrayBuffer: new GlArrayBuffer(uv), name: GLSL_COMMON.uvAttribute, size: 2, type: WebGL2RenderingContext.FLOAT }),
-        new GlAttribute({ glArrayBuffer: new GlArrayBuffer(normal), name: GLSL_COMMON.normalAttribute, size: 3, type: WebGL2RenderingContext.FLOAT }),
-    ]
+    /** @type {Float32Array | undefined} */ position = undefined,
+    /** @type {Float32Array | undefined} */ uv = undefined,
+    /** @type {Float32Array | undefined} */ normal = undefined,
+    /** @type {Float32Array | undefined} */ tangent = undefined,
+) => {
+    /** @type {GlAttribute[]} */
+    const attributes = []
+    if (position)
+        attributes.push(new GlAttribute({ glArrayBuffer: new GlArrayBuffer(position), name: positionAttribute, size: 3, type: WebGL2RenderingContext.FLOAT }))
+    if (uv)
+        attributes.push(new GlAttribute({ glArrayBuffer: new GlArrayBuffer(uv), name: uvAttribute, size: 2, type: WebGL2RenderingContext.FLOAT }))
+    if (normal)
+        attributes.push(new GlAttribute({ glArrayBuffer: new GlArrayBuffer(normal), name: normalAttribute, size: 3, type: WebGL2RenderingContext.FLOAT }))
+    if (tangent)
+        attributes.push(new GlAttribute({ glArrayBuffer: new GlArrayBuffer(tangent), name: tangentAttribute, size: 3, type: WebGL2RenderingContext.FLOAT }))
 
+    return attributes
+}
 const createUniforms = (
     /** @type {Matrix4} */ _worldMatrix,
     /** @type {GlTexture} */ _baseTexture,
@@ -86,7 +94,6 @@ export const GLSL_COMMON = Object.freeze({
     normalAttribute,
     tangentAttribute,
     worldMatrix,
-    normalMatrix,
     vertexDeclaration,
     fragmentDeclaration,
 
