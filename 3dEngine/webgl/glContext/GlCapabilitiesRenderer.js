@@ -62,6 +62,7 @@ export class GlCapabilitiesRenderer {
     setNormalBlending() {
         this.blending = true
         this.#gl.blendFunc(WebGL2RenderingContext.SRC_ALPHA, WebGL2RenderingContext.ONE_MINUS_SRC_ALPHA)
+        // this.#gl.blendFunc(WebGL2RenderingContext.ZERO, WebGL2RenderingContext.SRC_COLOR)
         // this.#gl.blendFuncSeparate(
         //     WebGL2RenderingContext.SRC_ALPHA,
         //     WebGL2RenderingContext.ONE_MINUS_SRC_ALPHA,

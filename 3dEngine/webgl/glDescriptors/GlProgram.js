@@ -5,22 +5,24 @@ export class GlProgram {
 
     needsDelete = false
 
+    isDeferred = false
+
     /**
-     * @param {() => string} vertexShader 
-     * @param {() => string} fragmentShader 
-     * @param {GlTransformFeedback?} glTransformFeedback 
+     * @param {(renderingContext: WebGl.RenderingContext) => string} vertexShader 
+     * @param {(renderingContext: WebGl.RenderingContext) => string} fragmentShader 
+     * @param {GlTransformFeedback | undefined} glTransformFeedback 
      */
     constructor(
         vertexShader,
         fragmentShader,
-        glTransformFeedback = undefined
+        glTransformFeedback = undefined,
     ) {
         this.vertexShader = vertexShader
         this.fragmentShader = fragmentShader
         this.glTransformFeedback = glTransformFeedback
     }
 
-    dispose(){
+    dispose() {
         this.needsDelete = true
     }
 }

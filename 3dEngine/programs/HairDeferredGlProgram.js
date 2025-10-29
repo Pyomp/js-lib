@@ -58,7 +58,9 @@ function fragmentShader() {
     }`
 }
 
-export class HairDeferredProgram extends GlProgram {
+export class HairDeferredGlProgram extends GlProgram {
+    isDeferred = true
+
     constructor() {
         super(
             vertexShader,

@@ -70,7 +70,7 @@ vec4 getDeferredPositionDepth(ivec2 texelCoord){
 }
 
 vec3 getDeferredNormal(ivec2 texelCoord){
-    return normalize(vec3(texelFetch(deferredNormalTexture, texelCoord, 0).xyz) / INT_RANGE);
+    return normalize(vec3(texelFetch(deferredNormalTexture, texelCoord, 0).xyz));
 }
 
 void computeDeferredPixel(

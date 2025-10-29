@@ -28,6 +28,7 @@ const _vector3 = new Vector3()
 export class GlRenderer {
     htmlElement = document.createElement('div')
 
+    // @ts-ignore
     /** @type {GlContextRenderer} */ glContext
 
     scene = new Node3D()
@@ -65,7 +66,7 @@ export class GlRenderer {
             needsMipmap: false
         }),
         normal: new GlTexture({
-            name: 'objectPositionTexture',
+            name: 'objectNormalTexture',
             wrapS: 'CLAMP_TO_EDGE', wrapT: 'CLAMP_TO_EDGE',
             minFilter: 'NEAREST', magFilter: 'NEAREST',
             internalformat: 'RGBA32I',
@@ -128,6 +129,7 @@ export class GlRenderer {
                 [GLSL_POINT_LIGHT.uboName]: this.pointLightRenderer.glUboData,
                 [GLSL_WINDOW.uboName]: this.windowInfo.glUboData
             },
+            this
         )
         // TODO dispose previous windowInfo 
         this.windowInfo.initGl(this.glContext)
@@ -153,19 +155,6 @@ export class GlRenderer {
     resetGlStates() {
         this.glContext.freeAllGlProgram()
     }
-
-    /** @param {Node3D[]} nodesToDraw  */
-    getObjectsToDraw(nodesToDraw) {
-        const objectsToDraw = getObjectsInFrustum(nodesToDraw, this.camera.frustum)
-
-        const [opaque, transparent] = sortTransparencyObjects(objectsToDraw)
-
-        opaque.sort(this.compareObjectDrawOptimizationBound)
-        transparent.sort(this.compareObjectDrawOptimizationBound)
-
-        return [opaque, transparent]
-    }
-
 
     render() {
         this.glContext.updateCache()
@@ -219,7 +208,6 @@ export class GlRenderer {
         }
 
         // # Render
-
         const nodesInFrustum = getNodesInFrustum(node3Ds, this.camera.frustum)
         for (const node of nodesInFrustum) {
             if (node.mixer) {
@@ -231,41 +219,22 @@ export class GlRenderer {
             }
         }
 
-        const opaqueObjects = []
+
+        const deferredOpaqueObjects = []
         const transparentObjects = []
-        const cameraPosition = this.camera.position
         for (const node of nodesInFrustum) {
             const objectsToDraw = getObjectsInFrustumFromNode(node, this.camera.frustum)
-            if (objectsToDraw.length > 0) {
-                for (const object of objectsToDraw) {
-
-
-                    if (
-                        object.normalBlending ||
-                        object.additiveBlending ||
-                        object.multiplyBlending
-                    ) {
-                        transparentObjects.push(object)
-
-                        if (object.glVao) {
-                            _box3.copy(object.glVao.boundingBox)
-                                .applyMatrix4(node.worldMatrix)
-                                .clampPoint(cameraPosition, _vector3)
-
-                            const distanceSq = _vector3.distanceToSquared(this.camera.position)
-
-                            this.#cameraDistanceCache.set(object, distanceSq)
-                        } else {
-                            this.#cameraDistanceCache.set(object, 0)
-                        }
-                    } else {
-                        opaqueObjects.push(object)
-                    }
+            for (const object of objectsToDraw) {
+                if (object.glProgram.isDeferred) {
+                    deferredOpaqueObjects.push(object)
+                } else {
+                    transparentObjects.push(object)
+                    this.#cameraDistanceCache.set(object, this.#getCameraDistanceSq(this.camera, node, object))
                 }
             }
         }
 
-        opaqueObjects.sort(this.compareObjectDrawOptimizationBound)
+        deferredOpaqueObjects.sort(this.compareObjectDrawOptimizationBound)
 
         transparentObjects.sort(this.#compareCameraDistanceBound)
         this.#cameraDistanceCache.clear()
@@ -286,7 +255,7 @@ export class GlRenderer {
         gl.clearBufferiv(gl.COLOR, 2, new Int32Array([0, 0, 0, 0]))
         gl.clearBufferfi(gl.DEPTH_STENCIL, 0, 1.0, 0)
 
-        for (const object of opaqueObjects) this.glContext.drawObject(object)
+        for (const object of deferredOpaqueObjects) this.glContext.drawObject(object)
 
         // ## Transparent
 
@@ -300,6 +269,21 @@ export class GlRenderer {
 
         for (const object of transparentObjects) {
             this.glContext.drawObject(object)
+        }
+    }
+
+    #getCameraDistanceSq(
+        /** @type {Camera} */ camera,
+        /** @type {Node3D} */ node,
+        /** @type {GlObject} */ object
+    ) {
+        if (object.glVao) {
+            _box3.copy(object.glVao.boundingBox)
+                .applyMatrix4(node.worldMatrix)
+                .clampPoint(camera.position, _vector3)
+            return _vector3.distanceToSquared(this.camera.position)
+        } else {
+            return 0
         }
     }
 
@@ -365,21 +349,6 @@ function getObjectStateId(/** @type {GlObject} */ object) {
     return id
 }
 
-function sortTransparencyObjects(/** @type {GlObject[]} */ objects) {
-    const opaque = []
-    const transparent = []
-
-    for (const object of objects) {
-        if (object.normalBlending || object.additiveBlending || object.multiplyBlending) {
-            transparent.push(object)
-        } else {
-            opaque.push(object)
-        }
-    }
-
-    return [opaque, transparent]
-}
-
 function getNodesInFrustum(
     /** @type {Node3D[]} */ node3Ds,
     /** @type {Frustum} */ frustum
@@ -399,20 +368,6 @@ function getNodesInFrustum(
     }
 
     return nodes
-}
-
-function getObjectsInFrustum(
-    /** @type {Node3D[]} */ nodes,
-    /** @type {Frustum} */ frustum
-) {
-    /** @type {GlObject[]} */
-    const result = []
-
-    for (const node of nodes) {
-        result.push(...getObjectsInFrustumFromNode(node, frustum))
-    }
-
-    return result
 }
 
 function getObjectsInFrustumFromNode(

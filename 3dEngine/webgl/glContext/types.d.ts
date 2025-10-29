@@ -1,4 +1,6 @@
 declare namespace WebGl {
+  type RenderingContext = import('../glRenderer/GlRenderer').GlRenderer;
+
   type UniformData = number | Vector2 | Vector3 | Vector4 | Matrix3 | Matrix4 | Color
 
   namespace FrameBuffer {
@@ -22,7 +24,7 @@ declare namespace WebGl {
 
     type Format = 'DEPTH_COMPONENT' | 'RGB' | 'RGBA' | 'LUMINANCE_ALPHA' | 'LUMINANCE' | 'ALPHA' | 'RED' | 'RED_INTEGER' | 'RG' | 'RG_INTEGER' | 'RGB_INTEGER' | 'RGBA_INTEGER' | 'DEPTH_STENCIL'
 
-    type Type = 'UNSIGNED_INT' | 'UNSIGNED_SHORT' | 'UNSIGNED_BYTE' | 'UNSIGNED_SHORT_5_6_5' | 'UNSIGNED_SHORT_4_4_4_4' | 'UNSIGNED_SHORT_5_5_5_1' | 'HALF_FLOAT' | 'FLOAT' | 'UNSIGNED_INT_10F_11F_11F_REV' | 'HALF_FLOAT' | 'UNSIGNED_INT_2_10_10_10_REV' | 'UNSIGNED_INT_24_8'| 'INT'
+    type Type = 'UNSIGNED_INT' | 'UNSIGNED_SHORT' | 'UNSIGNED_BYTE' | 'UNSIGNED_SHORT_5_6_5' | 'UNSIGNED_SHORT_4_4_4_4' | 'UNSIGNED_SHORT_5_5_5_1' | 'HALF_FLOAT' | 'FLOAT' | 'UNSIGNED_INT_10F_11F_11F_REV' | 'HALF_FLOAT' | 'UNSIGNED_INT_2_10_10_10_REV' | 'UNSIGNED_INT_24_8' | 'INT'
 
     type Pixels = Uint8Array | Uint16Array | Float32Array | ImageData | HTMLImageElement | HTMLCanvasElement | HTMLVideoElement | ImageBitmap
   }

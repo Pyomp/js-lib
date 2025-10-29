@@ -8,7 +8,9 @@ const pointLights = 'pointLights'
 const uboName = 'pointLightUbo'
 const PointLight = 'PointLight'
 
-function uboDeclaration(pointLightCount) {
+function uboDeclaration(
+    /** @type {number} */ pointLightCount
+) {
     return pointLightCount > 0 ? `
 struct ${PointLight} {
     vec3 ${position};
@@ -23,28 +25,34 @@ layout(std140) uniform ${uboName} {
 `: ''
 }
 
-function vertexDeclaration(pointLightCount = 0) {
-    return pointLightCount > 0 ? `
+function vertexDeclaration() {
+    return`
 out vec3 v_surfaceToView;
 out vec3 v_worldPosition;
-`: ''
+`
 }
 
-function computeVarying(modelWorldPosition, cameraPosition, pointLightCount = 0) {
-    return pointLightCount > 0 ? `
+function computeVarying(
+    /** @type {string} */ modelWorldPosition,
+    /** @type {string} */ cameraPosition,
+) {
+    return `
 v_worldPosition = ${modelWorldPosition}.xyz / ${modelWorldPosition}.w;
 v_surfaceToView = ${cameraPosition} - v_worldPosition;
-`: ''
+`
 }
 
-function calcPointLightsDeclaration(pointLightCount, shininessEnable = false) {
+function calcPointLightsDeclaration(
+    /** @type {number} */ pointLightCount,
+    /** @type {string} */ cameraPosition,
+) {
     return `
-void calcPointLight(in vec3 normal, out vec3 color${shininessEnable ? ', out float specular' : ''}){
+void calcPointLight(in vec3 worldPosition, in vec3 normal, in float shininess, out vec3 color, out float specular){
     for (int i = 0; i < ${pointLightCount}; i++) {
         ${PointLight} pointLight = ${pointLights}[i];
         
-        vec3 eyeVec = normalize(v_surfaceToView);
-        vec3 incidentVec = v_worldPosition - pointLight.position;
+        vec3 eyeVec = normalize(${cameraPosition} - worldPosition);
+        vec3 incidentVec = worldPosition - pointLight.position;
         float incidentLength = length(incidentVec);
         incidentVec = incidentVec / incidentLength;
         vec3 lightVec = -incidentVec;
@@ -54,34 +62,34 @@ void calcPointLight(in vec3 normal, out vec3 color${shininessEnable ? ', out flo
         float diffuse = max(dot(lightVec, normal), 0.0);
         color += diffuse * pointLight.${color} * pointLight.${intensity} * intensityDistance;
 
-        ${shininessEnable ? `
         float highlight = pow(max(dot(eyeVec, reflect(incidentVec, normal)), 0.0), ${shininess});
-        specular += highlight * pointLight.${intensity};`
-            : ''}
+        specular += highlight * pointLight.${intensity};
     }
 }`
 }
 
-function fragmentDeclaration(pointLightCount = 0, shininessEnable = false) {
+function fragmentDeclaration(pointLightCount = 0) {
     return pointLightCount > 0 ? `
 ${uboDeclaration(pointLightCount)}
 
 in vec3 v_surfaceToView;
 in vec3 v_worldPosition;
 
-${shininessEnable ? `uniform float ${shininess};` : ''}
-${shininessEnable ? `uniform vec3 ${specular};` : ''}
+uniform float ${shininess};
+uniform vec3 ${specular};
 
-${calcPointLightsDeclaration(pointLightCount, shininessEnable)}
+${calcPointLightsDeclaration(pointLightCount, 'v_worldPosition')}
 ` : ''
 }
 
-function computePointLight(normal, outColor, outSpecular) {
-    return outSpecular ? `
-calcPointLight(${normal}, ${outColor}, ${outSpecular});
-`: `
-calcPointLight(${normal}, ${outColor});
-`
+function computePointLight(
+    /** @type {string} */ worldPosition = 'v_worldPosition',
+    /** @type {string} */ normal,
+    /** @type {string} */ shininess,
+    /** @type {string} */ outColor,
+    /** @type {string} */ outSpecular
+) {
+    return `calcPointLight(${worldPosition}, ${normal}, ${shininess}, ${outColor}, ${outSpecular});`
 }
 
 const uboOffset = Object.freeze({

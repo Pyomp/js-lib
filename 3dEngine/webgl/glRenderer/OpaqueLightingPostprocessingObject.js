@@ -3,7 +3,6 @@ import { GlObject } from "../glDescriptors/GlObject.js"
 import { GlProgram } from "../glDescriptors/GlProgram.js"
 import { GlAttribute } from "../glDescriptors/GlAttribute.js"
 import { GlArrayBuffer } from "../glDescriptors/GlArrayBuffer.js"
-import { GlTexture } from "../glDescriptors/GlTexture.js"
 import { GLSL_CAMERA } from "../../programs/chunks/glslCamera.js"
 import { GLSL_UTILS } from "../../programs/chunks/glslUtils.js"
 import { GLSL_AMBIENT_LIGHT } from "../../programs/chunks/glslAmbient.js"
@@ -15,7 +14,10 @@ import { GLSL_DEFERRED } from "../../programs/chunks/glslDeferred.js"
 
 export class OpaqueLightingPostprocessingObject extends GlObject {
 
-    resize(width, height) {
+    resize(
+        /** @type {number} */ width,
+        /** @type {number} */ height
+    ) {
         this.uniforms.noiseTexture.resize(width, height)
     }
 
@@ -26,7 +28,7 @@ export class OpaqueLightingPostprocessingObject extends GlObject {
     /**
      * 
      * @param {{ 
-     *  renderer: GlRenderer
+     *      renderer: GlRenderer
      * }} params
      */
     constructor({
@@ -96,27 +98,7 @@ export class OpaqueLightingPostprocessingObject extends GlObject {
                     ${GLSL_WINDOW.declaration}
                     ${GLSL_DEFERRED.fragmentUserDeclaration}
 
-                    void calcPointLight(in vec3 position, in vec3 normal, out vec3 color, out float specular){
-                        for (int i = 0; i < ${renderer.pointLightCount}; i++) {
-                            
-                            ${GLSL_POINT_LIGHT.PointLight} pointLight = ${GLSL_POINT_LIGHT.pointLights}[i];
-                            
-                            vec3 eyeVec = vec3(0.,0.,1.); // TODO
-                            vec3 incidentVec = position - pointLight.position;
-                            float incidentLength = length(incidentVec);
-                            incidentVec = incidentVec / incidentLength;
-                            vec3 lightVec = -incidentVec;
-                            
-                            float intensityDistance = max(0., (pointLight.${GLSL_POINT_LIGHT.incidence} - incidentLength) / pointLight.${GLSL_POINT_LIGHT.incidence});
-                    
-                            float diffuse = max(dot(lightVec, normal), 0.0);
-                            color += diffuse * pointLight.${GLSL_POINT_LIGHT.color} * pointLight.${GLSL_POINT_LIGHT.intensity} * intensityDistance;
-                    
-                            float highlight = pow(max(dot(eyeVec, reflect(incidentVec, normal)), 0.0), 1.);
-                            specular += highlight * pointLight.${GLSL_POINT_LIGHT.intensity};
-                       
-                        }
-                    }
+                    ${GLSL_POINT_LIGHT.calcPointLightsDeclaration(renderer.pointLightCount, GLSL_CAMERA.position)}
 
                     #define SSAO_SAMPLE_RADIUS 8.0
                     #define SSAO_BIAS 0.04
@@ -226,7 +208,7 @@ export class OpaqueLightingPostprocessingObject extends GlObject {
                         vec3 pointLightColor;
                         float pointLightSpecular;
 
-                        calcPointLight(currentPixelPosition, currentPixelNormal, pointLightColor, pointLightSpecular);
+                        ${GLSL_POINT_LIGHT.computePointLight('currentPixelPosition', 'currentPixelNormal', '1.0', 'pointLightColor', 'pointLightSpecular')}
 
                         outColor.rgb *= ${GLSL_AMBIENT_LIGHT.color} + pointLightColor;
 
@@ -235,6 +217,7 @@ export class OpaqueLightingPostprocessingObject extends GlObject {
 
                         // outColor.rgb *= 1. - getOcclusion(currentPixelPosition, currentPixelDepth, currentPixelNormal, ivec2(gl_FragCoord.xy));
                         // outColor.rgb = vec3(1.-currentPixelDepth);
+                        // outColor.rgb = currentPixelNormal;
                         outColor.a = 1.;
                     }`
             )

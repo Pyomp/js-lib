@@ -114,6 +114,8 @@ function createUniforms(
 }
 
 export class OpaqueStaticDeferredGlProgram extends GlProgram {
+    isDeferred = true
+
     static createAttributes(
     /** @type {Float32Array} */ position,
     /** @type {Float32Array} */ uv,
@@ -137,8 +139,9 @@ export class OpaqueStaticDeferredGlProgram extends GlProgram {
     }
 }
 
-
 export class OpaqueSkinnedDeferredGlProgram extends GlProgram {
+    isDeferred = true
+
     static createAttributes(
         /** @type {Float32Array} */ position,
         /** @type {Float32Array} */ uv,
@@ -166,6 +169,8 @@ export class OpaqueSkinnedDeferredGlProgram extends GlProgram {
 }
 
 export class OpaqueMorphedDeferredGlProgram extends GlProgram {
+    isDeferred = true
+
     static createAttributes(
         /** @type {Float32Array} */ position,
         /** @type {Float32Array} */ uv,
@@ -193,6 +198,8 @@ export class OpaqueMorphedDeferredGlProgram extends GlProgram {
 }
 
 export class OpaqueSkinnedMorphedDeferredGlProgram extends GlProgram {
+    isDeferred = true
+    
     static createAttributes(
         /** @type {Float32Array} */ position,
         /** @type {Float32Array} */ uv,

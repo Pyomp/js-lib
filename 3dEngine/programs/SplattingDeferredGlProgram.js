@@ -61,6 +61,8 @@ void main() {
 }
 
 export class SplattingDeferredGlProgram extends GlProgram {
+    isDeferred = true
+    
     static createUniforms(
         /** @type {Parameters<typeof GLSL_SPLATTING.createUniforms>} */ splattingData,
     ) {

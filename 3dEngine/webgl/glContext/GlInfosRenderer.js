@@ -32,6 +32,8 @@ export class GlInfosRenderer {
         this.depthBits = gl.getParameter(gl.DEPTH_BITS)
         this.stencilBits = gl.getParameter(gl.STENCIL_BITS)
 
+        this.supportedExtensions = gl.getSupportedExtensions()
+
         console.log(this)
     }
 

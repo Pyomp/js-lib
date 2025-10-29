@@ -13,20 +13,19 @@ import { GlFrameBuffer } from "../glDescriptors/GlFrameBuffer.js"
 import { GlFrameBufferRenderer } from "./GlFrameBufferRenderer.js"
 import { GlVaoRenderer } from "./GlVaoRenderer.js"
 
+
+
 export class GlContextRenderer {
     #globalUbos
     /** @type {{[uniformName: string]: number}} */
     #globalUbosIndex = {}
     /** @type {WebGL2RenderingContext} */ gl
 
-    /**
-    * @param {HTMLCanvasElement} canvas 
-    * @param {WebGLContextAttributes} options
-    * @param {{[uniformName: string]: GlUbo}} globalUbos
-    */
+    #renderingContext
+
     constructor(
-        canvas = document.createElement('canvas'),
-        options = {
+        /** @type {HTMLCanvasElement} */ canvas = document.createElement('canvas'),
+        /** @type {WebGLContextAttributes} */ options = {
             alpha: true,
             antialias: true,
             depth: true,
@@ -36,11 +35,13 @@ export class GlContextRenderer {
             preserveDrawingBuffer: false,
             stencil: false
         },
-        globalUbos = {},
+        /** @type {{[uniformName: string]: GlUbo}} */ globalUbos = {},
+        /** @type {WebGl.RenderingContext} */ renderingContext
     ) {
         this.canvas = canvas
-        // @ts-ignore no 3D no game
+        // @ts-ignore no 3D, no game
         this.gl = canvas.getContext("webgl2", options)
+        this.#renderingContext = renderingContext
 
         this.glCapabilities = new GlCapabilitiesRenderer(this.gl)
         this.glInfos = new GlInfosRenderer(this.gl)
@@ -84,7 +85,7 @@ export class GlContextRenderer {
     /** @returns {GlProgramRenderer} */
     getGlProgram(/** @type {GlProgram} */ glProgram) {
         if (!this.#programs.has(glProgram)) {
-            this.#programs.set(glProgram, new GlProgramRenderer(this, glProgram, this.#globalUbosIndex))
+            this.#programs.set(glProgram, new GlProgramRenderer(this, glProgram, this.#globalUbosIndex, this.#renderingContext))
         }
         // @ts-ignore
         return this.#programs.get(glProgram)
@@ -98,6 +99,13 @@ export class GlContextRenderer {
             program.dispose()
         }
         this.#programs.clear()
+    }
+    freeGlProgramWithMatchingUbo(/** @type {string} */ uboName) {
+        for (const glProgram of this.#programs.values()) {
+            if (glProgram.hasUbo(uboName)) {
+                glProgram.reset()
+            }
+        }
     }
 
     /** @type {Map<GlTexture, GlTextureRenderer>} */ #textures = new Map()
@@ -177,9 +185,9 @@ export class GlContextRenderer {
     #resizeObserver = new ResizeObserver(this.#resizeListener.bind(this))
 
     updateGlobalUbos() {
-        for (const glUbo of Object.values(this.#globalUbos)) {
+        for (const [uboName, glUbo] of Object.entries(this.#globalUbos)) {
             if (this.getGlUbo(glUbo).update()) {
-                this.freeAllGlProgram()
+                this.freeGlProgramWithMatchingUbo(uboName)
             }
         }
     }

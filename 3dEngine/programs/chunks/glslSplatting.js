@@ -1,6 +1,4 @@
 import { Vector2 } from "../../../math/Vector2.js"
-import { GlArrayBuffer } from "../../webgl/glDescriptors/GlArrayBuffer.js"
-import { GlAttribute } from "../../webgl/glDescriptors/GlAttribute.js"
 import { GlTexture } from "../../webgl/glDescriptors/GlTexture.js"
 
 const splattingTexture = 'splattingTexture'
@@ -52,16 +50,24 @@ vec4 getSplattingColor(vec2 uv, vec4 splatting){
 
 vec3 getSplattingNormal(vec3 inNormal, vec3 viewTangent, vec3 viewBitangent, vec2 uv, vec4 splatting){
     vec3 normal = normalize(inNormal);
+    vec3 tangent = normalize(viewTangent);
+    vec3 bitangent = normalize(viewBitangent);
+    
+    mat3 tbn = mat3(tangent, bitangent, normal);
 
-    mat3 tbn = mat3( normalize( viewTangent ), normalize( viewBitangent ), normal );
+    vec3 normalMap1 = texture(${textureNormal1}, uv * ${textureScale1}).xyz * 2.0 - 1.0;
+    vec3 normalMap2 = texture(${textureNormal2}, uv * ${textureScale2}).xyz * 2.0 - 1.0;
+    vec3 normalMap3 = texture(${textureNormal3}, uv * ${textureScale3}).xyz * 2.0 - 1.0;
+    vec3 normalMap4 = texture(${textureNormal4}, uv * ${textureScale4}).xyz * 2.0 - 1.0;
 
-    vec3 normalMap = texture(${textureNormal1}, uv * ${textureScale1}).xyz * splatting.r + 
-                    texture(${textureNormal2}, uv * ${textureScale2}).xyz * splatting.g + 
-                    texture(${textureNormal3}, uv * ${textureScale3}).xyz * splatting.b + 
-                    texture(${textureNormal4}, uv * ${textureScale4}).xyz * splatting.a;
-    // return normalMap;
-    normalMap = normalize(normalMap) * 2.0 - 1.0;
-    return normalize( tbn * normalMap );
+    vec3 blendedNormal = normalize(
+        normalMap1 * splatting.r + 
+        normalMap2 * splatting.g + 
+        normalMap3 * splatting.b + 
+        normalMap4 * splatting.a
+    );
+
+    return normalize(tbn * blendedNormal);
 }
 `
 

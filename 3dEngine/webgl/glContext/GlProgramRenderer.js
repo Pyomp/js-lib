@@ -19,30 +19,35 @@ export class GlProgramRenderer {
     /** @type {WebGL2RenderingContext} */
     #gl
     #glContext
+    #renderingContext
     #webGlProgram
     #globalUboIndex
+    #globalUboNames
     /** @type {GlTransformFeedbackRenderer} */
     #glTransformFeedback
 
-    /**
-     * 
-     * @param {GlContextRenderer} glContext
-     * @param {GlProgram} glProgram 
-     * @param {{[uboUniformName: string]: number }} globalUboIndex
-     */
-    constructor(glContext, glProgram, globalUboIndex) {
+    constructor(
+        /** @type {GlContextRenderer} */ glContext,
+        /** @type {GlProgram} */ glProgram,
+        /** @type {{[uboUniformName: string]: number }} */ globalUboIndex,
+        /** @type {WebGl.RenderingContext} */ renderingContext
+    ) {
         this.#glContext = glContext
         this.#gl = glContext.gl
+        this.#renderingContext = renderingContext
         this.#glProgram = glProgram
         this.#webGlProgram = this.#gl.createProgram()
         this.#globalUboIndex = globalUboIndex
+        this.#globalUboNames = new Set(Object.keys(this.#globalUboIndex))
+    }
+
+    hasUbo(/** @type {string} */ uboName) {
+        return this.#globalUboNames.has(uboName)
     }
 
     #linkProgram() {
-        // console.log(this.#glProgramData.vertexShader())
-        // console.log(this.#glProgramData.fragmentShader())
-        const glVertexShader = createShader(this.#gl, WebGL2RenderingContext.VERTEX_SHADER, this.#glProgram.vertexShader())
-        const glFragmentShader = createShader(this.#gl, WebGL2RenderingContext.FRAGMENT_SHADER, this.#glProgram.fragmentShader())
+        const glVertexShader = createShader(this.#gl, WebGL2RenderingContext.VERTEX_SHADER, this.#glProgram.vertexShader(this.#renderingContext))
+        const glFragmentShader = createShader(this.#gl, WebGL2RenderingContext.FRAGMENT_SHADER, this.#glProgram.fragmentShader(this.#renderingContext))
 
         this.#gl.attachShader(this.#webGlProgram, glVertexShader)
         this.#gl.attachShader(this.#webGlProgram, glFragmentShader)
@@ -118,11 +123,11 @@ export class GlProgramRenderer {
         return this.#gl.getProgramParameter(this.#webGlProgram, WebGL2RenderingContext.ACTIVE_ATTRIBUTES)
     }
 
-    getAttribLocation(attributeName) {
+    getAttribLocation(/** @type {string} */ attributeName) {
         return this.#gl.getAttribLocation(this.#webGlProgram, attributeName)
     }
 
-    updateProgram() {
+    #updateProgram() {
         this.#linkProgram()
         this.#setupUniform()
     }
@@ -130,7 +135,7 @@ export class GlProgramRenderer {
     useProgram() {
         if (this.#version !== this.#glProgram.version) {
             this.#version = this.#glProgram.version
-            this.updateProgram()
+            this.#updateProgram()
         } else {
             this.#gl.useProgram(this.#webGlProgram)
         }
@@ -161,19 +166,23 @@ export class GlProgramRenderer {
         }
     }
 
+    reset() {
+        this.#version = -1
+    }
+
     dispose() {
         this.#gl.deleteProgram(this.#webGlProgram)
         this.freeAllGlVao()
     }
 }
 
-/**
- * @param {WebGL2RenderingContext} gl 
- * @param {number} type 
- * @param {string} source 
- */
-function createShader(gl, type, source) {
+function createShader(
+    /** @type {WebGL2RenderingContext} */ gl,
+    /** @type {number} */ type,
+    /** @type {string} */ source
+) {
     const shader = gl.createShader(type)
+    if (!shader) throw new Error('gl.createShader result null')
     gl.shaderSource(shader, source)
     gl.compileShader(shader)
     if (gl.getShaderParameter(shader, WebGL2RenderingContext.COMPILE_STATUS)) {
@@ -187,6 +196,7 @@ function createShader(gl, type, source) {
     }
 }
 
+/** @type {{[type: number]: (gl: WebGL2RenderingContext, location: WebGLUniformLocation ) => (data: any) => void}} */
 const createUniformUpdateFunction = {
     [WebGL2RenderingContext.FLOAT]: (gl, location) => {
         let lastData = 0
@@ -307,6 +317,7 @@ const createUniformUpdateFunction = {
 }
 
 /** I keep it there for information, it is when data is an array (not a vector3 from math lib)*/
+/** @type {{[type: number]: (gl: WebGL2RenderingContext, location: WebGLUniformLocation ) => (data: any) => void}} */
 const createUniformUpdateFunctionByArray = {
     [WebGL2RenderingContext.FLOAT]: (gl, location) => (data) => { gl.uniform1f(location, data) },
     [WebGL2RenderingContext.FLOAT_VEC2]: (gl, location) => (data) => { gl.uniform2fv(location, data) },

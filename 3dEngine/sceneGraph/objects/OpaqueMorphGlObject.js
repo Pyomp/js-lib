@@ -1,4 +1,4 @@
-import { OpaqueMorphedDeferredGlProgram } from "../../programs/CommonDeferredProgram.js"
+import { OpaqueMorphedDeferredGlProgram } from "../../programs/CommonDeferredGlProgram.js"
 import { GlObject } from "../../webgl/glDescriptors/GlObject.js"
 import { GlTexture } from "../../webgl/glDescriptors/GlTexture.js"
 import { GlVao } from "../../webgl/glDescriptors/GlVao.js"
