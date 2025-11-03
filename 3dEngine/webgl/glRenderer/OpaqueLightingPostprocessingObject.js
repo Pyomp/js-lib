@@ -8,7 +8,7 @@ import { GLSL_UTILS } from "../../programs/chunks/glslUtils.js"
 import { GLSL_AMBIENT_LIGHT } from "../../programs/chunks/glslAmbient.js"
 import { GLSL_POINT_LIGHT } from "../../programs/chunks/glslPointLight.js"
 import { GlRenderer } from "./GlRenderer.js"
-import { GlNoiseTexture } from "../../textures/NoiseTexture.js"
+import { GlTextureNoise } from "../../textures/GlTextureNoise.js"
 import { GLSL_WINDOW } from "../../programs/chunks/glslWindow.js"
 import { GLSL_DEFERRED } from "../../programs/chunks/glslDeferred.js"
 
@@ -39,7 +39,7 @@ export class OpaqueLightingPostprocessingObject extends GlObject {
             depthWrite: false,
             depthTest: false,
             uniforms: {
-                noiseTexture: new GlNoiseTexture(),
+                noiseTexture: new GlTextureNoise(),
                 ...GLSL_DEFERRED.createUserUniform(renderer.deferredTextures)
             },
             glVao: new GlVao([

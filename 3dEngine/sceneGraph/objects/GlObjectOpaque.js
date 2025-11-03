@@ -3,9 +3,9 @@ import { GlObject } from "../../webgl/glDescriptors/GlObject.js"
 import { GlTexture } from "../../webgl/glDescriptors/GlTexture.js"
 import { GlVao } from "../../webgl/glDescriptors/GlVao.js"
 
-const opaqueDeferredGlProgram = new OpaqueStaticDeferredGlProgram()
+const glProgram = new OpaqueStaticDeferredGlProgram()
 
-export class OpaqueGlObject extends GlObject {
+export class GlObjectOpaque extends GlObject {
     /**
      * @param {{
      *      worldMatrix:Matrix4
@@ -15,7 +15,7 @@ export class OpaqueGlObject extends GlObject {
     */
     constructor(args) {
         super({
-            glProgram: opaqueDeferredGlProgram,
+            glProgram,
             glVao: args.glVao,
             uniforms: OpaqueStaticDeferredGlProgram.createUniforms(
                 args.worldMatrix,

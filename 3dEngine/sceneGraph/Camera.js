@@ -33,7 +33,7 @@ export class Camera {
 
     frustum = new Frustum()
 
-    constructor({ near = 0.1, far = 200, fov = 50 }) {
+    constructor({ near = 0.1, far = 200, fov = 80 }) {
         addVector3Callback(this.position, () => { this.#cameraHasMoved = true })
         addVector3Callback(this.target, () => { this.#cameraHasMoved = true })
 

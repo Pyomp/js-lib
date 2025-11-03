@@ -1,16 +1,15 @@
-import { OpaqueSkinnedMorphedDeferredGlProgram } from "../../programs/CommonDeferredGlProgram.js"
+import { OpaqueMorphedDeferredGlProgram } from "../../programs/CommonDeferredGlProgram.js"
 import { GlObject } from "../../webgl/glDescriptors/GlObject.js"
 import { GlTexture } from "../../webgl/glDescriptors/GlTexture.js"
 import { GlVao } from "../../webgl/glDescriptors/GlVao.js"
 import { MorphController } from "../gltf/skinned/animation/MorphController.js"
 
-const opaqueSkinnedMorphedDeferredGlProgram = new OpaqueSkinnedMorphedDeferredGlProgram()
+const glProgram = new OpaqueMorphedDeferredGlProgram()
 
-export class OpaqueSkinnedMorphedGlObject extends GlObject {
+export class GlObjectOpaqueMorph extends GlObject {
     /**
      * @param {{
      *      worldMatrix:Matrix4
-     *      jointsTexture:GlTexture
      *      glVao:GlVao
      *      baseTexture: GlTexture
      *      morphController: MorphController
@@ -18,19 +17,16 @@ export class OpaqueSkinnedMorphedGlObject extends GlObject {
     */
     constructor(args) {
         super({
-            glProgram: opaqueSkinnedMorphedDeferredGlProgram,
+            glProgram,
             glVao: args.glVao,
-            uniforms: OpaqueSkinnedMorphedDeferredGlProgram.createUniforms(
+            uniforms: OpaqueMorphedDeferredGlProgram.createUniforms(
                 args.worldMatrix,
                 args.baseTexture,
-                args.jointsTexture,
                 args.morphController.positionGlTexture,
                 args.morphController.normalGlTexture,
                 args.morphController.weight
             )
         })
-
     }
-
 }
 

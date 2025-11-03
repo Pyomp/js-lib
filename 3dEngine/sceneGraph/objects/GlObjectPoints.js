@@ -1,6 +1,5 @@
 import { Matrix4 } from "../../../math/Matrix4.js"
 import { GLSL_CAMERA } from "../../programs/chunks/glslCamera.js"
-import { GLSL_COMMON } from "../../programs/chunks/glslCommon.js"
 import { GLSL_DEFERRED } from "../../programs/chunks/glslDeferred.js"
 import { GLSL_POINT } from "../../programs/chunks/glslPoint.js"
 import { GLSL_UTILS } from "../../programs/chunks/glslUtils.js"
@@ -9,7 +8,6 @@ import { GlArrayBuffer } from "../../webgl/glDescriptors/GlArrayBuffer.js"
 import { GlAttribute } from "../../webgl/glDescriptors/GlAttribute.js"
 import { GlObject } from "../../webgl/glDescriptors/GlObject.js"
 import { GlProgram } from "../../webgl/glDescriptors/GlProgram.js"
-import { GlTexture } from "../../webgl/glDescriptors/GlTexture.js"
 import { GlVao } from "../../webgl/glDescriptors/GlVao.js"
 import { GlRenderer } from "../../webgl/glRenderer/GlRenderer.js"
 
@@ -82,7 +80,7 @@ void main(){
 `)
 
 
-export class PointsGlObject extends GlObject {
+export class GlObjectPoints extends GlObject {
     constructor(
         /** 
          * @type {{

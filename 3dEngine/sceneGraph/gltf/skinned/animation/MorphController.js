@@ -1,5 +1,5 @@
 import { Vector4 } from "../../../../../math/Vector4.js"
-import { GlTextureFloatRGB } from "../../../textures/GlTextureFloatRGB.js"
+import { GlTextureFloatRGB } from "../../../../textures/GlTextureFloatRGB.js"
 
 const MorphCount = 4
 

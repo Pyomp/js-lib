@@ -1,6 +1,6 @@
 import { GlRenderer } from "../../webgl/glRenderer/GlRenderer.js"
 import { Node3D } from "../Node3D.js"
-import { PointsGlObject } from "../objects/PointsGlObject.js"
+import { GlObjectPoints } from "../objects/GlObjectPoints.js"
 
 export class PointsNode3D extends Node3D {
     constructor(   /** 
@@ -19,7 +19,7 @@ export class PointsNode3D extends Node3D {
         }) {
         super()
 
-        const pointsObject = new PointsGlObject({
+        const pointsObject = new GlObjectPoints({
             positions,
             colors,
             sizes,

@@ -6,7 +6,7 @@ import { GLSL_DEFERRED } from "../../programs/chunks/glslDeferred.js"
 import { GLSL_POINT } from "../../programs/chunks/glslPoint.js"
 import { GLSL_UTILS } from "../../programs/chunks/glslUtils.js"
 import { GLSL_WINDOW } from "../../programs/chunks/glslWindow.js"
-import { createSparkleCanvas } from "../../textures/sparkle.js"
+import { GlTextureSparkle } from "../../textures/GlTextureSparkle.js"
 import { GlArrayBuffer } from "../../webgl/glDescriptors/GlArrayBuffer.js"
 import { GlAttribute } from "../../webgl/glDescriptors/GlAttribute.js"
 import { GlObject } from "../../webgl/glDescriptors/GlObject.js"
@@ -185,7 +185,7 @@ function createKeyFrameTexture(
 const _box3 = new Box3()
 const _vector3 = new Vector3()
 
-export class ParticleSystemObject extends GlObject {
+export class GlObjectParticleSystem extends GlObject {
     #positionVelocityTime
     #particleLifeTime
     #emitDeltaTime
@@ -270,9 +270,7 @@ export class ParticleSystemObject extends GlObject {
             uniforms: {
                 dt: 0,
                 keyframesTexture: createKeyFrameTexture(keyframes),
-                bumpTexture: new GlTexture({
-                    data: createSparkleCanvas()
-                }),
+                bumpTexture: GlTextureSparkle.default64,
                 ...GLSL_DEFERRED.createUserUniform(deferredTextures)
             }
         })
@@ -328,7 +326,7 @@ export class ParticleSystemObject extends GlObject {
         )
 
         this.glVao.boundingBox.union(_box3)
-        
+
         return this.#currentAddIndex
     }
 

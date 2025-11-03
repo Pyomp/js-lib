@@ -1,5 +1,5 @@
-import { getDefinedOrThrow } from "../../../utils/utils.js"
-import { GlTexture } from "../../webgl/glDescriptors/GlTexture.js"
+import { getDefinedOrThrow } from "../../utils/utils.js"
+import { GlTexture } from "../webgl/glDescriptors/GlTexture.js"
 
 export class GlTextureRGBA extends GlTexture {
     static fromBaseColorGltfFirstPrimitive(
@@ -11,7 +11,7 @@ export class GlTextureRGBA extends GlTexture {
     }
 
     constructor(
-        /** @type {Image | HTMLImageElement} */ data
+        /** @type {Image | HTMLImageElement | HTMLCanvasElement} */ data
     ) {
         super({
             name: 'GLTF Texture',

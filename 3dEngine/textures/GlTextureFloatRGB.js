@@ -1,4 +1,4 @@
-import { GlTexture } from "../../webgl/glDescriptors/GlTexture.js"
+import { GlTexture } from "../webgl/glDescriptors/GlTexture.js"
 
 export class GlTextureFloatRGB extends GlTexture {
     constructor(

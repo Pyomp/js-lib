@@ -1,6 +1,6 @@
 import { GlTexture } from "../webgl/glDescriptors/GlTexture.js"
 
-export class GlGradientTexture extends GlTexture {
+export class GlTextureRGBAPalette extends GlTexture {
     /**
      * 
      * @param {Color[]} colors 

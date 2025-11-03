@@ -6,6 +6,7 @@ export class GlProgram {
     needsDelete = false
 
     isDeferred = false
+    isSkyBox = false
 
     /**
      * @param {(renderingContext: WebGl.RenderingContext) => string} vertexShader 

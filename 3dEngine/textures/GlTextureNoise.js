@@ -1,7 +1,7 @@
 import { GlTexture } from "../webgl/glDescriptors/GlTexture.js"
 
 
-export class GlNoiseTexture extends GlTexture {
+export class GlTextureNoise extends GlTexture {
     constructor() {
         const buffer = new Float32Array(1)
         super({

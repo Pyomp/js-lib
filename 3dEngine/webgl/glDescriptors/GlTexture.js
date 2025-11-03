@@ -75,13 +75,19 @@ export class GlTexture {
         this.needsMipmap = needsMipmap
     }
 
-    resize(width, height) {
+    resize(
+        /** @type {number} */ width,
+        /** @type {number} */ height
+    ) {
         this.width = width
         this.height = height
         this.paramsVersion++
     }
 }
-function getImage(url) {
+
+function getImage(
+    /** @type {string} */ url
+) {
     const image = new Image()
     return new Promise((resolve) => {
         image.onload = () => { resolve(image) }

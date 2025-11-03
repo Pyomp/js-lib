@@ -6,7 +6,7 @@ import { GlProgram } from "../../webgl/glDescriptors/GlProgram.js"
 import { GlTexture } from "../../webgl/glDescriptors/GlTexture.js"
 import { GlVao } from "../../webgl/glDescriptors/GlVao.js"
 
-const glProgramData = new GlProgram(
+const glProgram = new GlProgram(
     () => `#version 300 es
 in vec2 position;
 out vec4 v_position;
@@ -28,8 +28,11 @@ out vec4 outColor;
 
 void main() {
     vec4 t = ${GLSL_CAMERA.projectionViewMatrixInverse} * v_position;
+    // outColor.xyz = normalize(t.xyz / t.w);
     outColor = texture(skyBox, normalize(t.xyz / t.w));
 }`)
+
+glProgram.isSkyBox = true
 
 const glVaoData = new GlVao([
     new GlAttribute({
@@ -43,13 +46,13 @@ const glVaoData = new GlVao([
                 -1, 1,
                 -1, 1,
                 1, -1,
-                1, 1
+                1, 1,
             ]
         ))
     })
 ])
 
-export class SkyBoxGlObject extends GlObject {
+export class GlObjectSkyBox extends GlObject {
     constructor(
     /** @type {URL | HTMLImageElement} */ positiveX,
     /** @type {URL | HTMLImageElement} */ negativeX,
@@ -72,12 +75,14 @@ export class SkyBoxGlObject extends GlObject {
         }
 
         super({
-            glProgram: glProgramData,
+            glProgram: glProgram,
             glVao: glVaoData,
             uniforms,
             count: 6,
             drawMode: WebGL2RenderingContext.TRIANGLES,
             depthFunc: WebGL2RenderingContext.LEQUAL,
         })
+
+        this.glVao?.boundingBox.makeEmpty()
     }
 }

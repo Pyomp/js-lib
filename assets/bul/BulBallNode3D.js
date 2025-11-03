@@ -8,10 +8,10 @@ import { Spherical } from "../../math/Spherical.js"
 import {  _up } from "../../math/Vector3.js"
 import { loopRaf } from "../../utils/loopRaf.js"
 import { GlRenderer } from "../../3dEngine/webgl/glRenderer/GlRenderer.js"
-import { ParticleSystemObject } from "../../3dEngine/sceneGraph/objects/ParticleSystemObject.js"
+import { GlObjectParticleSystem } from "../../3dEngine/sceneGraph/objects/GlObjectParticleSystem.js"
 import { AssetManager } from "../../utils/AssetManager.js"
 import { getDefinedOrThrow } from "../../utils/utils.js"
-import { GlTextureRGBA } from "../../3dEngine/sceneGraph/textures/GlTextureRGBA.js"
+import { GlTextureRGBA } from "../../3dEngine/textures/GlTextureRGBA.js"
 import { TransparentBasicGlObject } from "../../3dEngine/sceneGraph/objects/TransparentBasicGlObject.js"
 import { BasicGlVao } from "../../3dEngine/sceneGraph/vao/BasicGlVao.js"
 
@@ -57,21 +57,21 @@ export class BulBallNode3D extends Node3D {
     ) {
         super()
 
-        this.#particleSystemObject1 = new ParticleSystemObject({
+        this.#particleSystemObject1 = new GlObjectParticleSystem({
             emitDeltaTime: 0.02,
             particleLifeTime: 3,
             keyframes: particleKeyFrames,
             deferredTextures: deferredTextures,
         })
 
-        this.#particleSystemObject2 = new ParticleSystemObject({
+        this.#particleSystemObject2 = new GlObjectParticleSystem({
             emitDeltaTime: 0.02,
             particleLifeTime: 3,
             keyframes: particleKeyFrames,
             deferredTextures: deferredTextures,
         })
 
-        this.#particleSystemObject3 = new ParticleSystemObject({
+        this.#particleSystemObject3 = new GlObjectParticleSystem({
             emitDeltaTime: 0.02,
             particleLifeTime: 3,
             keyframes: particleKeyFrames,

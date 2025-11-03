@@ -9,9 +9,9 @@ import { AmbientLight } from "../../sceneGraph/AmbientLight.js"
 import { Camera } from "../../sceneGraph/Camera.js"
 import { Node3D } from "../../sceneGraph/Node3D.js"
 import { PointLight } from "../../sceneGraph/PointLight.js"
-import { ParticleSystemObject } from "../../sceneGraph/objects/ParticleSystemObject.js"
-import { Particle } from "../../sceneGraph/particle/Particle.js"
-import { GlDepthTextureData } from "../../textures/DepthTexture.js"
+import { GlObjectParticleSystem } from "../../sceneGraph/objects/GlObjectParticleSystem.js"
+import { GlObjectSkyBox } from "../../sceneGraph/objects/GlObjectSkyBox.js"
+import { GlTextureDepthData } from "../../textures/GlTextureDepthData.js"
 import { GlContextRenderer } from "../glContext/GlContextRenderer.js"
 import { GlFrameBuffer } from "../glDescriptors/GlFrameBuffer.js"
 import { GlObject } from "../glDescriptors/GlObject.js"
@@ -37,7 +37,7 @@ export class GlRenderer {
     #cameraUbo = new GlCameraUbo(this.camera)
 
     windowInfo = new GlWindowInfo()
-    depthTexture = new GlDepthTextureData()
+    depthTexture = new GlTextureDepthData()
 
     pointLightRenderer = new GlPointLightRenderer()
     get pointLightCount() { return this.pointLightRenderer.uboPointLightCount }
@@ -222,11 +222,14 @@ export class GlRenderer {
 
         const deferredOpaqueObjects = []
         const transparentObjects = []
+        let skyBox
         for (const node of nodesInFrustum) {
             const objectsToDraw = getObjectsInFrustumFromNode(node, this.camera.frustum)
             for (const object of objectsToDraw) {
                 if (object.glProgram.isDeferred) {
                     deferredOpaqueObjects.push(object)
+                } else if (object.glProgram.isSkyBox) {
+                    skyBox = object
                 } else {
                     transparentObjects.push(object)
                     this.#cameraDistanceCache.set(object, this.#getCameraDistanceSq(this.camera, node, object))
@@ -266,6 +269,8 @@ export class GlRenderer {
         glOpaqueFrameBuffer.blitTo(null, this.windowInfo.width, this.windowInfo.height, WebGL2RenderingContext.DEPTH_BUFFER_BIT)
 
         this.glContext.drawObject(this.opaqueLightingPostprocessingObject)
+
+        if (skyBox) this.glContext.drawObject(skyBox)
 
         for (const object of transparentObjects) {
             this.glContext.drawObject(object)
@@ -384,7 +389,7 @@ function getObjectsInFrustumFromNode(
 
                 if (
                     boundingBox.isEmpty()
-                    || (object instanceof ParticleSystemObject && frustum.intersectsBox(_box3.copy(boundingBox)))
+                    || (object instanceof GlObjectParticleSystem && frustum.intersectsBox(_box3.copy(boundingBox)))
                     || frustum.intersectsBox(_box3.copy(boundingBox).applyMatrix4(node.worldMatrix))
                 ) {
                     result.push(object)
