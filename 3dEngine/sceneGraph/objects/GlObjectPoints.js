@@ -9,7 +9,7 @@ import { GlAttribute } from "../../webgl/glDescriptors/GlAttribute.js"
 import { GlObject } from "../../webgl/glDescriptors/GlObject.js"
 import { GlProgram } from "../../webgl/glDescriptors/GlProgram.js"
 import { GlVao } from "../../webgl/glDescriptors/GlVao.js"
-import { GlRenderer } from "../../webgl/glRenderer/GlRenderer.js"
+import { GlDeferredOpaqueFB } from "../../webgl/glRenderer/GlDeferredOpaqueFB.js"
 
 const glProgram = new GlProgram(() => `#version 300 es
 #define ATTENUATION 100.0
@@ -88,7 +88,7 @@ export class GlObjectPoints extends GlObject {
          *      colors: Float32Array
          *      sizes: Float32Array
          *      worldMatrix: Matrix4
-         *      deferredTextures: GlRenderer['deferredTextures']
+         *      deferredTextures: GlDeferredOpaqueFB['deferredTextures']
          * }}
         */
         {

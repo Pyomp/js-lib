@@ -12,6 +12,8 @@ import { GlObject } from "../glDescriptors/GlObject.js"
 import { GlFrameBuffer } from "../glDescriptors/GlFrameBuffer.js"
 import { GlFrameBufferRenderer } from "./GlFrameBufferRenderer.js"
 import { GlVaoRenderer } from "./GlVaoRenderer.js"
+import { GlRenderBuffer } from "../glDescriptors/GlRenderBuffer.js"
+import { GlRenderBufferRenderer } from "./GlRenderBufferRenderer.js"
 
 
 
@@ -27,7 +29,7 @@ export class GlContextRenderer {
         /** @type {HTMLCanvasElement} */ canvas = document.createElement('canvas'),
         /** @type {WebGLContextAttributes} */ options = {
             alpha: true,
-            antialias: true,
+            antialias: false,
             depth: true,
             failIfMajorPerformanceCaveat: false,
             powerPreference: 'default',
@@ -126,6 +128,27 @@ export class GlContextRenderer {
             texture.dispose()
         }
         this.#textures.clear()
+    }
+
+
+    /** @type {Map<GlRenderBuffer, GlRenderBufferRenderer>} */ #renderBuffers = new Map()
+    /** @returns {GlRenderBufferRenderer} */
+    getGlRenderBuffer(/** @type {GlRenderBuffer} */ glRenderBuffer) {
+        if (!this.#renderBuffers.has(glRenderBuffer)) {
+            this.#renderBuffers.set(glRenderBuffer, new GlRenderBufferRenderer(this, glRenderBuffer))
+        }
+        // @ts-ignore
+        return this.#renderBuffers.get(glRenderBuffer)
+    }
+    freeGlRenderBuffer(/** @type {GlRenderBuffer} */ glRenderBuffer) {
+        this.#renderBuffers.get(glRenderBuffer)?.dispose()
+        this.#renderBuffers.delete(glRenderBuffer)
+    }
+    freeAllRenderBuffer() {
+        for (const renderBuffer of this.#renderBuffers.values()) {
+            renderBuffer.dispose()
+        }
+        this.#renderBuffers.clear()
     }
 
     /** @type {Map<GlUbo, GlUboRenderer>} */ #ubos = new Map()

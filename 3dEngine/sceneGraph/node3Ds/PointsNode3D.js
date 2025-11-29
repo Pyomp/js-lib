@@ -1,3 +1,4 @@
+import { GlDeferredOpaqueFB } from "../../webgl/glRenderer/GlDeferredOpaqueFB.js"
 import { GlRenderer } from "../../webgl/glRenderer/GlRenderer.js"
 import { Node3D } from "../Node3D.js"
 import { GlObjectPoints } from "../objects/GlObjectPoints.js"
@@ -8,7 +9,7 @@ export class PointsNode3D extends Node3D {
          *      positions: Float32Array
          *      colors: Float32Array
          *      sizes: Float32Array
-         *      deferredTextures: GlRenderer['deferredTextures']
+         *      deferredTextures: GlDeferredOpaqueFB['deferredTextures']
          * }}
         */
         {

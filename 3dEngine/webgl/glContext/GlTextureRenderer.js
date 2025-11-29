@@ -161,7 +161,9 @@ export class GlTextureRenderer {
         this.#update()
     }
 
-    attachToBoundFrameBuffer(attachment) {
+    attachToBoundFrameBuffer(
+        /** @type {number} */ attachment
+    ) {
         this.#gl.bindTexture(this.#target, this.#webGlTexture)
         this.#update()
         this.#gl.framebufferTexture2D(WebGL2RenderingContext.FRAMEBUFFER, attachment, this.#target, this.#webGlTexture, 0)

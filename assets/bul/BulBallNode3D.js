@@ -14,6 +14,7 @@ import { getDefinedOrThrow } from "../../utils/utils.js"
 import { GlTextureRGBA } from "../../3dEngine/textures/GlTextureRGBA.js"
 import { TransparentBasicGlObject } from "../../3dEngine/sceneGraph/objects/TransparentBasicGlObject.js"
 import { BasicGlVao } from "../../3dEngine/sceneGraph/vao/BasicGlVao.js"
+import { GlDeferredOpaqueFB } from "../../3dEngine/webgl/glRenderer/GlDeferredOpaqueFB.js"
 
 const particleKeyFrames = [
     new ParticleKeyframe({ time: 0, color: new Color(1, .5, .5, 0.8), size: 4 }),
@@ -53,7 +54,7 @@ export class BulBallNode3D extends Node3D {
     #outerSphereNode = new Node3D()
 
     constructor(
-        /** @type {GlRenderer['deferredTextures']} */ deferredTextures
+        /** @type {GlDeferredOpaqueFB['deferredTextures']} */ deferredTextures
     ) {
         super()
 

@@ -40,7 +40,7 @@ export class OpaqueLightingPostprocessingObject extends GlObject {
             depthTest: false,
             uniforms: {
                 noiseTexture: new GlTextureNoise(),
-                ...GLSL_DEFERRED.createUserUniform(renderer.deferredTextures)
+                ...GLSL_DEFERRED.createUserUniform(renderer.deferredOpaqueFB.deferredTextures)
             },
             glVao: new GlVao([
                 new GlAttribute({

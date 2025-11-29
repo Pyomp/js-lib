@@ -5,7 +5,7 @@ import { Color } from "../../../math/Color.js"
 
 const UBO_F32A_LENGTH = GLSL_AMBIENT_LIGHT.uboByteLength / Float32Array.BYTES_PER_ELEMENT
 
-const _color = new Color()
+const _color = new Color(0, 0, 0)
 
 export class GlAmbientLightRenderer {
     glUboData = new GlUbo(GLSL_AMBIENT_LIGHT.uboByteLength)

@@ -1,4 +1,5 @@
 import { GlFrameBuffer } from "../glDescriptors/GlFrameBuffer.js"
+import { GlRenderBuffer } from "../glDescriptors/GlRenderBuffer.js"
 import { GlTexture } from "../glDescriptors/GlTexture.js"
 import { GlContextRenderer } from "./GlContextRenderer.js"
 
@@ -21,19 +22,33 @@ export class GlFrameBufferRenderer {
         this.#updateAttachments()
     }
 
-    /** @type {Map<GlTexture, number>} */
+    /** @type {Map<GlTexture | GlRenderBuffer, number>} */
     #attachmentVersion = new Map()
 
-    #framebufferTexture2D(attachment, /** @type {GlTexture} */ glTexture) {
+    #framebufferTexture2D(
+        /** @type {number} */ attachment,
+        /** @type {GlTexture} */ glTexture
+    ) {
         const glTextureRenderer = this.#glContext.getGlTexture(glTexture)
         glTextureRenderer.attachToBoundFrameBuffer(attachment)
 
         this.#attachmentVersion.set(glTexture, glTexture.paramsVersion)
     }
 
+    #framebufferRenderbuffer(
+        /** @type {number} */ attachment,
+        /** @type {GlRenderBuffer} */ glRenderBuffer
+    ) {
+        const glRenderBufferRenderer = this.#glContext.getGlRenderBuffer(glRenderBuffer)
+        glRenderBufferRenderer.attachToBoundFrameBuffer(attachment)
+
+        this.#attachmentVersion.set(glRenderBuffer, glRenderBuffer.version)
+    }
+
     isNeedsUpdate() {
-        for (const [glTexture, version] of this.#attachmentVersion.entries()) {
-            if (glTexture.paramsVersion !== version) return true
+        for (const [glObject, version] of this.#attachmentVersion.entries()) {
+            if (glObject instanceof GlTexture && glObject.paramsVersion !== version) return true
+            if (glObject instanceof GlRenderBuffer && glObject.version !== version) return true
         }
         return false
     }
@@ -49,6 +64,8 @@ export class GlFrameBufferRenderer {
             attachments.push(attachmentNumber)
             if (glData instanceof GlTexture) {
                 this.#framebufferTexture2D(attachmentNumber, glData)
+            } else if (glData instanceof GlRenderBuffer) {
+                this.#framebufferRenderbuffer(attachmentNumber, glData)
             }
         }
 

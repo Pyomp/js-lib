@@ -13,7 +13,7 @@ import { GlObject } from "../../webgl/glDescriptors/GlObject.js"
 import { GlProgram } from "../../webgl/glDescriptors/GlProgram.js"
 import { GlTexture } from "../../webgl/glDescriptors/GlTexture.js"
 import { GlVao } from "../../webgl/glDescriptors/GlVao.js"
-import { GlRenderer } from "../../webgl/glRenderer/GlRenderer.js"
+import { GlDeferredOpaqueFB } from "../../webgl/glRenderer/GlDeferredOpaqueFB.js"
 import { ParticleKeyframe } from "../particle/ParticleKeyframe.js"
 
 const FLOAT_32_ELEMENT_COUNT = 7
@@ -205,7 +205,7 @@ export class GlObjectParticleSystem extends GlObject {
          *      additiveBlending?: boolean
          *      normalBlending?: boolean
          *      keyframes: ParticleKeyframe[]
-         *      deferredTextures: GlRenderer['deferredTextures']
+         *      deferredTextures: GlDeferredOpaqueFB['deferredTextures']
          *      maxVelocity?: number
          * }}
         */
