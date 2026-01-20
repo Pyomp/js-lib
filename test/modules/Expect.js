@@ -60,6 +60,11 @@ export class Expect {
             this.#throwError(expectedValue)
         }
     }
+
+    toBeCloseTo(expectedValue, precision = 0.00001) {
+        const isExpected = this.value < expectedValue + precision && this.value > expectedValue - precision
+        if (!isExpected) this.#throwError(expectedValue)
+    }
 }
 
 

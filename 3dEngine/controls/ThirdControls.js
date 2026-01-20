@@ -23,7 +23,6 @@ export class ThirdControls {
 
     spherical = new Spherical(MaxDistCam, 0.8, 0.8)
     #wantedSpherical = new Spherical().copy(this.spherical)
-
     #direction = new Vector3(5, 5, 5)
 
     #cameraPosition
@@ -180,6 +179,7 @@ export class ThirdControls {
         }
 
         const onPointermove = (e) => {
+            if (Math.abs(e.movementX) + Math.abs(e.movementY) > 100) return
             this.#dx += e.movementX
             this.#dy += e.movementY
         }

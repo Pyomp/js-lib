@@ -13,7 +13,7 @@ export const consoleUtils = {
         console.group(`${testFileUrl} (${time.toFixed()} ms)`)
         for (const line of result) {
             if (line.type === 'test') {
-                line.result.error = line.result.error.replaceAll(/http:\/\/localhost:\d*\//gm, './')
+                line.result.error = line.result.error?.replaceAll(/http:\/\/localhost:\d*\//gm, './')
             }
         }
         appTestUtils.pprint(result)

@@ -47,11 +47,11 @@ export class EventValue {
     /** @type {T} */
     #value
 
-    /** @type {EventSet<()=>void>} */
+    /** @type {EventSet<(value: T)=>void>} */
     onChange = new EventSet()
 
     get value() { return this.#value }
-    set value(v) { if (this.#value !== v) { this.#value = v; this.onChange.emit() } }
+    set value(v) { if (this.#value !== v) { this.#value = v; this.onChange.emit(this.#value) } }
 
     constructor(
         /** @type {T} */ value
