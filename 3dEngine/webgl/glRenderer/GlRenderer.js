@@ -80,7 +80,7 @@ export class GlRenderer {
                 powerPreference: 'default',
                 premultipliedAlpha: true,
                 preserveDrawingBuffer: false,
-                stencil: false
+                stencil: true
             },
             {
                 [GLSL_CAMERA.uboName]: this.#cameraUbo.glUboData,

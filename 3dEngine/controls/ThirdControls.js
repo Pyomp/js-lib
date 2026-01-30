@@ -14,7 +14,7 @@ const MaxDistCam = 70
 const MinDistCamToGround = 0.5
 
 export class ThirdControls {
-    offsetY = 0.6
+    offsetY = 0.9
     sensitivity = 5
 
     #targetOffset = new Vector3()
